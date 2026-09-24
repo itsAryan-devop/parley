@@ -229,8 +229,8 @@ class ParleyAgent:
         ):
             if self.kernel.registry.in_flight():
                 self.floor.progress()
-            else:
-                self._ask_for_missing()
+            elif not self._ask_for_missing():
+                self._answer_from_what_we_have(just_bound)
 
         if event.end_of_turn:
             self._turn_text.clear()
@@ -351,21 +351,24 @@ class ParleyAgent:
                 return record
         return None
 
-    def _ask_for_missing(self) -> None:
+    def _ask_for_missing(self) -> bool:
         """Nothing could be planned and nothing is running — so ask why.
 
         A specific question scores where silence does not, and where a generic
         failure scores worse still. Each slot is asked about once: repeating
         "Where to?" every turn is its own failure mode.
+
+        Returns whether it asked, so the caller can fall through to something
+        else rather than leaving the turn unanswered.
         """
         if self.state.intent is None:
-            return
+            return False
         missing = [
             name for name in self.planner.missing_for(self.state.intent, self.state)
             if name not in self._asked_for
         ]
         if not missing:
-            return
+            return False
 
         slot = missing[0]
         self._asked_for.add(slot)
@@ -376,6 +379,34 @@ class ParleyAgent:
         )
         options = next((p.enum for p in spec.params if p.name == slot), []) if spec else []
         self.floor.clarify_missing(slot, options or [])
+        return True
+
+    def _answer_from_what_we_have(self, just_bound: set[str]) -> None:
+        """The turn produced no plan and nothing is running. Do not go silent.
+
+        Two things are worth saying. If the turn bound a slot that no tool
+        happens to consume — "for 3 people" against a search that takes no
+        party size — confirm we heard it, or the user has no way to know. And
+        if the turn asked about work we have already done — "what have you
+        got?" — answer from the results rather than making them wait for the
+        end of the session.
+        """
+        if just_bound:
+            spoken = self.floor.acknowledge_slots(just_bound)
+            if spoken is not None:
+                return
+
+        usable = [
+            r for r in self.kernel.registry
+            if r.outcome is CallOutcome.COMPLETED_STILL_VALID
+            and r.result is not None
+            and not self.state.is_stale(r.read_slots, r.state_revision)
+        ]
+        if not usable:
+            return
+
+        latest = usable[-1]
+        self.floor.recap(_describe_result(latest), latest)
 
     def _is_committal(self, text: str) -> bool:
         words = {w.strip(",.!?").lower() for w in text.split()}
@@ -471,7 +502,14 @@ class ParleyAgent:
             )
             for call in planned
         ]
-        lead = next((r for r in records if r.in_flight), None)
+        # The call the perception actually caused — the one that READ the slot
+        # we just bound. Taking the first in-flight record instead picked up an
+        # unrelated flight search that happened to still be running, and the
+        # agent announced "Looks like router wan led amber — searching flights
+        # now."
+        lead = next(
+            (r for r in records if r.in_flight and perception.slot in r.read_slots), None
+        )
 
         self.floor.report_perception(
             perception.label, perception.confidence, ident,

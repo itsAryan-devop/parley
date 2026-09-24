@@ -43,7 +43,7 @@ Or locally, on Python 3.10–3.12:
 ```bash
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 python scripts/run_scenarios.py          # public suite + scorecard
-python -m pytest                          # 254 tests
+python -m pytest                          # 275 tests
 python scripts/fuzz.py --trials 60        # adversarial timing
 python scripts/view.py --trace S02_slot_correction   # the timeline viewer
 ```
@@ -59,12 +59,12 @@ Scored against our reconstruction of the published rubric
 
 | | scenarios | mean score |
 |---|---|---|
-| text | 13 | 110.4 |
-| audio | 5 | 108.0 |
-| visual | 4 | 108.8 |
-| **all** | **22** | **109.5** |
+| text | 16 | 110.1 |
+| audio | 7 | 107.1 |
+| visual | 6 | 109.2 |
+| **all** | **29** | **109.2** |
 
-**22/22 scenarios pass every check they declare.** Scores exceed 100 because the quality multiplier
+**29/29 scenarios pass every check they declare.** Scores exceed 100 because the quality multiplier
 (0.80×–1.20×) applies on top of the 100-point rubric.
 
 **Every adversarially perturbed run holds every invariant** — thousands of runs at up to ±1400 ms
@@ -75,6 +75,17 @@ fired, and sessions truncated mid-flight.
 **Speculation hides 1100 ms at a 50% join rate** — above the 39% published for n-gram-driven
 speculation, which is the expected direction: bound slots are a stronger signal than predicting the
 next tool in a sequence. Measured from the traces by `scripts/speculation_report.py`, not asserted.
+
+**The runtime budget is not close to being a constraint** (`scripts/perf_report.py`):
+
+| | measured | budget |
+|---|---|---|
+| cold start — imports, model loads, first scenario | **1.05 s** | 300 s warm-up hook |
+| slowest scenario, wall clock | **119 ms** | 120 s per-scenario cap |
+| whole suite | **&lt;0.5 s** | — |
+
+The slowest scenario could get **1000× slower** and still fit. That is the payoff from virtual time
+(a 10-second tool call costs nothing real) and from a fast path with no inference in it.
 
 Perception abstains on **100%** of undecidable frames and **11/12** undecidable clips rather than
 guessing.
@@ -195,7 +206,7 @@ Two subtleties that took real debugging:
 
 ### Adversarial timing
 
-The hidden set is ~60 scenarios of "edge cases and adversarial timing". Passing twenty-two scenarios
+The hidden set is ~60 scenarios of "edge cases and adversarial timing". Passing twenty-nine scenarios
 we wrote proves little — they are the cases we thought of. `harness/fuzz.py` perturbs everything and
 asserts only **invariants**, never expectations:
 

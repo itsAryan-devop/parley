@@ -111,6 +111,9 @@ def describe_tool(tool: str) -> str:
 
 
 def phrase_slot(name: str, value: Any) -> str:
+    # A count wants its noun: "for 3" alone reads as an unfinished sentence.
+    if name == "party_size" and isinstance(value, int):
+        return f"for {value} {'person' if value == 1 else 'people'}"
     return _PHRASING.get(name, "{n} {v}").format(n=name.replace("_", " "), v=value)
 
 
@@ -446,6 +449,30 @@ class FloorManager:
             )
 
         return self._emit(Utterance(text=text, kind=SpeechKind.ACK, claims=claims))
+
+    def recap(self, summary: str, record: CallRecord) -> Speak | None:
+        """Answer "what have you got?" from a result we already hold.
+
+        Never re-runs anything: the whole point is that the work is done and
+        the user is asking about it. The claim is a completion, so the gate
+        refuses if the call has since gone stale or been cancelled — which is
+        exactly the check that stops this becoming a way to report superseded
+        results.
+        """
+        return self._emit(
+            Utterance(
+                text=summary,
+                kind=SpeechKind.PROGRESS,
+                claims=[
+                    Claim(
+                        kind=ClaimKind.COMPLETED,
+                        subject=record.call_id,
+                        value=record.tool,
+                        warrant=f"settled {record.outcome.value} at {record.settled_at:.0f} ms",
+                    )
+                ],
+            )
+        )
 
     def progress(self) -> Speak | None:
         """Narrate live work. Degrades to nothing rather than to a claim."""

@@ -1,12 +1,12 @@
 {
-  "id": "S17_audio_backchannel_during_diagnosis",
-  "title": "A listener noise while a diagnosis runs",
-  "modality": "audio",
-  "description": "'mhm' is the user signalling attention, not interrupting. A VAD-triggered system stops speaking and flushes the pipeline here; both are wrong, and the flush would force a stale re-run of the diagnosis.",
+  "id": "S24_manifest_arrives_late",
+  "title": "Tools show up after the conversation has started",
+  "modality": "text",
+  "description": "The manifest is an event, not configuration, so it can arrive mid-session and can replace what was there. The agent must not have cached a tool list, a vocabulary, or an intent map derived from the old one \u2014 all three are re-derived, which is the property that makes unseen tools work.",
   "probes": [
-    "backchannel",
-    "no spurious cancellation",
-    "floor continues"
+    "dynamic manifest",
+    "vocabulary re-derivation",
+    "unseen tools"
   ],
   "manifest": [
     {
@@ -88,7 +88,7 @@
       "cancel_booking": 200,
       "get_booking_status": 120,
       "lookup_manual": 500,
-      "diagnose_sound": 1500,
+      "diagnose_sound": 450,
       "create_ticket": 800
     }
   },
@@ -96,62 +96,39 @@
     {
       "type": "session_start",
       "t": 0.0,
-      "session_id": "S17"
-    },
-    {
-      "type": "tool_manifest",
-      "t": 0.0,
-      "manifest": "@manifest"
+      "session_id": "S24"
     },
     {
       "type": "transcript_chunk",
       "t": 100,
-      "text": "have a listen to this",
+      "text": "the washing machine is grinding",
       "end_of_turn": true
     },
     {
-      "type": "audio_clip",
-      "t": 300,
-      "clip_id": "clicking",
-      "path": "media/scenarios/audio/clicking.wav"
-    },
-    {
-      "type": "interruption",
-      "t": 800,
-      "source": "vad"
+      "type": "tool_manifest",
+      "t": 600.0,
+      "manifest": "@manifest"
     },
     {
       "type": "transcript_chunk",
-      "t": 820,
-      "text": "mhm",
-      "end_of_turn": true
-    },
-    {
-      "type": "interruption",
-      "t": 1100,
-      "source": "vad"
-    },
-    {
-      "type": "transcript_chunk",
-      "t": 1120,
-      "text": "yeah",
+      "t": 900,
+      "text": "it's grinding, have a look at that",
       "end_of_turn": true
     },
     {
       "type": "session_end",
-      "t": 4500,
+      "t": 4000,
       "reason": "complete"
     }
   ],
   "expect": {
+    "intent": "troubleshoot",
     "slots": {
-      "sound": "clicking"
+      "sound": "grinding"
     },
-    "survived_tools": [
+    "tools_called": [
       "diagnose_sound"
     ],
-    "tools_not_called": [
-      "create_ticket"
-    ]
+    "notes": "Nothing may be dispatched before the manifest arrives."
   }
 }

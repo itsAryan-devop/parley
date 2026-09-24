@@ -1,12 +1,12 @@
 {
-  "id": "S17_audio_backchannel_during_diagnosis",
-  "title": "A listener noise while a diagnosis runs",
+  "id": "S29_audio_to_ticket",
+  "title": "From a recording to a service ticket",
   "modality": "audio",
-  "description": "'mhm' is the user signalling attention, not interrupting. A VAD-triggered system stops speaking and flushes the pipeline here; both are wrong, and the flush would force a stale re-run of the diagnosis.",
+  "description": "The full chain in the audio modality: a clip binds the sound, the sound drives a diagnosis, and the user then asks for an engineer. The ticket is state-modifying, so it needs a commit verb and exactly one of it must reach the environment however many times the user asks.",
   "probes": [
-    "backchannel",
-    "no spurious cancellation",
-    "floor continues"
+    "audio-to-mutating chain",
+    "commit verb gating",
+    "idempotency"
   ],
   "manifest": [
     {
@@ -88,7 +88,7 @@
       "cancel_booking": 200,
       "get_booking_status": 120,
       "lookup_manual": 500,
-      "diagnose_sound": 1500,
+      "diagnose_sound": 450,
       "create_ticket": 800
     }
   },
@@ -96,7 +96,7 @@
     {
       "type": "session_start",
       "t": 0.0,
-      "session_id": "S17"
+      "session_id": "S29"
     },
     {
       "type": "tool_manifest",
@@ -106,52 +106,50 @@
     {
       "type": "transcript_chunk",
       "t": 100,
-      "text": "have a listen to this",
+      "text": "listen to this racket",
       "end_of_turn": true
     },
     {
       "type": "audio_clip",
-      "t": 300,
-      "clip_id": "clicking",
-      "path": "media/scenarios/audio/clicking.wav"
-    },
-    {
-      "type": "interruption",
-      "t": 800,
-      "source": "vad"
+      "t": 350,
+      "clip_id": "grinding",
+      "path": "media/scenarios/audio/grinding.wav"
     },
     {
       "type": "transcript_chunk",
-      "t": 820,
-      "text": "mhm",
+      "t": 1600,
+      "text": "raise a ticket for that please",
       "end_of_turn": true
     },
     {
-      "type": "interruption",
-      "t": 1100,
-      "source": "vad"
-    },
-    {
       "type": "transcript_chunk",
-      "t": 1120,
-      "text": "yeah",
+      "t": 2600,
+      "text": "did you raise it? raise a ticket",
       "end_of_turn": true
     },
     {
       "type": "session_end",
-      "t": 4500,
+      "t": 5500,
       "reason": "complete"
     }
   ],
   "expect": {
+    "intent": "troubleshoot",
     "slots": {
-      "sound": "clicking"
+      "sound": "grinding"
     },
-    "survived_tools": [
-      "diagnose_sound"
-    ],
-    "tools_not_called": [
+    "tools_called": [
+      "diagnose_sound",
       "create_ticket"
-    ]
+    ],
+    "live_effects": [
+      {
+        "tool": "create_ticket",
+        "args": {
+          "sound": "grinding"
+        }
+      }
+    ],
+    "no_duplicate_effects": true
   }
 }

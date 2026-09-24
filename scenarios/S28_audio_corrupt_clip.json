@@ -1,12 +1,12 @@
 {
-  "id": "S17_audio_backchannel_during_diagnosis",
-  "title": "A listener noise while a diagnosis runs",
+  "id": "S28_audio_corrupt_clip",
+  "title": "A clip that is not really a clip",
   "modality": "audio",
-  "description": "'mhm' is the user signalling attention, not interrupting. A VAD-triggered system stops speaking and flushes the pipeline here; both are wrong, and the flush would force a stale re-run of the diagnosis.",
+  "description": "A truncated upload \u2014 bytes that are not a WAV at all, which is what a dropped connection produces. The agent must ask rather than crash, and must not invent a label to fill the gap. Graceful degradation on bad input is not glamorous but it is the difference between a scenario scoring partially and scoring zero.",
   "probes": [
-    "backchannel",
-    "no spurious cancellation",
-    "floor continues"
+    "decode failure",
+    "graceful degradation",
+    "clarification"
   ],
   "manifest": [
     {
@@ -88,7 +88,7 @@
       "cancel_booking": 200,
       "get_booking_status": 120,
       "lookup_manual": 500,
-      "diagnose_sound": 1500,
+      "diagnose_sound": 450,
       "create_ticket": 800
     }
   },
@@ -96,7 +96,7 @@
     {
       "type": "session_start",
       "t": 0.0,
-      "session_id": "S17"
+      "session_id": "S28"
     },
     {
       "type": "tool_manifest",
@@ -106,51 +106,28 @@
     {
       "type": "transcript_chunk",
       "t": 100,
-      "text": "have a listen to this",
+      "text": "have a listen and tell me what's wrong",
       "end_of_turn": true
     },
     {
       "type": "audio_clip",
-      "t": 300,
-      "clip_id": "clicking",
-      "path": "media/scenarios/audio/clicking.wav"
-    },
-    {
-      "type": "interruption",
-      "t": 800,
-      "source": "vad"
-    },
-    {
-      "type": "transcript_chunk",
-      "t": 820,
-      "text": "mhm",
-      "end_of_turn": true
-    },
-    {
-      "type": "interruption",
-      "t": 1100,
-      "source": "vad"
-    },
-    {
-      "type": "transcript_chunk",
-      "t": 1120,
-      "text": "yeah",
-      "end_of_turn": true
+      "t": 400,
+      "clip_id": "corrupt",
+      "path": "media/scenarios/audio/corrupt.wav"
     },
     {
       "type": "session_end",
-      "t": 4500,
+      "t": 3000,
       "reason": "complete"
     }
   ],
   "expect": {
-    "slots": {
-      "sound": "clicking"
-    },
-    "survived_tools": [
-      "diagnose_sound"
+    "must_clarify": true,
+    "absent_slots": [
+      "sound"
     ],
     "tools_not_called": [
+      "diagnose_sound",
       "create_ticket"
     ]
   }

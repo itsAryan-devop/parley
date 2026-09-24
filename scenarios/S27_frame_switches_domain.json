@@ -1,0 +1,233 @@
+{
+  "id": "S27_frame_switches_domain",
+  "title": "A device photo interrupts a flight booking",
+  "modality": "visual",
+  "description": "Mid flight-search, the user photographs a broken router. The goal switch arrives through the camera rather than through speech, and the flight search \u2014 which read the destination \u2014 is no longer wanted. The travel slots must not leak into the troubleshooting snapshot.",
+  "probes": [
+    "cross-domain goal switch via perception",
+    "slot isolation",
+    "two manifests"
+  ],
+  "manifest": [
+    {
+      "name": "search_flights",
+      "description": "search available flights between two cities",
+      "read_only": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "origin",
+          "type": "string"
+        },
+        {
+          "name": "destination",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        },
+        {
+          "name": "time_of_day",
+          "type": "string",
+          "enum": [
+            "morning",
+            "afternoon",
+            "evening"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "book_flight",
+      "description": "reserve a seat on a specific flight",
+      "mutating": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "cancel_booking",
+      "description": "undo a flight reservation",
+      "mutating": true,
+      "inverse_of": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "get_booking_status",
+      "description": "list reservations currently held",
+      "read_only": true,
+      "verifies": "book_flight",
+      "params": []
+    },
+    {
+      "name": "search_hotels",
+      "description": "search available hotels in a city",
+      "read_only": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "city",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "book_hotel",
+      "description": "reserve a hotel room",
+      "mutating": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "hotel_id",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "lookup_manual",
+      "description": "look up a device fault in the service manual",
+      "read_only": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "router_power_led_red",
+            "router_wan_led_amber",
+            "washer_error_e4",
+            "washer_drum_noise",
+            "tv_hdmi_no_signal"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "diagnose_sound",
+      "description": "identify the mechanical cause of an appliance sound",
+      "read_only": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "sound",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "beeping",
+            "continuous_tone",
+            "grinding",
+            "clicking",
+            "silence"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "create_ticket",
+      "description": "raise a service ticket for an engineer visit",
+      "mutating": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "label",
+          "type": "string",
+          "enum": [
+            "router_power_led_red",
+            "router_wan_led_amber",
+            "washer_error_e4",
+            "washer_drum_noise",
+            "tv_hdmi_no_signal"
+          ]
+        },
+        {
+          "name": "sound",
+          "type": "string",
+          "enum": [
+            "beeping",
+            "continuous_tone",
+            "grinding",
+            "clicking",
+            "silence"
+          ]
+        }
+      ]
+    }
+  ],
+  "env": {
+    "latency_ms": {
+      "search_flights": 2000,
+      "search_hotels": 650,
+      "book_flight": 900,
+      "cancel_booking": 200,
+      "get_booking_status": 120,
+      "lookup_manual": 500,
+      "diagnose_sound": 450,
+      "create_ticket": 800
+    }
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "t": 0.0,
+      "session_id": "S27"
+    },
+    {
+      "type": "tool_manifest",
+      "t": 0.0,
+      "manifest": "@manifest"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 100,
+      "text": "find me a flight to Goa on Saturday",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 700,
+      "text": "hang on, look at this instead",
+      "end_of_turn": true
+    },
+    {
+      "type": "video_frame",
+      "t": 900,
+      "frame_id": "router_wan_led_amber",
+      "path": "media/scenarios/frames/router_wan_led_amber.png"
+    },
+    {
+      "type": "session_end",
+      "t": 4500,
+      "reason": "complete"
+    }
+  ],
+  "expect": {
+    "slots": {
+      "label": "router_wan_led_amber"
+    },
+    "tools_called": [
+      "lookup_manual"
+    ],
+    "no_duplicate_effects": true,
+    "notes": "The flight search may finish or be cancelled depending on timing; what matters is that the manual lookup happens and nothing is double-committed."
+  }
+}

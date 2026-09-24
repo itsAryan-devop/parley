@@ -103,7 +103,15 @@ SUPPORT = [
         "description": "raise a service ticket for an engineer visit",
         "mutating": True,
         "intent": "troubleshoot",
-        "params": [{"name": "label", "type": "string", "required": True, "enum": FAULT_LABELS}],
+        # Neither is required, because a ticket describes the symptom in
+        # whatever form it arrived. Demanding `label` meant a fault reported
+        # entirely through a RECORDING could never be escalated: the agent had
+        # diagnosed the grinding and still had to ask "what's the device doing?"
+        # before it could raise anything.
+        "params": [
+            {"name": "label", "type": "string", "enum": FAULT_LABELS},
+            {"name": "sound", "type": "string", "enum": SOUND_LABELS},
+        ],
     },
 ]
 
@@ -590,6 +598,92 @@ SCENARIOS: list[dict] = [
         },
     },
     {
+        "id": "S23_conflicting_values_in_one_breath",
+        "title": "Two destinations in a single utterance",
+        "modality": "text",
+        "description": (
+            "'A flight to Delhi, or actually Mumbai' names two values for one slot in "
+            "one breath. The last one wins — that is how self-correction works in "
+            "speech — and no call may go out on the abandoned value. The risk here is "
+            "dispatching on the first value before the sentence finishes."
+        ),
+        "probes": ["intra-utterance correction", "no dispatch on an abandoned value"],
+        "manifest": TRAVEL,
+        "env": {"latency_ms": FAST},
+        "events": start("S23") + [
+            say(100, "I want a flight to Delhi, or actually Mumbai, on Friday", eot=True),
+            end(3500),
+        ],
+        "expect": {
+            "intent": "book_flight",
+            "slots": {"destination": "BOM", "date": "Friday"},
+            "no_duplicate_effects": True,
+            "notes": "Exactly one search, and its destination must be BOM.",
+        },
+    },
+    {
+        "id": "S24_manifest_arrives_late",
+        "title": "Tools show up after the conversation has started",
+        "modality": "text",
+        "description": (
+            "The manifest is an event, not configuration, so it can arrive mid-session "
+            "and can replace what was there. The agent must not have cached a tool "
+            "list, a vocabulary, or an intent map derived from the old one — all three "
+            "are re-derived, which is the property that makes unseen tools work."
+        ),
+        "probes": ["dynamic manifest", "vocabulary re-derivation", "unseen tools"],
+        "manifest": SUPPORT,
+        "env": {"latency_ms": FAST},
+        "events": [
+            {"type": "session_start", "t": 0.0, "session_id": "S24"},
+            say(100, "the washing machine is grinding", eot=True),
+            {"type": "tool_manifest", "t": 600.0, "manifest": "@manifest"},
+            say(900, "it's grinding, have a look at that", eot=True),
+            end(4000),
+        ],
+        "expect": {
+            "intent": "troubleshoot",
+            "slots": {"sound": "grinding"},
+            "tools_called": ["diagnose_sound"],
+            "notes": "Nothing may be dispatched before the manifest arrives.",
+        },
+    },
+    {
+        "id": "S25_long_session_state_survives",
+        "title": "Eight turns, three corrections, one booking",
+        "modality": "text",
+        "description": (
+            "Session-scoped slot tracking over a realistic conversation rather than a "
+            "three-line vignette. Slots accumulate, get corrected, survive turns that "
+            "have nothing to do with them, and the snapshot at the end must reflect "
+            "every last correction — which is the failure IHBench reports most often "
+            "in deployed agents."
+        ),
+        "probes": ["session slot tracking", "state preservation", "no drift over turns"],
+        "manifest": TRAVEL,
+        "env": {"latency_ms": {**FAST, "search_flights": 900}},
+        "events": start("S25") + [
+            say(100, "I need to fly to Delhi", eot=True),
+            say(1200, "on Monday", eot=True),
+            say(2300, "for 3 people", eot=True),
+            say(3400, "sorry, make that Bengaluru", eot=True),
+            say(4600, "morning flights only", eot=True),
+            say(5800, "actually Tuesday not Monday", eot=True),
+            say(7000, "what have you got?", eot=True),
+            say(8200, "book UK550", eot=True),
+            end(11000),
+        ],
+        "expect": {
+            "intent": "book_flight",
+            "slots": {
+                "destination": "BLR", "date": "Tuesday",
+                "party_size": 3, "time_of_day": "morning", "flight_no": "UK550",
+            },
+            "live_effects": [{"tool": "book_flight", "args": {"flight_no": "UK550"}}],
+            "no_duplicate_effects": True,
+        },
+    },
+    {
         "id": "S18_visual_ticket_disclosure",
         "title": "A ticket is raised from a photo, then the user changes appliance",
         "modality": "visual",
@@ -617,6 +711,59 @@ SCENARIOS: list[dict] = [
             "slots": {"label": "tv_hdmi_no_signal"},
             "tools_called": ["create_ticket", "lookup_manual"],
             "notes": "The transcript must mention the ticket we could not confirm.",
+        },
+    },
+    {
+        "id": "S26_unprompted_frame",
+        "title": "A photo arrives with nothing said at all",
+        "modality": "visual",
+        "description": (
+            "No transcript, no intent, no slots — just an image. Everything downstream "
+            "has to be derived from the pixels: the perception binds a slot, the slot "
+            "implies a goal, the goal makes a tool plannable. Any step that quietly "
+            "depended on somebody having spoken first breaks here."
+        ),
+        "probes": ["perception-only session", "intent inference from a slot", "no speech context"],
+        "manifest": SUPPORT,
+        "env": {"latency_ms": FAST},
+        "events": start("S26") + [
+            frame(200, "washer_error_e4"),
+            end(3000),
+        ],
+        "expect": {
+            "intent": "troubleshoot",
+            "slots": {"label": "washer_error_e4"},
+            "tools_called": ["lookup_manual"],
+            "max_first_response_ms": 300,
+        },
+    },
+    {
+        "id": "S27_frame_switches_domain",
+        "title": "A device photo interrupts a flight booking",
+        "modality": "visual",
+        "description": (
+            "Mid flight-search, the user photographs a broken router. The goal switch "
+            "arrives through the camera rather than through speech, and the flight "
+            "search — which read the destination — is no longer wanted. The travel "
+            "slots must not leak into the troubleshooting snapshot."
+        ),
+        "probes": ["cross-domain goal switch via perception", "slot isolation", "two manifests"],
+        "manifest": TRAVEL + SUPPORT,
+        "env": {"latency_ms": {**FAST, "search_flights": 2000}},
+        "events": start("S27") + [
+            say(100, "find me a flight to Goa on Saturday", eot=True),
+            say(700, "hang on, look at this instead", eot=True),
+            frame(900, "router_wan_led_amber"),
+            end(4500),
+        ],
+        "expect": {
+            "slots": {"label": "router_wan_led_amber"},
+            "tools_called": ["lookup_manual"],
+            "no_duplicate_effects": True,
+            "notes": (
+                "The flight search may finish or be cancelled depending on timing; what "
+                "matters is that the manual lookup happens and nothing is double-committed."
+            ),
         },
     },
     # ---------------------------------------------------------------- audio
@@ -713,6 +860,59 @@ SCENARIOS: list[dict] = [
             "slots": {"sound": "clicking"},
             "survived_tools": ["diagnose_sound"],
             "tools_not_called": ["create_ticket"],
+        },
+    },
+    {
+        "id": "S28_audio_corrupt_clip",
+        "title": "A clip that is not really a clip",
+        "modality": "audio",
+        "description": (
+            "A truncated upload — bytes that are not a WAV at all, which is what a "
+            "dropped connection produces. The agent must ask rather than crash, and "
+            "must not invent a label to fill the gap. Graceful degradation on bad "
+            "input is not glamorous but it is the difference between a scenario "
+            "scoring partially and scoring zero."
+        ),
+        "probes": ["decode failure", "graceful degradation", "clarification"],
+        "manifest": SUPPORT,
+        "env": {"latency_ms": FAST},
+        "events": start("S28") + [
+            say(100, "have a listen and tell me what's wrong", eot=True),
+            clip(400, "corrupt"),
+            end(3000),
+        ],
+        "expect": {
+            "must_clarify": True,
+            "absent_slots": ["sound"],
+            "tools_not_called": ["diagnose_sound", "create_ticket"],
+        },
+    },
+    {
+        "id": "S29_audio_to_ticket",
+        "title": "From a recording to a service ticket",
+        "modality": "audio",
+        "description": (
+            "The full chain in the audio modality: a clip binds the sound, the sound "
+            "drives a diagnosis, and the user then asks for an engineer. The ticket is "
+            "state-modifying, so it needs a commit verb and exactly one of it must "
+            "reach the environment however many times the user asks."
+        ),
+        "probes": ["audio-to-mutating chain", "commit verb gating", "idempotency"],
+        "manifest": SUPPORT,
+        "env": {"latency_ms": FAST},
+        "events": start("S29") + [
+            say(100, "listen to this racket", eot=True),
+            clip(350, "grinding"),
+            say(1600, "raise a ticket for that please", eot=True),
+            say(2600, "did you raise it? raise a ticket", eot=True),
+            end(5500),
+        ],
+        "expect": {
+            "intent": "troubleshoot",
+            "slots": {"sound": "grinding"},
+            "tools_called": ["diagnose_sound", "create_ticket"],
+            "live_effects": [{"tool": "create_ticket", "args": {"sound": "grinding"}}],
+            "no_duplicate_effects": True,
         },
     },
     {

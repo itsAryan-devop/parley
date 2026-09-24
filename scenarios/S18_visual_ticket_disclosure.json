@@ -59,13 +59,23 @@
         {
           "name": "label",
           "type": "string",
-          "required": true,
           "enum": [
             "router_power_led_red",
             "router_wan_led_amber",
             "washer_error_e4",
             "washer_drum_noise",
             "tv_hdmi_no_signal"
+          ]
+        },
+        {
+          "name": "sound",
+          "type": "string",
+          "enum": [
+            "beeping",
+            "continuous_tone",
+            "grinding",
+            "clicking",
+            "silence"
           ]
         }
       ]

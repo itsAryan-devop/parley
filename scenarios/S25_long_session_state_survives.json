@@ -1,0 +1,202 @@
+{
+  "id": "S25_long_session_state_survives",
+  "title": "Eight turns, three corrections, one booking",
+  "modality": "text",
+  "description": "Session-scoped slot tracking over a realistic conversation rather than a three-line vignette. Slots accumulate, get corrected, survive turns that have nothing to do with them, and the snapshot at the end must reflect every last correction \u2014 which is the failure IHBench reports most often in deployed agents.",
+  "probes": [
+    "session slot tracking",
+    "state preservation",
+    "no drift over turns"
+  ],
+  "manifest": [
+    {
+      "name": "search_flights",
+      "description": "search available flights between two cities",
+      "read_only": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "origin",
+          "type": "string"
+        },
+        {
+          "name": "destination",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        },
+        {
+          "name": "time_of_day",
+          "type": "string",
+          "enum": [
+            "morning",
+            "afternoon",
+            "evening"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "book_flight",
+      "description": "reserve a seat on a specific flight",
+      "mutating": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "cancel_booking",
+      "description": "undo a flight reservation",
+      "mutating": true,
+      "inverse_of": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "get_booking_status",
+      "description": "list reservations currently held",
+      "read_only": true,
+      "verifies": "book_flight",
+      "params": []
+    },
+    {
+      "name": "search_hotels",
+      "description": "search available hotels in a city",
+      "read_only": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "city",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "book_hotel",
+      "description": "reserve a hotel room",
+      "mutating": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "hotel_id",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "env": {
+    "latency_ms": {
+      "search_flights": 900,
+      "search_hotels": 650,
+      "book_flight": 900,
+      "cancel_booking": 200,
+      "get_booking_status": 120,
+      "lookup_manual": 500,
+      "diagnose_sound": 450,
+      "create_ticket": 800
+    }
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "t": 0.0,
+      "session_id": "S25"
+    },
+    {
+      "type": "tool_manifest",
+      "t": 0.0,
+      "manifest": "@manifest"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 100,
+      "text": "I need to fly to Delhi",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 1200,
+      "text": "on Monday",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 2300,
+      "text": "for 3 people",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 3400,
+      "text": "sorry, make that Bengaluru",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 4600,
+      "text": "morning flights only",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 5800,
+      "text": "actually Tuesday not Monday",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 7000,
+      "text": "what have you got?",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 8200,
+      "text": "book UK550",
+      "end_of_turn": true
+    },
+    {
+      "type": "session_end",
+      "t": 11000,
+      "reason": "complete"
+    }
+  ],
+  "expect": {
+    "intent": "book_flight",
+    "slots": {
+      "destination": "BLR",
+      "date": "Tuesday",
+      "party_size": 3,
+      "time_of_day": "morning",
+      "flight_no": "UK550"
+    },
+    "live_effects": [
+      {
+        "tool": "book_flight",
+        "args": {
+          "flight_no": "UK550"
+        }
+      }
+    ],
+    "no_duplicate_effects": true
+  }
+}

@@ -537,10 +537,10 @@ function stat(s, x, y, w, value, label, color) {
   heading(s, "Results", "Scored strictly from trace logs");
 
   card(s, 0.6, 1.8, 12.1, 1.75);
-  stat(s, 0.9, 2.05, 2.6, "22/22", "public scenarios pass\nevery declared check", GREEN);
-  stat(s, 3.7, 2.05, 2.6, "109.5", "mean score\n(quality multiplier on 100)", TEXT);
+  stat(s, 0.9, 2.05, 2.6, "29/29", "public scenarios pass\nevery declared check", GREEN);
+  stat(s, 3.7, 2.05, 2.6, "109.2", "mean score\n(quality multiplier on 100)", TEXT);
   stat(s, 6.5, 2.05, 2.6, "1980", "perturbed runs holding\nevery invariant", BLUE);
-  stat(s, 9.3, 2.05, 3.1, "254", "tests, including every\nscenario end-to-end", PURPLE);
+  stat(s, 9.3, 2.05, 3.1, "275", "tests, including every\nscenario end-to-end", PURPLE);
 
   s.addText("Per component, averaged across the suite", {
     x: 0.6, y: 3.8, w: 6.0, h: 0.35, isTextBox: true, margin: 0,
@@ -586,7 +586,7 @@ function stat(s, x, y, w, value, label, color) {
     x: 7.25, y: 4.34, w: 5.15, h: 0.5, isTextBox: true, margin: 0,
     fontFace: B, fontSize: 11, color: MUTED, lineSpacing: 15,
   });
-  [["text", 13, 110.4, BLUE], ["audio", 5, 108.0, PURPLE], ["visual", 4, 108.8, GREEN]].forEach(
+  [["text", 16, 110.1, BLUE], ["audio", 7, 107.1, PURPLE], ["visual", 6, 109.2, GREEN]].forEach(
     ([name, n, mean, colour], i) => {
       const y = 5.0 + i * 0.56;
       chip(s, 7.27, y + 0.06, colour, 0.13);
@@ -604,7 +604,7 @@ function stat(s, x, y, w, value, label, color) {
       });
     }
   );
-  s.addText("22 scenarios: 59% text / 23% audio / 18% visual.", {
+  s.addText("29 scenarios: 55% text / 24% audio / 21% visual.", {
     x: 7.25, y: 6.32, w: 5.15, h: 0.3, isTextBox: true, margin: 0,
     fontFace: B, fontSize: 10.5, italic: true, color: DIM,
   });
@@ -618,7 +618,7 @@ function stat(s, x, y, w, value, label, color) {
 
   body(s,
     "The hidden set is ~60 scenarios of “edge cases and adversarial timing”. Passing the " +
-    "twenty-two we wrote proves little — they are the cases we thought of. So the fuzzer " +
+    "twenty-nine we wrote proves little — they are the cases we thought of. So the fuzzer " +
     "jitters timestamps, scales tool latency, moves commit points, collapses events onto " +
     "identical timestamps, injects faults and truncates sessions — then asserts only " +
     "invariants, never expectations.",

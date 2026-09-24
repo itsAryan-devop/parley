@@ -85,13 +85,22 @@ async def run_scenario_async(
         ),
     )
 
+    # If the scenario delivers its manifest as an event, do NOT pre-load it.
+    # Pre-loading is a convenience that hides a real risk: the actual kit sends
+    # the manifest on the wire, and an agent that quietly depends on having it
+    # at construction would work here and fail there.
+    delivers_manifest = any(e.get("type") == "tool_manifest" for e in scenario.events)
+
     actions: list[Any] = []
     agent = ParleyAgent(
         scenario.id,
         clock=clock,
         trace=trace,
         executor=env.call,
-        manifest=parse_manifest({"tools": scenario.manifest}) if scenario.manifest else None,
+        manifest=(
+            None if delivers_manifest or not scenario.manifest
+            else parse_manifest({"tools": scenario.manifest})
+        ),
         model=model,
         on_action=actions.append,
     )

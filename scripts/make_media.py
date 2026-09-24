@@ -250,6 +250,11 @@ def build_scenario_media(root: Path) -> None:
         write_wav(audio / f"{label}.wav", render_audio(label, rng))
     write_wav(audio / "sound_ambiguous.wav", render_audio("beeping", rng, mix_with="clicking"))
 
+    # A truncated upload. Not a quiet clip or a noisy one — bytes that are not a
+    # WAV at all, which is what a dropped connection actually produces. The
+    # agent must ask rather than crash or invent a label.
+    (audio / "corrupt.wav").write_bytes(b"RIFF\x00\x00\x00\x00WAVEjunk" + bytes(64))
+
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)

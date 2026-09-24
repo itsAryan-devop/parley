@@ -1,0 +1,149 @@
+{
+  "id": "S23_conflicting_values_in_one_breath",
+  "title": "Two destinations in a single utterance",
+  "modality": "text",
+  "description": "'A flight to Delhi, or actually Mumbai' names two values for one slot in one breath. The last one wins \u2014 that is how self-correction works in speech \u2014 and no call may go out on the abandoned value. The risk here is dispatching on the first value before the sentence finishes.",
+  "probes": [
+    "intra-utterance correction",
+    "no dispatch on an abandoned value"
+  ],
+  "manifest": [
+    {
+      "name": "search_flights",
+      "description": "search available flights between two cities",
+      "read_only": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "origin",
+          "type": "string"
+        },
+        {
+          "name": "destination",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        },
+        {
+          "name": "time_of_day",
+          "type": "string",
+          "enum": [
+            "morning",
+            "afternoon",
+            "evening"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "book_flight",
+      "description": "reserve a seat on a specific flight",
+      "mutating": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "cancel_booking",
+      "description": "undo a flight reservation",
+      "mutating": true,
+      "inverse_of": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "get_booking_status",
+      "description": "list reservations currently held",
+      "read_only": true,
+      "verifies": "book_flight",
+      "params": []
+    },
+    {
+      "name": "search_hotels",
+      "description": "search available hotels in a city",
+      "read_only": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "city",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "book_hotel",
+      "description": "reserve a hotel room",
+      "mutating": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "hotel_id",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "env": {
+    "latency_ms": {
+      "search_flights": 700,
+      "search_hotels": 650,
+      "book_flight": 900,
+      "cancel_booking": 200,
+      "get_booking_status": 120,
+      "lookup_manual": 500,
+      "diagnose_sound": 450,
+      "create_ticket": 800
+    }
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "t": 0.0,
+      "session_id": "S23"
+    },
+    {
+      "type": "tool_manifest",
+      "t": 0.0,
+      "manifest": "@manifest"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 100,
+      "text": "I want a flight to Delhi, or actually Mumbai, on Friday",
+      "end_of_turn": true
+    },
+    {
+      "type": "session_end",
+      "t": 3500,
+      "reason": "complete"
+    }
+  ],
+  "expect": {
+    "intent": "book_flight",
+    "slots": {
+      "destination": "BOM",
+      "date": "Friday"
+    },
+    "no_duplicate_effects": true,
+    "notes": "Exactly one search, and its destination must be BOM."
+  }
+}
