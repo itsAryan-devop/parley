@@ -160,10 +160,42 @@ class Dispatcher:
 
         self._emit_tool_call(record)
         record.task = asyncio.create_task(self._run(record), name=f"call:{call_id}")
+        record.task.add_done_callback(lambda task, r=record: self._settle_abandoned(r, task))
         return record
+
+    def _settle_abandoned(self, record: CallRecord, task: asyncio.Task) -> None:
+        """Last-resort settlement for a task that finished without settling.
+
+        The in-coroutine handler covers every exit *from the body*. It does not
+        cover a task cancelled before its first step, because `create_task`
+        schedules rather than runs and the body is then never entered — so no
+        `except` inside it can fire. Found by the timing fuzzer: two transcript
+        chunks collapsed onto one timestamp, the speculative call was superseded
+        in the same instant it was created, and the call disappeared from the
+        trace entirely. A call that is not in the trace is unscoreable.
+
+        `record.started` is what keeps this honest: if the body never ran, no
+        executor was ever called and "cancelled before effect" is a fact rather
+        than an assumption.
+        """
+        if not record.in_flight:
+            return
+
+        if task.cancelled():
+            outcome = (
+                CallOutcome.CANCELLED_UNCERTAIN
+                if record.mutating and record.started
+                else CallOutcome.CANCELLED_BEFORE_EFFECT
+            )
+            self._settle(record, outcome)
+            return
+
+        exc = task.exception()
+        self._settle(record, CallOutcome.FAILED, error=f"{type(exc).__name__}: {exc}" if exc else "abandoned")
 
     async def _run(self, record: CallRecord) -> Any:
         """The cancellation-safe wrapper. Every exit writes an outcome."""
+        record.started = True
         try:
             result = await self.executor(
                 record.tool, record.args, record.call_id, mutating=record.mutating

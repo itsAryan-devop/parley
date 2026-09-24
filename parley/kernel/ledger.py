@@ -62,7 +62,22 @@ class LedgerEntry:
 
 
 def derive_key(spec: ToolSpec, intent: str | None, args: dict[str, Any]) -> str:
-    """Stable identity for a state-modifying action.
+    """Stable identity for a state-modifying action: the tool and its arguments.
+
+    **`intent` is deliberately not part of the key.** It used to be, and the
+    timing fuzzer found the consequence: booking 6E202 while the intent was
+    still unlabelled, then booking it again once the intent had resolved to
+    `book_flight`, produced two different keys for the same action and the
+    ledger waved the second one through. Two reservations for one seat — the
+    exact "adjusting parameters mid-booking **without** double-booking" failure
+    the theme names, and invisible to every hand-written test.
+
+    The identity of a business action is what it does, not what we were calling
+    the goal when we decided to do it. The mock environment's own duplicate
+    check keys on tool and arguments alone, and it was right.
+
+    The parameter is kept so call sites read naturally and so a future manifest
+    could opt intent back in explicitly; it is otherwise unused.
 
     Restricted to `spec.idempotency_params` when the manifest declares them, so
     a manifest can say that two bookings differing only in, say, a client-side
@@ -73,7 +88,7 @@ def derive_key(spec: ToolSpec, intent: str | None, args: dict[str, Any]) -> str:
     """
     names = spec.idempotency_params if spec.idempotency_params is not None else sorted(args)
     body = "|".join(f"{n}={args.get(n)!r}" for n in sorted(names))
-    raw = f"{spec.name}|{intent or ''}|{body}".encode("utf-8")
+    raw = f"{spec.name}|{body}".encode("utf-8")
     return hashlib.sha256(raw).hexdigest()[:16]
 
 

@@ -84,6 +84,16 @@ class CallRecord:
     error: str | None = None
     settled_at: float | None = None
 
+    started: bool = False
+    """Whether the coroutine body actually began executing.
+
+    `asyncio.create_task` schedules; it does not run. A task cancelled before
+    its first step never enters its own `try`, so no handler inside it can
+    settle the record. Knowing whether the body ran is what lets the safety net
+    distinguish "cancelled before anything happened" from "cancelled mid-call,
+    effect unknown".
+    """
+
     invalidated_by: list[str] = field(default_factory=list)
     """Slot names whose change invalidated this call."""
     cancel_reason: str | None = None
