@@ -43,12 +43,29 @@ Or locally, on Python 3.10–3.12:
 ```bash
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 python scripts/run_scenarios.py          # public suite + scorecard
-python -m pytest                          # 275 tests
+python -m pytest                          # 304 tests
 python scripts/fuzz.py --trials 60        # adversarial timing
 python scripts/view.py --trace S02_slot_correction   # the timeline viewer
 ```
 
 Nothing is downloaded at runtime. Every model weight is committed JSON.
+
+### Talk to it
+
+```bash
+pip install -e ".[demo]"
+python demo/server.py          # then open http://127.0.0.1:8771
+```
+
+Hold the mic button and say *"find me a flight to Delhi on Tuesday, and a hotel
+in Goa"* — then, while both searches are still running, cut in with *"no wait,
+Mumbai"*. The flight search dies mid-bar; the hotel search finishes untouched.
+
+The same agent, kernel and mock environment the scenarios score, with exactly
+one object swapped: a real clock instead of the virtual one. The timeline is
+drawn from the same trace records the scorer reads, so if the trace is wrong the
+picture is wrong. Speech in is the vendored Vosk model; speech out is the
+browser's own synthesiser. Typing works too, if the room is loud.
 
 ---
 
@@ -97,7 +114,7 @@ guessing.
 | # | | Targets |
 |---|---|---|
 | 1 | **Slot-dataflow cancellation.** Every call records which slots fed its arguments. A slot correction invalidates exactly its readers; nothing else is touched. | 35% + 40% |
-| 2 | **Two-axis interruption policy.** *Floor* (continue / adapt / yield) and *work* (keep-all / selective / cancel-all) are independent decisions. The naive system is the diagonal. | 35% |
+| 2 | **Two-axis interruption policy.** *Floor* (continue / adapt / yield — the verbs are [Lu et al.'s](https://arxiv.org/abs/2609.13117), not ours) and *work* (keep-all / selective / cancel-all) are independent decisions. The naive system is the diagonal. The literature stops at the floor axis; pairing it with a work policy is the contribution. | 35% |
 | 3 | **Four-outcome effect ledger.** A cancel is a request, not a fact. Cancelling a state-modifying call yields `CANCELLED_UNCERTAIN`, resolved by probing a manifest-declared verifier, compensating via a declared inverse, or saying out loud that we cannot tell. | 35% + 10% |
 | 4 | **Provable-speech gate.** Every utterance is assembled from facts the kernel can warrant, and each assertion carries its warrant into the trace. "Booked" is unreachable unless a booking exists. | quality ×1.2 |
 | 5 | **Speculation with join.** Read-only calls start before end-of-turn; the confirmation *adopts* the call already in flight rather than issuing a second one. State-modifying tools are never speculated. | 15% |

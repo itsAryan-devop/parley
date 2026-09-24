@@ -304,3 +304,39 @@ of scope per §6 of the guide. Session-scoped state only.
 1. Real evaluation kit — re-check every interface assumption when it lands.
 2. Deadline: deck says 25 Sep, team reports 30 Sep. Plan to the 25th.
 3. Team name for `CollegeName_TeamName` — placeholder `ThaparPatiala_<TEAM>` throughout.
+
+---
+
+## 14. Known limitations
+
+Written down because a limitation you have named is a design decision, and one
+you have not is a bug waiting to be found by a judge.
+
+**Speculation is never priced.** `§7.3` decides *whether* a call is speculatable
+(read-only, slots bound) but never *what it costs*. Cost-aware speculative
+execution (arXiv 2606.07846) gates each speculation on expected value with a
+failure-weighted cost term; we cannot decline an expensive guess because we have
+no notion of expense. Not fixed, deliberately: in a mock environment where every
+call is free, a cost model would be untestable decoration, and shipping an
+untested heuristic on the hot path is worse than shipping a named gap. Real tool
+pricing makes this the first thing to build.
+
+**No benchmark numbers.** IHBench (arXiv 2606.19595) and EchoChain
+(arXiv 2604.16456) measure exactly what this kernel targets, and we have run
+neither. Every number in this repository comes from our own harness scoring our
+own scenarios, which is a conflict of interest we can state but not resolve.
+`docs/PRIOR_ART.md` §A.2 maps their published failure catalogues onto our
+machinery; that mapping is an argument, not a result.
+
+**Perception is classical, not learned-from-real-data.** Vision is HSV hue-band
+statistics and audio is spectral features, both fitted on synthesised media
+(`scripts/make_media.py`). OCR and ASR are real models, but the *scenario*
+frames and clips are generated. Real Samsung device photographs would test the
+extractor against sensor noise, glare and off-axis framing that synthesis does
+not produce. The abstention path (Mahalanobis OOD) is the mitigation and is
+itself only tested against synthetic out-of-distribution input.
+
+**The 120 s cap is assumed, not verified against the real kit.** Everything is
+budgeted against the guide's numbers. `scripts/perf_report.py` shows enormous
+headroom (slowest scenario ~119 ms of 120 s), so the risk is low — but the
+figure being compared against is from a PDF, not from a harness anyone has run.

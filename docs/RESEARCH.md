@@ -70,6 +70,14 @@ of three policies: **Continue** (keep speaking), **Adapt** (modify the ongoing u
 had only "stop speaking"; `ADAPT` is a genuinely useful third option we would not have modelled
 (e.g. user says "morning only" while we are mid-sentence: we do not stop, we splice).
 
+**Re-read 25 Sep.** The framework is named *Duplex Cue* (Lu et al.), and its case study sizes the
+problem `ADAPT` exists to solve: on collaborative cues recorded humans adapt **68.2%** of the time,
+against **34.8%** for the full-duplex model evaluated — which otherwise continues unchanged (42.4%)
+or yields (22.7%). State of the art under-adapts by half: it ploughs on or it shuts up. Confirmed
+also that the paper's scope is the **speaking floor only** — it says nothing about in-flight tool
+calls, which is what leaves the work axis open to us. Positioning analysis in
+`docs/PRIOR_ART.md` §A.1.
+
 ### R1.5 The synthesis: interruption is two orthogonal decisions
 
 The literature's taxonomy (R1.4) is about **our voice**. Ours (design note §4) is about **our
@@ -115,6 +123,13 @@ guess.
 `(tool, args)` matches a live speculative call adopts that call instead of issuing a second one.
 Without join, speculation would *create* the duplicate calls the 10% block penalises. (2) Keep the
 hard rule that `mutating=True` is never speculated, now with a citation.
+
+**Added 25 Sep.** *Cost-Aware Speculative Execution for LLM-Agent Workflows* (arXiv 2606.07846)
+prices each speculation in real currency and gates it on an expected-value rule with a
+failure-weighted cost term. It names a limitation of ours plainly: **we never price a speculation,
+so we cannot decline an expensive one.** Not fixable honestly before the deadline — in a mock
+environment where every call is free, a cost model would be untested decoration — so it is recorded
+as future work rather than built. See `docs/PRIOR_ART.md` §A.3.
 
 ### R1.7 Frontend-backend split for tool calls in full-duplex S2S (arXiv 2609.19334)
 
@@ -333,6 +348,7 @@ with "we cancel selectively" — which is now table stakes.
 - [Act While Thinking: Pattern-Aware Speculative Tool Execution (PASTE)](https://arxiv.org/html/2603.18897v1)
 - [SPORK: Self-Speculative Forking to Accelerate Agentic LLM Inference](https://arxiv.org/pdf/2607.03333)
 - [Ghost Tool Calls: Issue-Time Privacy for Speculative Agent Tools](https://arxiv.org/pdf/2606.02483)
+- [Cost-Aware Speculative Execution for LLM-Agent Workflows](https://arxiv.org/abs/2606.07846)
 - [toolspec — speculative tool execution for LLM agents](https://github.com/joelvarun/toolspec)
 - [Voice Agent Interruption Handling runbook — Hamming AI](https://hamming.ai/resources/voice-agent-interruption-handling-runbook)
 - [LiveKit Agents documentation](https://docs.livekit.io/agents/)

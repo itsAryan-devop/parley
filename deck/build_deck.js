@@ -540,7 +540,7 @@ function stat(s, x, y, w, value, label, color) {
   stat(s, 0.9, 2.05, 2.6, "29/29", "public scenarios pass\nevery declared check", GREEN);
   stat(s, 3.7, 2.05, 2.6, "109.2", "mean score\n(quality multiplier on 100)", TEXT);
   stat(s, 6.5, 2.05, 2.6, "1980", "perturbed runs holding\nevery invariant", BLUE);
-  stat(s, 9.3, 2.05, 3.1, "275", "tests, including every\nscenario end-to-end", PURPLE);
+  stat(s, 9.3, 2.05, 3.1, "304", "tests, including every\nscenario end-to-end", PURPLE);
 
   s.addText("Per component, averaged across the suite", {
     x: 0.6, y: 3.8, w: 6.0, h: 0.35, isTextBox: true, margin: 0,

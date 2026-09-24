@@ -1,4 +1,113 @@
-# Prior art review — Devaansh's Theme 05 prototype
+# Prior art review
+
+Two parts: the **published literature** (Part A), reviewed 25 Sep 2026, and a
+**teammate's independent prototype** (Part B).
+
+---
+
+# Part A — Published literature
+
+**The survey lives in `docs/RESEARCH.md` §R1 and is not repeated here.** All
+three papers below were already reviewed there (R1.2 IHBench, R1.3 EchoChain,
+R1.4 Duplex Cue). This part records only what a deeper 25 Sep re-read added:
+one quotable number, one confirmed scope boundary, one limitation of ours, and
+one near-miss worth remembering.
+
+## A.1 The floor taxonomy is borrowed, and was always cited
+
+**Duplex Cue** — Lu, Baumgartner, Johri, Tai, Fan, Debaupte, Aguilar, Wang &
+Zhong, *"Continue, Adapt, or Yield: In-Turn Adaptation to Overlapping Speech in
+Full-Duplex Agents"*, [arXiv:2609.13117](https://arxiv.org/abs/2609.13117),
+submitted **11 September 2026**.
+
+`FloorPolicy`'s three verbs are taken from this paper, deliberately and with
+attribution — see `docs/RESEARCH.md` §R1.4, which records the decision at the
+time it was made ("adopted the three verbs directly as our floor-management
+policy names"). Before reading it we had only "stop speaking"; `ADAPT` is theirs
+and we would not have modelled it.
+
+**This section began life as a correction and turned out not to need one.** The
+25 Sep sweep pulled the paper up as an apparent collision — our taxonomy, in
+someone else's title, dated two weeks before `35679c2` — and the first draft
+here announced that a novelty claim had to be withdrawn. Checking before
+rewriting showed no such claim existed: R1.4 had credited the paper from the
+start, and the README claims only the *pairing* of the two axes. Recorded
+because the near-miss is the point — a rushed "honest correction" would have
+invented a sin to confess to, and manufactured guilt is just inaccuracy wearing
+a nicer coat.
+
+What the fuller reading does add is a precise account of where their work stops:
+
+| | Duplex Cue | PARLEY |
+|---|---|---|
+| Contribution | an **evaluation** of in-turn adaptation | an **executable kernel** |
+| Floor decision (continue/adapt/yield) | theirs | cited, not claimed |
+| Work decision (what happens to in-flight tool calls) | **not addressed** | the second axis |
+| Speaking and working as separate decisions | — | the core claim |
+
+Their scope is the speaking floor, and their contribution is a *measurement*
+framework, not a runtime. Nothing in the paper decides what becomes of a tool
+call already in flight when the cue lands — their agents have no in-flight work
+to decide about. That gap is where PARLEY lives, and it is the only thing we
+claim: not the verbs, but pairing them with a work policy and showing the two
+axes move independently.
+
+They also separate **listener intent** (backchannel / collaboration /
+interruption) from **speaker behaviour**, which is the same split as our
+`InterruptionKind -> InterruptionPolicy` mapping. Useful corroboration that the
+indirection is right rather than over-engineering.
+
+One number from their case study is worth quoting in the deck, because it sizes
+the problem our ADAPT path exists to solve. On collaborative cues, recorded
+humans adapt **68.2%** of the time; the full-duplex model they evaluate adapts
+**34.8%**, otherwise continuing unchanged (42.4%) or yielding (22.7%). **State
+of the art under-adapts by half.** It either ploughs on or shuts up — the binary
+our two-axis policy exists to break.
+
+## A.2 Their failure catalogues, mapped to our machinery
+
+Already surveyed in R1.2–R1.3; what is new is the mapping. EchoChain's headline
+failure is that models **retain invalidated information rather than resetting
+when corrections occur** — exactly the defect revision-carrying tombstones and
+`SessionState.is_stale()` exist to prevent, and exactly what `S02` asserts.
+
+IHBench's catalogue of common failures lines up one-to-one with machinery that
+already exists here:
+
+| IHBench failure mode | What answers it |
+|---|---|
+| redundant API calls / tool invocations | idempotency ledger (`kernel/ledger.py`) |
+| duplicate transactions after resumption | key claimed at *issue* time (`S06_double_book_guard`) |
+| mishandling partial/unfulfilled actions | `CANCELLED_UNCERTAIN` + verify→compensate→disclose |
+| forgetting confirmed details when interrupted | `retain_for_goal_switch` (`S03_goal_switch`) |
+| repeating already-answered questions | `_asked_for` (`S19_missing_slot_clarification`) |
+
+**The honest reading.** We have not run either benchmark, and quoting a score on
+one would be fabrication. What can be said is narrower and still worth saying:
+three independent groups converged on the same failure list, and every item on
+it is something this kernel refuses structurally rather than by remembering to
+check. Running IHBench for real is the obvious next move and is out of scope
+before the deadline — recorded in `docs/DESIGN.md` §14 as a named limitation,
+not as a result.
+
+## A.3 A limitation the speculation literature exposes
+
+R1.6 surveyed PASTE, toolspec and SPORK. One paper missed there is worth adding:
+*Cost-Aware Speculative Execution for LLM-Agent Workflows*
+([arXiv:2606.07846](https://arxiv.org/abs/2606.07846)), which prices each
+speculation in real currency and decides by expected value.
+
+Our speculation is deliberately cruder: read-only tools only, never mutating,
+joined on confirmation. The measured hit rate is 50% against the 39% published
+for n-gram-driven speculation (`scripts/speculation_report.py`). Their framing
+exposes a real limitation of ours — **we never price a speculation, so we cannot
+decline an expensive one.** Recorded in `docs/DESIGN.md` §14 rather than
+pretended away; with a mock environment where every call costs nothing, any cost
+model we shipped would be untested decoration.
+
+---
+
+# Part B — Devaansh's Theme 05 prototype
 
 Reviewed: [DevaanshGupta8/interruptible-realtime-agent](https://github.com/DevaanshGupta8/interruptible-realtime-agent)
 @ `88e9d88`, read in full (33 files, ~2,800 lines).
@@ -73,7 +182,7 @@ Adopted in `ocr.py`, with a correction: see §3.
 | | Prototype | PARLEY |
 |---|---|---|
 | Scenarios | 10 | 29 |
-| Tests | 14 (NLU only) | 285+ |
+| Tests | 14 (NLU only) | 304 |
 | Timing fuzzer | listed as future work (`RESEARCH.md` §5.7) | built; 2,030 runs clean |
 | Clock | wall-clock, 4 ms polling | virtual, deterministic, 1 ns resolution |
 | Duplicate prevention | backend idempotency (see §4) | claimed pre-dispatch in the ledger |

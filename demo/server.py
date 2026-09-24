@@ -39,7 +39,10 @@ from parley.agent.model import InterruptionModel
 
 HERE = Path(__file__).resolve().parent
 HOST = "127.0.0.1"
-PORT = 8770
+PORT = 8771
+"""Not 8770: `scripts/view.py` already serves the trace viewer there, and the
+demo script has both running side by side during a recording. Two servers
+fighting over one port mid-take is a bad way to find that out."""
 
 SAMPLE_RATE = 16_000
 
