@@ -22,7 +22,10 @@ dev = ["pytest>=8", "pytest-asyncio>=0.23", "scikit-learn>=1.3"]
 # the repo or the wheel -- installing them still downloads nothing at runtime.
 voice = ["vosk>=0.3.45"]
 vision = ["rapidocr-onnxruntime>=1.3"]
-demo = ["parley[voice]", "parley[vision]"]
+# The live demo additionally needs a websocket transport. vosk happens to pull
+# `websockets` in today, but depending on a transitive dependency is depending
+# on somebody else's packaging decision, so it is named here explicitly.
+demo = ["parley[voice]", "parley[vision]", "websockets>=12"]
 
 [tool.setuptools.packages.find]
 include = ["parley*", "harness*"]

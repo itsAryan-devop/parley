@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PARLEY — live</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --line:#262c36; --text:#e6edf3;
+    --muted:#8b949e; --user:#58a6ff; --agent:#3fb950; --tool:#a371f7;
+    --cancel:#f85149; --warn:#d29922; --spec:#6e7681;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
+    font-size:14px;line-height:1.5;display:flex;flex-direction:column;
+  }
+
+  header{
+    display:flex;align-items:center;gap:16px;padding:12px 20px;
+    border-bottom:1px solid var(--line);background:var(--panel);flex:0 0 auto;
+  }
+  .brand{font-weight:700;letter-spacing:.08em;font-size:15px}
+  .brand span{color:var(--muted);font-weight:400;letter-spacing:0}
+  .spacer{flex:1}
+
+  button{
+    font:inherit;color:var(--text);background:#21262d;border:1px solid var(--line);
+    border-radius:6px;padding:7px 14px;cursor:pointer;
+  }
+  button:hover:not(:disabled){background:#2d333b}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.primary{background:var(--agent);border-color:var(--agent);color:#04260f;font-weight:600}
+  button.primary:hover:not(:disabled){filter:brightness(1.1)}
+  button.rec{background:var(--cancel);border-color:var(--cancel);color:#2b0a08;font-weight:600}
+
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--spec);display:inline-block;margin-right:7px}
+  .dot.on{background:var(--agent);box-shadow:0 0 0 3px rgba(63,185,80,.18)}
+  .dot.rec{background:var(--cancel);animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  #status{color:var(--muted);font-size:13px;display:flex;align-items:center}
+
+  main{flex:1;display:grid;grid-template-columns:minmax(300px,1fr) minmax(420px,1.25fr);
+       gap:1px;background:var(--line);min-height:0}
+  section{background:var(--bg);display:flex;flex-direction:column;min-height:0;min-width:0}
+  h2{
+    margin:0;padding:9px 16px;font-size:11px;text-transform:uppercase;
+    letter-spacing:.1em;color:var(--muted);font-weight:600;
+    border-bottom:1px solid var(--line);background:var(--panel);flex:0 0 auto;
+  }
+  h2 em{float:right;font-style:normal;text-transform:none;letter-spacing:0;color:var(--spec)}
+  .scroll{overflow-y:auto;padding:14px 16px;flex:1;min-height:0}
+
+  /* ---- conversation ---- */
+  .turn{margin-bottom:12px;display:flex;gap:9px;align-items:flex-start}
+  .who{
+    flex:0 0 auto;font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:4px;
+    margin-top:2px;letter-spacing:.04em;
+  }
+  .turn.user .who{background:rgba(88,166,255,.15);color:var(--user)}
+  .turn.agent .who{background:rgba(63,185,80,.15);color:var(--agent)}
+  .turn.system .who{background:rgba(139,148,158,.12);color:var(--muted)}
+  .turn .body{flex:1;min-width:0;word-wrap:break-word}
+  .turn.partial .body{color:var(--muted);font-style:italic}
+  .kindtag{
+    font-family:var(--mono);font-size:10px;color:var(--spec);
+    border:1px solid var(--line);border-radius:3px;padding:0 4px;margin-left:6px;
+  }
+  .warrant{
+    font-family:var(--mono);font-size:10.5px;color:var(--spec);
+    margin-top:3px;padding-left:9px;border-left:2px solid var(--line);
+  }
+
+  /* ---- interruption banner ---- */
+  .interrupt{
+    margin:10px 0;padding:8px 11px;border-radius:6px;font-family:var(--mono);font-size:11.5px;
+    border:1px solid var(--warn);background:rgba(210,153,34,.1);color:var(--warn);
+  }
+  .interrupt b{color:var(--text)}
+
+  /* ---- timeline ---- */
+  .call{
+    margin-bottom:9px;padding:9px 11px;border-radius:6px;
+    border:1px solid var(--line);background:var(--panel);
+  }
+  .call.spec{border-style:dashed;opacity:.8}
+  .call.cancelled{border-color:var(--cancel);background:rgba(248,81,73,.07)}
+  .call.done{border-color:rgba(63,185,80,.5)}
+  .call.failed{border-color:var(--warn)}
+  .call-head{display:flex;align-items:baseline;gap:8px}
+  .tool{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--tool)}
+  .call.cancelled .tool{color:var(--cancel);text-decoration:line-through}
+  .call.done .tool{color:var(--agent)}
+  .badge{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;padding:1px 5px;
+    border-radius:3px;border:1px solid var(--line);color:var(--muted);
+  }
+  .badge.mut{border-color:var(--warn);color:var(--warn)}
+  .badge.spec{border-color:var(--spec);color:var(--spec)}
+  .elapsed{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--spec)}
+  .args{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:4px;word-break:break-all}
+  .args b{color:var(--text);font-weight:500}
+  .reads{font-family:var(--mono);font-size:10px;color:var(--spec);margin-top:2px}
+  .bar{position:relative;height:4px;border-radius:2px;background:#21262d;margin-top:7px;overflow:hidden}
+  .fill{position:absolute;inset:0 auto 0 0;width:0;background:var(--tool);transition:width .09s linear}
+  .call.cancelled .fill{background:var(--cancel)}
+  .call.done .fill{background:var(--agent)}
+  .call.failed .fill{background:var(--warn)}
+  .commit{position:absolute;top:-2px;bottom:-2px;width:1.5px;background:var(--warn);opacity:.85}
+  .why{
+    font-family:var(--mono);font-size:10.5px;color:var(--cancel);margin-top:6px;
+    padding-top:5px;border-top:1px dashed rgba(248,81,73,.3);
+  }
+  .outcome{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:5px}
+
+  /* ---- slots ---- */
+  #slots{
+    flex:0 0 auto;border-top:1px solid var(--line);background:var(--panel);
+    padding:10px 16px;display:flex;flex-wrap:wrap;gap:7px;min-height:44px;align-content:flex-start;
+  }
+  .slot{
+    font-family:var(--mono);font-size:11.5px;border:1px solid var(--line);
+    border-radius:5px;padding:3px 8px;background:var(--bg);
+  }
+  .slot k{color:var(--muted)}
+  .slot v{color:var(--user);font-weight:600}
+  .slot i{color:var(--spec);font-style:normal;font-size:9.5px;margin-left:4px}
+  .slot.fresh{animation:flash 1.1s ease-out}
+  @keyframes flash{from{background:rgba(88,166,255,.3);border-color:var(--user)}}
+
+  /* ---- composer ---- */
+  footer{
+    flex:0 0 auto;border-top:1px solid var(--line);background:var(--panel);
+    padding:11px 20px;display:flex;gap:9px;align-items:center;
+  }
+  #text{
+    flex:1;font:inherit;color:var(--text);background:var(--bg);
+    border:1px solid var(--line);border-radius:6px;padding:8px 11px;
+  }
+  #text:focus{outline:none;border-color:var(--user)}
+  .hint{color:var(--spec);font-size:11.5px;font-family:var(--mono)}
+
+  .empty{color:var(--spec);font-size:12.5px;font-style:italic;padding:6px 0}
+  .scroll::-webkit-scrollbar{width:9px}
+  .scroll::-webkit-scrollbar-thumb{background:#30363d;border-radius:5px}
+  @media (max-width:860px){main{grid-template-columns:1fr;grid-template-rows:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">PARLEY <span>— interrupt it while it works</span></div>
+  <div class="spacer"></div>
+  <div id="status"><i class="dot" id="dot"></i><span id="statusText">connecting…</span></div>
+  <button id="mic" disabled>🎤 Hold to talk</button>
+  <button id="reset">Reset</button>
+</header>
+
+<main>
+  <section>
+    <h2>Conversation <em id="asrTag"></em></h2>
+    <div class="scroll" id="convo"><div class="empty">Start the session, then speak or type.</div></div>
+  </section>
+
+  <section>
+    <h2>Work in flight <em id="callCount"></em></h2>
+    <div class="scroll" id="calls"><div class="empty">Tool calls appear here as they are dispatched.</div></div>
+    <div id="slots"><span class="empty" style="padding:0">No slots bound yet.</span></div>
+  </section>
+</main>
+
+<footer>
+  <input id="text" placeholder="Type a turn and press Enter — e.g. find me a flight to Delhi and a hotel in Goa" autocomplete="off">
+  <button id="send" class="primary">Send</button>
+  <span class="hint" id="hint"></span>
+</footer>
+
+<script>
+(() => {
+"use strict";
+
+const $ = id => document.getElementById(id);
+const convo = $("convo"), callsEl = $("calls"), slotsEl = $("slots");
+let ws = null, ready = false, started = false;
+let agentSpeaking = false, recording = false;
+let audioCtx = null, micStream = null, worklet = null, srcNode = null;
+let pcmBuffer = [], bufferedSamples = 0;
+const TARGET_RATE = 16000, FRAME_SAMPLES = 2000;   // 125 ms, matches asr.FRAME_MS
+
+const calls = new Map();   // call_id -> {el, fill, dispatched, latency, state}
+let liveCount = 0, t0 = 0;
+
+// ---------------------------------------------------------------- utilities
+
+function clearEmpty(el){ const e = el.querySelector(".empty"); if (e) e.remove(); }
+
+function scrollDown(el){ el.scrollTop = el.scrollHeight; }
+
+function setStatus(text, cls){
+  $("statusText").textContent = text;
+  $("dot").className = "dot" + (cls ? " " + cls : "");
+}
+
+function say(who, text, opts = {}){
+  clearEmpty(convo);
+  const div = document.createElement("div");
+  div.className = "turn " + who + (opts.partial ? " partial" : "");
+  const label = who === "user" ? "YOU" : who === "agent" ? "PARLEY" : "···";
+  div.innerHTML =
+    `<span class="who">${label}</span><div class="body"></div>`;
+  const body = div.querySelector(".body");
+  body.textContent = text;
+  if (opts.kind){
+    const tag = document.createElement("span");
+    tag.className = "kindtag";
+    tag.textContent = opts.kind;
+    body.appendChild(tag);
+  }
+  if (opts.warrant){
+    const w = document.createElement("div");
+    w.className = "warrant";
+    w.textContent = opts.warrant;
+    div.querySelector(".body").appendChild(w);
+  }
+  convo.appendChild(div);
+  scrollDown(convo);
+  return div;
+}
+
+function banner(html){
+  clearEmpty(convo);
+  const d = document.createElement("div");
+  d.className = "interrupt";
+  d.innerHTML = html;
+  convo.appendChild(d);
+  scrollDown(convo);
+}
+
+// ---------------------------------------------------------------- timeline
+
+function fmtArgs(args){
+  const keys = Object.keys(args || {});
+  if (!keys.length) return "";
+  return keys.map(k => `${k}=<b>${String(args[k])}</b>`).join("  ");
+}
+
+function addCall(a){
+  clearEmpty(callsEl);
+  const el = document.createElement("div");
+  el.className = "call running" + (a.speculative ? " spec" : "");
+  el.innerHTML = `
+    <div class="call-head">
+      <span class="tool"></span>
+      ${a.mutating ? '<span class="badge mut">MUTATING</span>' : ''}
+      ${a.speculative ? '<span class="badge spec">SPECULATIVE</span>' : ''}
+      <span class="elapsed">0 ms</span>
+    </div>
+    <div class="args"></div>
+    <div class="reads"></div>
+    <div class="bar"><div class="fill"></div></div>`;
+  el.querySelector(".tool").textContent = a.tool;
+  el.querySelector(".args").innerHTML = fmtArgs(a.args);
+  el.querySelector(".reads").textContent =
+    (a.read_slots || []).length ? "reads: " + a.read_slots.join(", ") : "reads nothing";
+
+  callsEl.appendChild(el);
+  scrollDown(callsEl);
+
+  calls.set(a.call_id, {
+    el, fill: el.querySelector(".fill"),
+    elapsed: el.querySelector(".elapsed"),
+    dispatched: performance.now(), latency: null, state: "running",
+  });
+  liveCount++;
+  $("callCount").textContent = liveCount + " dispatched";
+}
+
+function setLatency(call_id, latency_ms, mutating, commitFraction){
+  const c = calls.get(call_id);
+  if (!c) return;
+  c.latency = latency_ms;
+  if (mutating && commitFraction){
+    const m = document.createElement("div");
+    m.className = "commit";
+    m.style.left = (commitFraction * 100) + "%";
+    m.title = "commit point — past here the effect is real";
+    c.el.querySelector(".bar").appendChild(m);
+  }
+}
+
+function finishCall(call_id, state, note){
+  const c = calls.get(call_id);
+  if (!c || c.state !== "running") return;
+  c.state = state;
+  c.el.classList.remove("running");
+  c.el.classList.add(state);
+  if (state !== "cancelled") c.fill.style.width = "100%";
+  if (note){
+    const n = document.createElement("div");
+    n.className = state === "cancelled" ? "why" : "outcome";
+    n.textContent = note;
+    c.el.appendChild(n);
+  }
+  scrollDown(callsEl);
+}
+
+// setInterval, not requestAnimationFrame. rAF is suspended entirely while the
+// tab is not compositing -- backgrounded, or in a recording overlay -- which
+// froze every bar at "0 ms" the first time this was driven headlessly. A demo
+// whose progress bars stop when the window loses focus is a demo that dies the
+// moment the presenter alt-tabs to their slides.
+function tick(){
+  const now = performance.now();
+  for (const c of calls.values()){
+    if (c.state !== "running") continue;
+    const dt = now - c.dispatched;
+    c.elapsed.textContent = Math.round(dt) + " ms";
+    if (c.latency) c.fill.style.width = Math.min(100, (dt / c.latency) * 100) + "%";
+  }
+}
+setInterval(tick, 33);
+
+// ---------------------------------------------------------------- slots
+
+function renderSlots(state){
+  // `slots` is the flat name -> value mapping the guide requires; revision and
+  // source live in `slot_meta`. The revision is worth showing: it is the number
+  // that decides which in-flight calls a correction invalidates, so putting it
+  // on screen makes the cancellation rule visible rather than magic.
+  const slots = (state && state.slots) || {};
+  const meta = (state && state.slot_meta) || {};
+  const names = Object.keys(slots);
+  if (!names.length){
+    slotsEl.innerHTML = '<span class="empty" style="padding:0">No slots bound yet.</span>';
+    return;
+  }
+  const prev = new Map([...slotsEl.querySelectorAll(".slot")].map(e => [e.dataset.k, e.dataset.v]));
+  slotsEl.innerHTML = "";
+  for (const name of names){
+    const value = slots[name];
+    const m = meta[name] || {};
+    const el = document.createElement("span");
+    el.className = "slot";
+    el.dataset.k = name; el.dataset.v = String(value);
+    const tag = [m.revision != null ? "r" + m.revision : null, m.source]
+      .filter(Boolean).join(" ");
+    el.innerHTML = `<k>${name}</k> <v>${value}</v>` + (tag ? `<i>${tag}</i>` : "");
+    if (prev.has(name) && prev.get(name) !== String(value)) el.classList.add("fresh");
+    slotsEl.appendChild(el);
+  }
+}
+
+// ---------------------------------------------------------------- speech out
+
+function speak(text){
+  if (!window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 1.05;
+  u.onstart = () => { agentSpeaking = true;  setStatus("speaking — cut in any time", "on"); };
+  u.onend   = () => { agentSpeaking = false; setStatus(recording ? "listening…" : "ready", recording ? "rec" : "on"); };
+  u.onerror = () => { agentSpeaking = false; };
+  speechSynthesis.speak(u);
+}
+
+function stopSpeaking(){
+  if (window.speechSynthesis && agentSpeaking){
+    speechSynthesis.cancel();
+    agentSpeaking = false;
+  }
+}
+
+// ---------------------------------------------------------------- socket
+
+function connect(){
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.binaryType = "arraybuffer";
+
+  ws.onopen = () => { setStatus("connected", "on"); start(); };
+  ws.onclose = () => { setStatus("disconnected", ""); ready = false; $("mic").disabled = true; };
+  ws.onerror = () => setStatus("connection error", "");
+  ws.onmessage = ev => { try { onMessage(JSON.parse(ev.data)); } catch (e) { console.error(e); } };
+}
+
+function send(obj){ if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+
+function start(){
+  t0 = performance.now();
+  send({type: "start", session_id: "live"});
+  started = true;
+}
+
+function onMessage(msg){
+  switch (msg.type){
+    case "ready":
+      ready = true;
+      $("mic").disabled = !msg.asr;
+      $("asrTag").textContent = msg.asr ? "microphone + text" : "text only (no ASR)";
+      $("hint").textContent = msg.asr ? "hold the mic button to speak" : "install the voice extra for speech";
+      setStatus("ready", "on");
+      break;
+
+    case "heard":
+      onHeard(msg);
+      break;
+
+    case "action":
+      onAction(msg.action);
+      break;
+
+    case "trace":
+      onTrace(msg.record);
+      break;
+
+    case "state":
+      renderSlots(msg.state);
+      break;
+
+    case "done":
+      renderSlots(msg.state);
+      setStatus("session complete", "on");
+      break;
+
+    case "error":
+      say("system", "error: " + msg.error);
+      break;
+  }
+}
+
+// --- inbound transcript -------------------------------------------------
+
+let partialEl = null;
+function onHeard(msg){
+  if (msg.end_of_turn){
+    if (partialEl){ partialEl.remove(); partialEl = null; }
+    say("user", msg.text);
+  } else {
+    if (!partialEl) partialEl = say("user", msg.text, {partial: true});
+    else partialEl.querySelector(".body").textContent =
+      partialEl.querySelector(".body").textContent + " " + msg.text;
+    scrollDown(convo);
+  }
+}
+
+// --- agent actions ------------------------------------------------------
+
+function onAction(a){
+  switch (a.type){
+    case "speak": {
+      const warrants = (a.claims || [])
+        .map(c => `${c.kind}: ${c.warrant}`).join("  ·  ");
+      say("agent", a.text, {kind: a.kind, warrant: warrants || null});
+      speak(a.text);
+      break;
+    }
+    case "clarify":
+      say("agent", a.question, {kind: "clarify/" + a.reason});
+      speak(a.question);
+      break;
+    case "tool_call":
+      addCall(a);
+      break;
+    case "cancel":
+      finishCall(a.call_id, "cancelled",
+        `cancelled — ${a.reason}` +
+        ((a.invalidated_by_slots || []).length
+          ? ` (invalidated by ${a.invalidated_by_slots.join(", ")})` : ""));
+      break;
+    case "final_response": {
+      const warrants = (a.claims || []).map(c => `${c.kind}: ${c.warrant}`).join("  ·  ");
+      say("agent", a.text, {kind: "final", warrant: warrants || null});
+      speak(a.text);
+      renderSlots(a.state);
+      break;
+    }
+  }
+}
+
+// --- trace records ------------------------------------------------------
+
+const OUTCOME_NOTE = {
+  completed_still_valid: "completed — result is still valid",
+  completed_now_stale:   "completed, but the state moved on — result discarded",
+  cancelled_before_effect: "cancelled cleanly — nothing happened",
+  cancelled_uncertain:   "CANCELLED, EFFECT UNKNOWN — verifying",
+  failed:                "failed",
+  duplicate_suppressed:  "suppressed — identical call already made",
+  compensated:           "effect existed and was undone",
+  adopted:               "adopted by the confirming request",
+};
+
+function onTrace(r){
+  const p = r.payload || {};
+
+  if (r.kind === "tool" && r.name === "dispatch"){
+    setLatency(p.call_id, p.latency_ms, p.mutating, 0.7);
+  }
+
+  else if (r.kind === "kernel" && r.name === "interpretation"){
+    const kind = p.kind, floor = (p.policy && p.policy.floor) || p.floor,
+          work = (p.policy && p.policy.work) || p.work;
+    if (kind && kind !== "new_request" && kind !== "backchannel"){
+      banner(`<b>${kind.replace(/_/g, " ").toUpperCase()}</b> — floor: ${floor} · work: ${work}`);
+    }
+  }
+
+  else if (r.kind === "kernel" && r.name === "call_settled"){
+    const note = OUTCOME_NOTE[p.outcome] || p.outcome;
+    const state = p.outcome === "cancelled_before_effect" || p.outcome === "cancelled_uncertain"
+      ? "cancelled"
+      : p.outcome === "failed" ? "failed"
+      : p.outcome === "completed_still_valid" || p.outcome === "adopted" ? "done"
+      : "failed";
+    finishCall(p.call_id, state, note);
+  }
+
+  else if (r.kind === "kernel" && r.name === "duplicate_suppressed"){
+    finishCall(p.call_id, "failed", "suppressed — the idempotency ledger already has this exact call");
+  }
+
+  else if (r.kind === "kernel" && r.name === "invalidate"){
+    // nothing to draw: the cancel action that follows carries the reason
+  }
+
+  else if (r.kind === "kernel" && r.name === "speculation_join"){
+    const c = calls.get(p.call_id);
+    if (c) c.el.classList.remove("spec");
+  }
+
+  else if (r.kind === "event" && r.name === "transcript_chunk" && p.speaker !== "agent"){
+    renderSlotsSoon();
+  }
+}
+
+let slotTimer = null;
+function renderSlotsSoon(){
+  // Slots are only authoritative in the final snapshot; between turns we poll
+  // cheaply rather than duplicate the state machine in JavaScript.
+  clearTimeout(slotTimer);
+  slotTimer = setTimeout(() => send({type: "peek"}), 120);
+}
+
+// ---------------------------------------------------------------- mic
+
+async function startMic(){
+  if (recording) return;
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true},
+    });
+  } catch (e){
+    say("system", "microphone blocked: " + e.message);
+    return;
+  }
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)({sampleRate: TARGET_RATE});
+  if (audioCtx.state === "suspended") await audioCtx.resume();
+
+  const code = `
+    class PCM extends AudioWorkletProcessor {
+      process(inputs){
+        const ch = inputs[0] && inputs[0][0];
+        if (ch) this.port.postMessage(ch.slice(0));
+        return true;
+      }
+    }
+    registerProcessor('pcm', PCM);`;
+  const url = URL.createObjectURL(new Blob([code], {type: "application/javascript"}));
+  await audioCtx.audioWorklet.addModule(url);
+  URL.revokeObjectURL(url);
+
+  srcNode = audioCtx.createMediaStreamSource(micStream);
+  worklet = new AudioWorkletNode(audioCtx, "pcm");
+  worklet.port.onmessage = ev => onPCM(ev.data);
+  srcNode.connect(worklet);
+  // Not connected to destination: we never want to echo the mic to the speakers.
+
+  recording = true;
+  $("mic").classList.add("rec");
+  $("mic").textContent = "🎤 Listening — release to stop";
+  setStatus("listening…", "rec");
+}
+
+function onPCM(frame){
+  // Barge-in detection. The agent is told *that* speech overlapped ours, never
+  // what it meant — classification is the agent's job, and doing it here would
+  // put policy in the browser.
+  let sum = 0;
+  for (let i = 0; i < frame.length; i++) sum += frame[i] * frame[i];
+  const rms = Math.sqrt(sum / frame.length);
+  if (rms > 0.035 && agentSpeaking){
+    stopSpeaking();
+    send({type: "interruption"});
+  }
+
+  pcmBuffer.push(frame);
+  bufferedSamples += frame.length;
+  if (bufferedSamples < FRAME_SAMPLES) return;
+
+  const merged = new Float32Array(bufferedSamples);
+  let off = 0;
+  for (const f of pcmBuffer){ merged.set(f, off); off += f.length; }
+  pcmBuffer = []; bufferedSamples = 0;
+
+  const pcm16 = new Int16Array(merged.length);
+  for (let i = 0; i < merged.length; i++){
+    const s = Math.max(-1, Math.min(1, merged[i]));
+    pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+  }
+  if (ws && ws.readyState === 1) ws.send(pcm16.buffer);
+}
+
+function stopMic(){
+  if (!recording) return;
+  recording = false;
+  $("mic").classList.remove("rec");
+  $("mic").textContent = "🎤 Hold to talk";
+  setStatus("ready", "on");
+  try { srcNode && srcNode.disconnect(); worklet && worklet.disconnect(); } catch (e) {}
+  if (micStream) micStream.getTracks().forEach(t => t.stop());
+  if (audioCtx) audioCtx.close();
+  audioCtx = micStream = worklet = srcNode = null;
+  pcmBuffer = []; bufferedSamples = 0;
+}
+
+// ---------------------------------------------------------------- wiring
+
+$("mic").addEventListener("mousedown", startMic);
+$("mic").addEventListener("mouseup", stopMic);
+$("mic").addEventListener("mouseleave", stopMic);
+$("mic").addEventListener("touchstart", e => { e.preventDefault(); startMic(); });
+$("mic").addEventListener("touchend", e => { e.preventDefault(); stopMic(); });
+
+function sendText(){
+  const box = $("text");
+  const text = box.value.trim();
+  if (!text || !ready) return;
+  // Typing while the agent talks is a barge-in too.
+  if (agentSpeaking){ stopSpeaking(); send({type: "interruption"}); }
+  say("user", text);
+  send({type: "text", text, end_of_turn: true});
+  box.value = "";
+}
+
+$("send").addEventListener("click", sendText);
+$("text").addEventListener("keydown", e => { if (e.key === "Enter") sendText(); });
+
+$("reset").addEventListener("click", () => {
+  stopSpeaking();
+  send({type: "finish"});
+  calls.clear(); liveCount = 0;
+  convo.innerHTML = '<div class="empty">Session reset. Speak or type.</div>';
+  callsEl.innerHTML = '<div class="empty">Tool calls appear here as they are dispatched.</div>';
+  slotsEl.innerHTML = '<span class="empty" style="padding:0">No slots bound yet.</span>';
+  $("callCount").textContent = "";
+  setTimeout(start, 150);
+});
+
+connect();
+})();
+</script>
+</body>
+</html>
