@@ -270,6 +270,48 @@ so the claim is re-measurable rather than asserted.
 
 ---
 
+## Round 3 — 24 Sep 2026: what the other Theme 5 teams are building
+
+Public GitHub repositories tagged for this exact theme, read for two reasons:
+to find the official evaluation kit, and to know what we have to be better than.
+
+### R3.1 The evaluation kit is not public, anywhere
+
+Every Theme 5 repository we found ships a **self-authored** harness. None
+references a Samsung-provided kit, schema, or scenario format.
+
+**→ Action.** Confirms the decision to build a spec-faithful replica rather than
+wait. It also means the interface risk is shared by every team, so the thing
+that matters is how cheaply we can swap in the real kit when it lands — which is
+why the agent talks to an executor callable and never imports the harness.
+Re-verify at `harness/runner.py` when the kit arrives.
+
+### R3.2 The competitive picture is tighter than expected
+
+Several teams are visibly working the same core intuition. One describes
+"sub-step detection of user corrections and instant cancellation of dependent
+in-flight work" with a "CommitGate & Write-Ahead EffectLedger". Another
+classifies interruptions as "slot revision, retraction or intent switch, with
+each type having its own cancel-and-replan policy".
+
+So **dependency-aware cancellation and an effect ledger are not unique to us.**
+Claiming them as novel in the deck would be both wrong and easy to puncture.
+
+**→ Action.** Sharpened the positioning. What still appears to be ours:
+
+| | Why it is likely to stay differentiating |
+|---|---|
+| **Floor × work as two axes** | Others classify interruptions into 3–4 kinds and attach one policy each. Separating *what happens to our voice* from *what happens to our work* is what makes `BACKCHANNEL` and `REPEAT_REQUEST` expressible at all — and those are the cells where a VAD-driven system is actively wrong. |
+| **`CANCELLED_UNCERTAIN`** | A write-ahead ledger records intent before dispatch. It does not answer "did the effect land after we cancelled?" — that needs a verifier probe, a compensator, or an admission. Most designs collapse this to a boolean. |
+| **Provable-speech gate** | Every claim carries its warrant *into the trace*. Truthfulness is a ±20% multiplier and nobody else appears to be making it mechanically checkable. |
+| **Working multimodal with calibrated abstention** | 50% of the hidden set at 1.5×. Expect most submissions to be text-only or to stub perception; abstaining correctly on undecidable input is a further step again. |
+| **Invariant fuzzing** | 4500+ perturbed schedules, invariants only. This is the only defence against a hidden set that nobody can see. |
+
+**→ Action.** Deck leads with the *matrix* and the *uncertainty outcome*, not
+with "we cancel selectively" — which is now table stakes.
+
+---
+
 ## Standing conclusions
 
 1. **The dataflow claim is defensible and differentiating.** No surveyed system models slot →

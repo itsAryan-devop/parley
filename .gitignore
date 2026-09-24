@@ -12,3 +12,9 @@ runs/
 # evidence for the abstention behaviour, which a judge should be able to check
 # without running a generator first.
 media/dataset/
+
+# Deck build only. The generated .pptx IS committed — it is a required
+# deliverable and must be inside the tagged commit.
+deck/node_modules/
+deck/package-lock.json
+deck/package.json
