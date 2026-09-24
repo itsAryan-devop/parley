@@ -1,0 +1,166 @@
+{
+  "id": "S07_late_cancel_compensation",
+  "title": "Goal switch after the booking has already committed",
+  "modality": "text",
+  "description": "The cancel arrives after the environment committed the reservation. The agent cannot know that, so it must probe with the declared verifier, find the booking, compensate via the declared inverse, and say so. Recording the cancel as clean is the silent failure.",
+  "probes": [
+    "cancelled_uncertain",
+    "verify",
+    "compensate",
+    "truthful disclosure"
+  ],
+  "manifest": [
+    {
+      "name": "search_flights",
+      "description": "search available flights between two cities",
+      "read_only": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "origin",
+          "type": "string"
+        },
+        {
+          "name": "destination",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        },
+        {
+          "name": "time_of_day",
+          "type": "string",
+          "enum": [
+            "morning",
+            "afternoon",
+            "evening"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "book_flight",
+      "description": "reserve a seat on a specific flight",
+      "mutating": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "cancel_booking",
+      "description": "undo a flight reservation",
+      "mutating": true,
+      "inverse_of": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "get_booking_status",
+      "description": "list reservations currently held",
+      "read_only": true,
+      "verifies": "book_flight",
+      "params": []
+    },
+    {
+      "name": "search_hotels",
+      "description": "search available hotels in a city",
+      "read_only": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "city",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "book_hotel",
+      "description": "reserve a hotel room",
+      "mutating": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "hotel_id",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "env": {
+    "latency_ms": {
+      "search_flights": 700,
+      "search_hotels": 650,
+      "book_flight": 1200,
+      "cancel_booking": 200,
+      "get_booking_status": 120,
+      "lookup_manual": 500,
+      "diagnose_sound": 450,
+      "create_ticket": 800
+    },
+    "commit_fraction": 0.5
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "t": 0.0,
+      "session_id": "S07"
+    },
+    {
+      "type": "tool_manifest",
+      "t": 0.0,
+      "manifest": "@manifest"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 100,
+      "text": "flight to Kolkata on Thursday",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 1000,
+      "text": "book AI303",
+      "end_of_turn": true
+    },
+    {
+      "type": "interruption",
+      "t": 2000,
+      "source": "vad"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 2020,
+      "text": "actually forget flights, get me a hotel in Kolkata",
+      "end_of_turn": true
+    },
+    {
+      "type": "session_end",
+      "t": 7000,
+      "reason": "complete"
+    }
+  ],
+  "expect": {
+    "intent": "book_hotel",
+    "live_effects": [],
+    "no_duplicate_effects": true,
+    "notes": "The stale booking must be compensated, and the transcript must say so."
+  }
+}

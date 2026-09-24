@@ -195,6 +195,33 @@ class CallRegistry:
                 return call
         return None
 
+    def completed_match(self, tool: str, args: dict[str, Any]) -> CallRecord | None:
+        """A finished, still-valid call with the same (tool, args).
+
+        Re-running a read-only tool whose inputs have not changed since it
+        answered *is* a stale re-run — it burns latency and pollutes the final
+        response with duplicate results. Found this in the very first end-to-end
+        trace: three identical flight searches in one session, because the
+        planner re-plans every turn and the slots were still bound.
+        """
+        probe = (tool, tuple(sorted((k, repr(v)) for k, v in args.items())))
+        for call in reversed(list(self._calls.values())):
+            if call.outcome is CallOutcome.COMPLETED_STILL_VALID and call.signature == probe:
+                return call
+        return None
+
+    def superseded_speculations(self, tool: str, args: dict[str, Any]) -> list[CallRecord]:
+        """In-flight speculative calls of `tool` that this dispatch replaces.
+
+        A guess made from two slots is obsolete once a third binds: same tool,
+        different arguments, and nobody will ever want its answer.
+        """
+        probe = (tool, tuple(sorted((k, repr(v)) for k, v in args.items())))
+        return [
+            c for c in self._calls.values()
+            if c.in_flight and c.speculative and c.tool == tool and c.signature != probe
+        ]
+
     def unresolved(self) -> list[CallRecord]:
         """Calls whose outcome leaves the world and our snapshot possibly disagreeing.
 

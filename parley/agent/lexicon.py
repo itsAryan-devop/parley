@@ -40,6 +40,15 @@ EDITING_TERMS = frozenset(
 )
 """Explicit repair markers. Skews correction."""
 
+ADDITIVE_CUES = frozenset({"and", "also", "plus", "as well", "too", "another", "while you"})
+"""Markers that a second goal is being *added*, not substituted.
+
+"...and a hotel in Goa" while a flight search runs is not a goal switch, and
+treating it as one cancelled the flight search for nothing. The cue is the
+leading conjunction; this is the only thing in the sentence that distinguishes
+the two readings.
+"""
+
 GOAL_SWITCH_CUES = frozenset(
     {
         "forget", "never mind", "nevermind", "cancel that", "drop that",
@@ -103,6 +112,24 @@ _CITIES: dict[str, str] = {
 }
 
 _WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+
+#: Which slot a preposition points at, when several slots share a vocabulary.
+#: "fly to Goa" and "a hotel in Goa" name the same city and mean different slots,
+#: and the preposition is the only thing in the sentence that says which.
+_PREPOSITION_SLOTS: dict[str, tuple[str, ...]] = {
+    "to": ("destination",),
+    "into": ("destination",),
+    "toward": ("destination",),
+    "towards": ("destination",),
+    "from": ("origin",),
+    "out": ("origin",),
+    "in": ("city", "destination"),
+    "at": ("city", "destination"),
+    "near": ("city",),
+    "around": ("city",),
+    "on": ("date",),
+    "for": ("date", "party_size"),
+}
 
 _TIME_OF_DAY = {
     "morning": "morning", "afternoon": "afternoon", "evening": "evening",
@@ -187,36 +214,54 @@ class Lexicon:
 
     # -- matching ------------------------------------------------------
 
-    def find(self, text: str, slots: Iterable[str] | None = None) -> list[Match]:
+    def find(
+        self,
+        text: str,
+        slots: Iterable[str] | None = None,
+        prefer: Iterable[str] | None = None,
+    ) -> list[Match]:
         """All slot values mentioned in `text`, longest surface form first.
 
         Longest-first matters: "new delhi" must not be shadowed by "delhi", and
         "day after tomorrow" must not be shadowed by "tomorrow".
+
+        `prefer` breaks ties between slots that share a vocabulary. "Goa" is a
+        valid `destination`, `origin` and `city`, and picking by dictionary
+        order meant "a hotel in Goa" bound `destination` — after which the hotel
+        search could never find its required `city` and simply never ran. The
+        preposition decides first (`to` → destination, `from` → origin,
+        `in` → city); `prefer` — the parameters the active goal's tools accept —
+        decides what is left.
         """
         lowered = text.lower()
         wanted = set(slots) if slots is not None else None
+        preferred = set(prefer or ())
         found: list[Match] = []
         claimed: list[tuple[int, int]] = []
 
         def overlaps(a: int, b: int) -> bool:
             return any(not (b <= s or a >= e) for s, e in claimed)
 
-        candidates: list[tuple[int, str, Any, str]] = []
+        # Group by surface form so competing slots for the same span are
+        # resolved together rather than first-come-first-served.
+        by_surface: dict[str, list[tuple[str, Any]]] = {}
         for slot, forms in self.values.items():
             if wanted is not None and slot not in wanted:
                 continue
             for surface, value in forms.items():
-                candidates.append((len(surface), slot, value, surface))
-        candidates.sort(key=lambda c: -c[0])
+                by_surface.setdefault(surface, []).append((slot, value))
 
-        for _, slot, value, surface in candidates:
+        for surface in sorted(by_surface, key=len, reverse=True):
+            options = by_surface[surface]
             for m in re.finditer(rf"(?<!\w){re.escape(surface)}(?!\w)", lowered):
-                if not overlaps(m.start(), m.end()):
-                    claimed.append((m.start(), m.end()))
-                    found.append(
-                        Match(slot=slot, value=value, surface=text[m.start():m.end()],
-                              start=m.start(), end=m.end(), confidence=0.95)
-                    )
+                if overlaps(m.start(), m.end()):
+                    continue
+                claimed.append((m.start(), m.end()))
+                slot, value = self._disambiguate(options, lowered, m.start(), preferred)
+                found.append(
+                    Match(slot=slot, value=value, surface=text[m.start():m.end()],
+                          start=m.start(), end=m.end(), confidence=0.95)
+                )
 
         for slot, pats in self.patterns.items():
             if wanted is not None and slot not in wanted:
@@ -233,9 +278,35 @@ class Lexicon:
 
         return sorted(found, key=lambda x: x.start)
 
+    @staticmethod
+    def _disambiguate(
+        options: list[tuple[str, Any]], lowered: str, start: int, preferred: set[str]
+    ) -> tuple[str, Any]:
+        """Choose which slot a surface form fills."""
+        if len(options) == 1:
+            return options[0]
+
+        by_slot = dict(options)
+        preceding = lowered[:start].split()
+        head = preceding[-1] if preceding else ""
+
+        for slot in _PREPOSITION_SLOTS.get(head, ()):
+            if slot in by_slot:
+                return slot, by_slot[slot]
+
+        for slot, value in options:
+            if slot in preferred:
+                return slot, value
+
+        return options[0]
+
     def intent_for(self, text: str) -> tuple[str | None, float]:
         """Best-scoring intent for an utterance, by distinctive-cue hits."""
-        lowered = f" {text.lower()} "
+        # Punctuation-stripped, for the same reason the NLU cue matcher is:
+        # "I want to rent a kayak, a double" hid the cue behind a comma and the
+        # goal switch was never detected.
+        lowered = " " + " ".join(re.sub(r"[^\w\s']+", " ", text.lower()).split()) + " "
+        lowered = _drop_dismissed(lowered)
         best: tuple[str | None, int] = (None, 0)
         for intent, cues in self.intent_cues.items():
             hits = sum(1 for cue in cues if f" {cue} " in lowered or f" {cue}s " in lowered)
@@ -244,6 +315,34 @@ class Lexicon:
         if best[0] is None:
             return None, 0.0
         return best[0], min(1.0, 0.55 + 0.2 * best[1])
+
+
+#: Phrases after which the next word or two names what the user is *abandoning*.
+_DISMISSALS = ("forget", "never mind", "nevermind", "not", "instead of", "drop", "cancel", "no more")
+
+
+def _drop_dismissed(padded: str) -> str:
+    """Remove the goal the user just rejected, before scoring intents.
+
+    "forget flights, find me a hotel" mentions both goals exactly once, so a
+    naive cue count ties and the dictionary order decides — which picked
+    `book_flight`, the goal being abandoned. The words immediately following a
+    dismissal are evidence *against* that goal, not for it, so they are struck
+    out before counting.
+    """
+    tokens = padded.split()
+    if not tokens:
+        return padded
+
+    drop: set[int] = set()
+    for i, token in enumerate(tokens):
+        window = " ".join(tokens[i:i + 2])
+        if token in _DISMISSALS or window in _DISMISSALS:
+            span = 2 if window in _DISMISSALS and token not in _DISMISSALS else 1
+            drop.update(range(i, min(i + span + 2, len(tokens))))
+
+    kept = [t for i, t in enumerate(tokens) if i not in drop]
+    return " " + " ".join(kept) + " "
 
 
 def _coerce(raw: str) -> Any:

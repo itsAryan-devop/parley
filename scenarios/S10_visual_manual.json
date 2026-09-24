@@ -1,0 +1,102 @@
+{
+  "id": "S10_visual_manual",
+  "title": "A photo of a router, grounded into a manual lookup",
+  "modality": "visual",
+  "description": "The theme's field-troubleshooting case. The frame is acknowledged immediately, decoded in the background, and the recognised state drives the manual lookup.",
+  "probes": [
+    "multimodal grounding",
+    "acknowledge before decode",
+    "chained call"
+  ],
+  "manifest": [
+    {
+      "name": "lookup_manual",
+      "description": "look up a device fault in the service manual",
+      "read_only": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "diagnose_sound",
+      "description": "identify the mechanical cause of an appliance sound",
+      "read_only": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "sound",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "create_ticket",
+      "description": "raise a service ticket for an engineer visit",
+      "mutating": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "env": {
+    "latency_ms": {
+      "search_flights": 700,
+      "search_hotels": 650,
+      "book_flight": 900,
+      "cancel_booking": 200,
+      "get_booking_status": 120,
+      "lookup_manual": 500,
+      "diagnose_sound": 450,
+      "create_ticket": 800
+    }
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "t": 0.0,
+      "session_id": "S10"
+    },
+    {
+      "type": "tool_manifest",
+      "t": 0.0,
+      "manifest": "@manifest"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 100,
+      "text": "my router is doing something odd, look at this",
+      "end_of_turn": true
+    },
+    {
+      "type": "video_frame",
+      "t": 400,
+      "frame_id": "router_power_led_red",
+      "path": "media/scenarios/frames/router_power_led_red.png"
+    },
+    {
+      "type": "session_end",
+      "t": 3500,
+      "reason": "complete"
+    }
+  ],
+  "expect": {
+    "slots": {
+      "label": "router_power_led_red"
+    },
+    "tools_called": [
+      "lookup_manual"
+    ],
+    "max_first_response_ms": 300
+  }
+}

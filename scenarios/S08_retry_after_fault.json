@@ -1,0 +1,173 @@
+{
+  "id": "S08_retry_after_fault",
+  "title": "A transient fault, then a retry that is not a duplicate",
+  "modality": "text",
+  "description": "The first booking attempt fails. Retrying is correct \u2014 the effect never landed \u2014 so an idempotency ledger that treats 'failed' as 'already done' would break this.",
+  "probes": [
+    "fault injection",
+    "retry",
+    "ledger state machine"
+  ],
+  "manifest": [
+    {
+      "name": "search_flights",
+      "description": "search available flights between two cities",
+      "read_only": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "origin",
+          "type": "string"
+        },
+        {
+          "name": "destination",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        },
+        {
+          "name": "time_of_day",
+          "type": "string",
+          "enum": [
+            "morning",
+            "afternoon",
+            "evening"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "book_flight",
+      "description": "reserve a seat on a specific flight",
+      "mutating": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "cancel_booking",
+      "description": "undo a flight reservation",
+      "mutating": true,
+      "inverse_of": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "get_booking_status",
+      "description": "list reservations currently held",
+      "read_only": true,
+      "verifies": "book_flight",
+      "params": []
+    },
+    {
+      "name": "search_hotels",
+      "description": "search available hotels in a city",
+      "read_only": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "city",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "book_hotel",
+      "description": "reserve a hotel room",
+      "mutating": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "hotel_id",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "env": {
+    "latency_ms": {
+      "search_flights": 700,
+      "search_hotels": 650,
+      "book_flight": 600,
+      "cancel_booking": 200,
+      "get_booking_status": 120,
+      "lookup_manual": 500,
+      "diagnose_sound": 450,
+      "create_ticket": 800
+    },
+    "faults": [
+      {
+        "tool": "book_flight",
+        "kind": "transient",
+        "on_call": 1,
+        "message": "gateway timeout"
+      }
+    ]
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "t": 0.0,
+      "session_id": "S08"
+    },
+    {
+      "type": "tool_manifest",
+      "t": 0.0,
+      "manifest": "@manifest"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 100,
+      "text": "flight to Hyderabad on Monday",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 1100,
+      "text": "book UK404",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 2600,
+      "text": "did that go through? book UK404",
+      "end_of_turn": true
+    },
+    {
+      "type": "session_end",
+      "t": 6000,
+      "reason": "complete"
+    }
+  ],
+  "expect": {
+    "intent": "book_flight",
+    "live_effects": [
+      {
+        "tool": "book_flight",
+        "args": {
+          "flight_no": "UK404"
+        }
+      }
+    ],
+    "no_duplicate_effects": true
+  }
+}

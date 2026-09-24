@@ -31,6 +31,7 @@ from typing import Any
 from ..kernel.policy import InterruptionKind, InterruptionPolicy, policy_for
 from ..protocol.state import SessionState
 from .lexicon import (
+    ADDITIVE_CUES,
     BACKCHANNELS,
     EDITING_TERMS,
     FILLED_PAUSES,
@@ -174,14 +175,21 @@ def _residue(normalised: str, *phrase_sets) -> list[str]:
 
 
 def extract_features(
-    turn: Turn, state: SessionState, lexicon: Lexicon, *, in_flight: int = 0
+    turn: Turn,
+    state: SessionState,
+    lexicon: Lexicon,
+    *,
+    in_flight: int = 0,
+    prefer_slots: set[str] | None = None,
 ) -> tuple[dict[str, float], list[Match], list[Match], list[Match], list[Match], str | None, float]:
     """Compute the feature vector shared by the rule path and the model path."""
     text = turn.text.strip()
     lowered = _normalise(text)
     tokens = lowered.split()
 
-    matches = lexicon.find(text)
+    # Slots the active goal can consume break ties when several share a
+    # vocabulary ("Goa" is a destination, an origin and a city).
+    matches = lexicon.find(text, prefer=prefer_slots or ())
     corrections: list[Match] = []
     additions: list[Match] = []
     restatements: list[Match] = []
@@ -209,6 +217,7 @@ def extract_features(
         "filled_pause": float(any(t in FILLED_PAUSES for t in tokens)),
         "editing_term": float(_contains_any(clean, EDITING_TERMS)),
         "goal_switch_cue": float(_contains_any(clean, GOAL_SWITCH_CUES)),
+        "additive_cue": float(_leading_cue(clean, ADDITIVE_CUES)),
         "refinement_cue": float(_contains_any(clean, REFINEMENT_CUES)),
         "repeat_cue": float(_contains_any(clean, REPEAT_CUES)),
         "floor_grab_only": float(bool(clean_tokens) and not floor_residue),
@@ -246,6 +255,10 @@ def classify_by_rules(f: dict[str, float]) -> tuple[InterruptionKind, float, str
         return InterruptionKind.REPEAT_REQUEST, 0.93, "explicit request to repeat"
 
     if f["goal_switch_cue"] or (f["intent_differs"] and f["intent_confidence"] >= 0.6):
+        # "...and a hotel in Goa" names a different goal but replaces nothing.
+        # Cancelling the live flight search there is pure work destruction.
+        if f["additive_cue"] and not f["goal_switch_cue"]:
+            return InterruptionKind.NEW_REQUEST, 0.8, "a second goal added alongside the first"
         return InterruptionKind.GOAL_SWITCH, 0.88, "a different goal was named"
 
     if f["n_corrections"] > 0:
@@ -292,9 +305,16 @@ class Interpreter:
         self.lexicon = lexicon
         self.model = model
 
-    def interpret(self, turn: Turn, state: SessionState, *, in_flight: int = 0) -> Interpretation:
+    def interpret(
+        self,
+        turn: Turn,
+        state: SessionState,
+        *,
+        in_flight: int = 0,
+        prefer_slots: set[str] | None = None,
+    ) -> Interpretation:
         features, matches, corrections, additions, restatements, intent, intent_conf = extract_features(
-            turn, state, self.lexicon, in_flight=in_flight
+            turn, state, self.lexicon, in_flight=in_flight, prefer_slots=prefer_slots
         )
 
         rule_kind, rule_conf, rationale = classify_by_rules(features)

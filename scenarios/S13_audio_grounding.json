@@ -1,0 +1,101 @@
+{
+  "id": "S13_audio_grounding",
+  "title": "A recording of an appliance, diagnosed by sound",
+  "modality": "audio",
+  "description": "What the raw clip adds over the transcript: the transcript says 'it makes a noise', the audio says which noise.",
+  "probes": [
+    "audio grounding",
+    "acknowledge before decode"
+  ],
+  "manifest": [
+    {
+      "name": "lookup_manual",
+      "description": "look up a device fault in the service manual",
+      "read_only": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "diagnose_sound",
+      "description": "identify the mechanical cause of an appliance sound",
+      "read_only": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "sound",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "create_ticket",
+      "description": "raise a service ticket for an engineer visit",
+      "mutating": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "env": {
+    "latency_ms": {
+      "search_flights": 700,
+      "search_hotels": 650,
+      "book_flight": 900,
+      "cancel_booking": 200,
+      "get_booking_status": 120,
+      "lookup_manual": 500,
+      "diagnose_sound": 450,
+      "create_ticket": 800
+    }
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "t": 0.0,
+      "session_id": "S13"
+    },
+    {
+      "type": "tool_manifest",
+      "t": 0.0,
+      "manifest": "@manifest"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 100,
+      "text": "the washing machine is making a noise, listen",
+      "end_of_turn": true
+    },
+    {
+      "type": "audio_clip",
+      "t": 400,
+      "clip_id": "grinding",
+      "path": "media/scenarios/audio/grinding.wav"
+    },
+    {
+      "type": "session_end",
+      "t": 3500,
+      "reason": "complete"
+    }
+  ],
+  "expect": {
+    "slots": {
+      "sound": "grinding"
+    },
+    "tools_called": [
+      "diagnose_sound"
+    ],
+    "max_first_response_ms": 300
+  }
+}

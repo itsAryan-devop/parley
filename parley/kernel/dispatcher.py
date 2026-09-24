@@ -106,6 +106,22 @@ class Dispatcher:
         if live is not None:
             return self._join(live, confirming=not speculative, now=now)
 
+        # --- reuse an equivalent answer we already have --------------------
+        if not spec.mutating:
+            prior = self.registry.completed_match(tool, args)
+            if prior is not None and not self.state.is_stale(prior.read_slots, prior.state_revision):
+                self.trace.kernel(
+                    now, "result_reused",
+                    call_id=prior.call_id, tool=tool, args=args,
+                    answered_at=prior.settled_at,
+                )
+                return prior
+
+        # --- retire guesses this dispatch makes obsolete ------------------
+        if not speculative:
+            for stale_guess in self.registry.superseded_speculations(tool, args):
+                await self.cancel(stale_guess, "superseded_by_confirmation")
+
         # --- idempotency claim, before dispatch ---------------------------
         key: str | None = None
         if spec.mutating:

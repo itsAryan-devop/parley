@@ -54,8 +54,12 @@ _PHRASING: dict[str, str] = {
     "date": "on {v}",
     "time_of_day": "in the {v}",
     "party_size": "for {v}",
-    "flight_no": "flight {v}",
-    "hotel_id": "hotel {v}",
+    # Bare, because the tool name already supplies the noun: describe_tool
+    # turns book_flight into "booking flight", and "flight {v}" made that
+    # "Booking flight flight AI101".
+    "flight_no": "{v}",
+    "hotel_id": "{v}",
+    "kayak_size": "a {v}",
     "max_price": "under {v}",
     "cabin": "in {v}",
     "label": "about the {v}",
@@ -89,6 +93,16 @@ def describe_tool(tool: str) -> str:
 
 def phrase_slot(name: str, value: Any) -> str:
     return _PHRASING.get(name, "{n} {v}").format(n=name.replace("_", " "), v=value)
+
+
+def _sentence_case(text: str) -> str:
+    """Capitalise the first letter only.
+
+    `str.capitalize()` lower-cases everything after it, which turned
+    "to Mumbai" into "To mumbai" — a proper noun mangled in the first thing the
+    user hears.
+    """
+    return text[:1].upper() + text[1:] if text else text
 
 
 @dataclass
@@ -242,15 +256,54 @@ class FloorManager:
                 warrant=f"dispatched at {record.dispatched_at:.0f} ms, still in flight",
             )
         )
-        return self._emit(Utterance(text=text[0].upper() + text[1:], kind=SpeechKind.ACK, claims=claims))
+        return self._emit(Utterance(text=_sentence_case(text), kind=SpeechKind.ACK, claims=claims))
+
+    def acknowledge_slots(self, slots: Iterable[str]) -> Speak | None:
+        """"Mumbai on Tuesday — got it."
+
+        Emitted the moment a slot binds, mid-utterance, before any tool call is
+        confirmed. Speculation is deliberately silent, so without this the agent
+        stays quiet from the first word of a turn until end-of-turn — which on a
+        two-chunk turn is hundreds of milliseconds of nothing, measured directly
+        by the latency block.
+
+        It claims only what it has: the slot values. It does not say we are
+        searching, because at this point we may only be guessing.
+        """
+        phrases, claims = self._slot_claims(sorted(slots))
+        if not phrases:
+            return None
+        return self._emit(
+            Utterance(
+                text=f"{_sentence_case(' '.join(phrases))} — got it.",
+                kind=SpeechKind.ACK,
+                claims=claims,
+            )
+        )
 
     def acknowledge_correction(self, slots: Iterable[str]) -> Speak | None:
         """"Mumbai instead — updating that."  Confirms the patch, claims nothing else."""
         phrases, claims = self._slot_claims(sorted(slots))
         if not phrases:
             return None
-        text = f"{' and '.join(phrases).capitalize()} instead — updating that."
+        text = f"{_sentence_case(' and '.join(phrases))} instead — updating that."
         return self._emit(Utterance(text=text, kind=SpeechKind.REPAIR, claims=claims))
+
+    def acknowledge_media(self, modality: str) -> Speak | None:
+        """"Let me take a look at that." — said before any decoding starts.
+
+        This is what "process raw audio and frames **behind conversational
+        acknowledgments**" means in practice. It is an ACK rather than a FILLER
+        because it is substantive: it commits to an action we are actually
+        taking and tells the user their photo arrived. Emitting a content-free
+        "one moment" here instead cost the entire latency block on every
+        multimodal scenario, because a filler is not a substantive response.
+
+        It asserts nothing about the world, so it carries no claims — a
+        statement of intent is not a completion claim.
+        """
+        text = "Let me listen to that." if modality == "audio" else "Let me take a look at that."
+        return self._emit(Utterance(text=text, kind=SpeechKind.ACK))
 
     def progress(self) -> Speak | None:
         """Narrate live work. Degrades to nothing rather than to a claim."""

@@ -1,0 +1,173 @@
+{
+  "id": "S06_double_book_guard",
+  "title": "The same booking asked for twice",
+  "modality": "text",
+  "description": "The user repeats the instruction because we were slow. Exactly one reservation must exist. This is the 'zero duplicate state-changing calls' line, and the failure mode IHBench reports for deployed agents.",
+  "probes": [
+    "idempotency",
+    "duplicate suppression"
+  ],
+  "manifest": [
+    {
+      "name": "search_flights",
+      "description": "search available flights between two cities",
+      "read_only": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "origin",
+          "type": "string"
+        },
+        {
+          "name": "destination",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        },
+        {
+          "name": "time_of_day",
+          "type": "string",
+          "enum": [
+            "morning",
+            "afternoon",
+            "evening"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "book_flight",
+      "description": "reserve a seat on a specific flight",
+      "mutating": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "cancel_booking",
+      "description": "undo a flight reservation",
+      "mutating": true,
+      "inverse_of": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "get_booking_status",
+      "description": "list reservations currently held",
+      "read_only": true,
+      "verifies": "book_flight",
+      "params": []
+    },
+    {
+      "name": "search_hotels",
+      "description": "search available hotels in a city",
+      "read_only": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "city",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "book_hotel",
+      "description": "reserve a hotel room",
+      "mutating": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "hotel_id",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "env": {
+    "latency_ms": {
+      "search_flights": 700,
+      "search_hotels": 650,
+      "book_flight": 1500,
+      "cancel_booking": 200,
+      "get_booking_status": 120,
+      "lookup_manual": 500,
+      "diagnose_sound": 450,
+      "create_ticket": 800
+    }
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "t": 0.0,
+      "session_id": "S06"
+    },
+    {
+      "type": "tool_manifest",
+      "t": 0.0,
+      "manifest": "@manifest"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 100,
+      "text": "flight to Pune on Wednesday",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 1200,
+      "text": "book 6E202",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 1900,
+      "text": "book 6E202 please",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 2600,
+      "text": "I said book 6E202",
+      "end_of_turn": true
+    },
+    {
+      "type": "session_end",
+      "t": 6000,
+      "reason": "complete"
+    }
+  ],
+  "expect": {
+    "intent": "book_flight",
+    "slots": {
+      "flight_no": "6E202"
+    },
+    "live_effects": [
+      {
+        "tool": "book_flight",
+        "args": {
+          "flight_no": "6E202"
+        }
+      }
+    ],
+    "no_duplicate_effects": true
+  }
+}

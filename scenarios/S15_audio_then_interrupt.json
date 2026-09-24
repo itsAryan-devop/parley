@@ -1,0 +1,119 @@
+{
+  "id": "S15_audio_then_interrupt",
+  "title": "An interruption arriving while a clip is still decoding",
+  "modality": "audio",
+  "description": "Adversarial timing. The interruption lands mid-decode, which only measures anything if perception runs as a background task rather than blocking the event loop.",
+  "probes": [
+    "concurrent perception",
+    "interruption during decode",
+    "floor management"
+  ],
+  "manifest": [
+    {
+      "name": "lookup_manual",
+      "description": "look up a device fault in the service manual",
+      "read_only": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "diagnose_sound",
+      "description": "identify the mechanical cause of an appliance sound",
+      "read_only": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "sound",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "create_ticket",
+      "description": "raise a service ticket for an engineer visit",
+      "mutating": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "env": {
+    "latency_ms": {
+      "search_flights": 700,
+      "search_hotels": 650,
+      "book_flight": 900,
+      "cancel_booking": 200,
+      "get_booking_status": 120,
+      "lookup_manual": 500,
+      "diagnose_sound": 1200,
+      "create_ticket": 800
+    }
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "t": 0.0,
+      "session_id": "S15"
+    },
+    {
+      "type": "tool_manifest",
+      "t": 0.0,
+      "manifest": "@manifest"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 100,
+      "text": "listen to this",
+      "end_of_turn": true
+    },
+    {
+      "type": "audio_clip",
+      "t": 300,
+      "clip_id": "beeping",
+      "path": "media/scenarios/audio/beeping.wav"
+    },
+    {
+      "type": "interruption",
+      "t": 360,
+      "source": "vad"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 380,
+      "text": "hold on",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 1500,
+      "text": "ok go on",
+      "end_of_turn": true
+    },
+    {
+      "type": "session_end",
+      "t": 4500,
+      "reason": "complete"
+    }
+  ],
+  "expect": {
+    "slots": {
+      "sound": "beeping"
+    },
+    "tools_called": [
+      "diagnose_sound"
+    ],
+    "notes": "The barge-in must not cancel the decode or the diagnosis."
+  }
+}

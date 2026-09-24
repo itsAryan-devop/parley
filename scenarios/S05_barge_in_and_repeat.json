@@ -1,0 +1,171 @@
+{
+  "id": "S05_barge_in_and_repeat",
+  "title": "Barge-in and a repeat request, neither of which touches the work",
+  "modality": "text",
+  "description": "The two cells every surveyed framework gets wrong. The user talks over a filler, then asks us to say it again. Both yield the floor; neither may cancel a tool call or re-run one.",
+  "probes": [
+    "barge-in",
+    "repeat request",
+    "no stale re-run"
+  ],
+  "manifest": [
+    {
+      "name": "search_flights",
+      "description": "search available flights between two cities",
+      "read_only": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "origin",
+          "type": "string"
+        },
+        {
+          "name": "destination",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        },
+        {
+          "name": "time_of_day",
+          "type": "string",
+          "enum": [
+            "morning",
+            "afternoon",
+            "evening"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "book_flight",
+      "description": "reserve a seat on a specific flight",
+      "mutating": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "cancel_booking",
+      "description": "undo a flight reservation",
+      "mutating": true,
+      "inverse_of": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "get_booking_status",
+      "description": "list reservations currently held",
+      "read_only": true,
+      "verifies": "book_flight",
+      "params": []
+    },
+    {
+      "name": "search_hotels",
+      "description": "search available hotels in a city",
+      "read_only": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "city",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "book_hotel",
+      "description": "reserve a hotel room",
+      "mutating": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "hotel_id",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "env": {
+    "latency_ms": {
+      "search_flights": 1800,
+      "search_hotels": 650,
+      "book_flight": 900,
+      "cancel_booking": 200,
+      "get_booking_status": 120,
+      "lookup_manual": 500,
+      "diagnose_sound": 450,
+      "create_ticket": 800
+    }
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "t": 0.0,
+      "session_id": "S05"
+    },
+    {
+      "type": "tool_manifest",
+      "t": 0.0,
+      "manifest": "@manifest"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 100,
+      "text": "flights to Chennai on Sunday",
+      "end_of_turn": true
+    },
+    {
+      "type": "interruption",
+      "t": 600,
+      "source": "vad"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 620,
+      "text": "hold on",
+      "end_of_turn": true
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 1200,
+      "text": "sorry, what was that?",
+      "end_of_turn": true
+    },
+    {
+      "type": "session_end",
+      "t": 4200,
+      "reason": "complete"
+    }
+  ],
+  "expect": {
+    "intent": "book_flight",
+    "slots": {
+      "destination": "MAA",
+      "date": "Sunday"
+    },
+    "survived_tools": [
+      "search_flights"
+    ],
+    "tools_not_called": [
+      "book_flight"
+    ]
+  }
+}

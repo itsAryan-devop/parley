@@ -1,0 +1,192 @@
+{
+  "id": "S09_unseen_tool",
+  "title": "A manifest containing a tool we have never seen",
+  "modality": "text",
+  "description": "Named explicitly in the public suite, so near-certain in the hidden set. Nothing in the kernel may key off a tool name: the schema alone has to be enough to plan, speak, and protect the call.",
+  "probes": [
+    "unseen tools",
+    "schema-driven planning",
+    "manifest-derived vocabulary"
+  ],
+  "manifest": [
+    {
+      "name": "search_flights",
+      "description": "search available flights between two cities",
+      "read_only": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "origin",
+          "type": "string"
+        },
+        {
+          "name": "destination",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        },
+        {
+          "name": "time_of_day",
+          "type": "string",
+          "enum": [
+            "morning",
+            "afternoon",
+            "evening"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "book_flight",
+      "description": "reserve a seat on a specific flight",
+      "mutating": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "cancel_booking",
+      "description": "undo a flight reservation",
+      "mutating": true,
+      "inverse_of": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "get_booking_status",
+      "description": "list reservations currently held",
+      "read_only": true,
+      "verifies": "book_flight",
+      "params": []
+    },
+    {
+      "name": "search_hotels",
+      "description": "search available hotels in a city",
+      "read_only": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "city",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "book_hotel",
+      "description": "reserve a hotel room",
+      "mutating": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "hotel_id",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "reserve_kayak",
+      "description": "reserve a kayak for a river trip",
+      "mutating": true,
+      "intent": "rent_kayak",
+      "params": [
+        {
+          "name": "kayak_size",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "search_kayaks",
+      "description": "search available kayaks",
+      "read_only": true,
+      "intent": "rent_kayak",
+      "params": [
+        {
+          "name": "kayak_size",
+          "type": "string",
+          "enum": [
+            "single",
+            "double"
+          ],
+          "required": true
+        }
+      ]
+    }
+  ],
+  "env": {
+    "latency_ms": {
+      "search_flights": 1500,
+      "search_hotels": 650,
+      "book_flight": 900,
+      "cancel_booking": 200,
+      "get_booking_status": 120,
+      "lookup_manual": 500,
+      "diagnose_sound": 450,
+      "create_ticket": 800
+    }
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "t": 0.0,
+      "session_id": "S09"
+    },
+    {
+      "type": "tool_manifest",
+      "t": 0.0,
+      "manifest": "@manifest"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 100,
+      "text": "flights to Goa on Saturday",
+      "end_of_turn": true
+    },
+    {
+      "type": "interruption",
+      "t": 600,
+      "source": "vad"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 620,
+      "text": "actually never mind, I want to rent a kayak, a double",
+      "end_of_turn": true
+    },
+    {
+      "type": "session_end",
+      "t": 4000,
+      "reason": "complete"
+    }
+  ],
+  "expect": {
+    "intent": "rent_kayak",
+    "slots": {
+      "kayak_size": "double"
+    },
+    "cancelled_tools": [
+      "search_flights"
+    ],
+    "notes": "search_kayaks has no mock implementation; failing informatively is correct."
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "id": "S12_visual_corrected_mid_lookup",
+  "title": "A second photo supersedes the first mid-lookup",
+  "modality": "visual",
+  "description": "A slot correction whose source is a camera frame rather than speech. The manual lookup for the first frame read `label` and must be cancelled; the dataflow rule does not care which modality bound the slot.",
+  "probes": [
+    "cross-modal slot correction",
+    "selective cancellation"
+  ],
+  "manifest": [
+    {
+      "name": "lookup_manual",
+      "description": "look up a device fault in the service manual",
+      "read_only": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "diagnose_sound",
+      "description": "identify the mechanical cause of an appliance sound",
+      "read_only": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "sound",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "create_ticket",
+      "description": "raise a service ticket for an engineer visit",
+      "mutating": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "env": {
+    "latency_ms": {
+      "search_flights": 700,
+      "search_hotels": 650,
+      "book_flight": 900,
+      "cancel_booking": 200,
+      "get_booking_status": 120,
+      "lookup_manual": 1600,
+      "diagnose_sound": 450,
+      "create_ticket": 800
+    }
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "t": 0.0,
+      "session_id": "S12"
+    },
+    {
+      "type": "tool_manifest",
+      "t": 0.0,
+      "manifest": "@manifest"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 100,
+      "text": "look at this panel",
+      "end_of_turn": true
+    },
+    {
+      "type": "video_frame",
+      "t": 300,
+      "frame_id": "washer_error_e4",
+      "path": "media/scenarios/frames/washer_error_e4.png"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 1400,
+      "text": "sorry, wrong appliance \u2014 this one",
+      "end_of_turn": true
+    },
+    {
+      "type": "video_frame",
+      "t": 1600,
+      "frame_id": "tv_hdmi_no_signal",
+      "path": "media/scenarios/frames/tv_hdmi_no_signal.png"
+    },
+    {
+      "type": "session_end",
+      "t": 5000,
+      "reason": "complete"
+    }
+  ],
+  "expect": {
+    "slots": {
+      "label": "tv_hdmi_no_signal"
+    },
+    "cancelled_tools": [
+      "lookup_manual"
+    ],
+    "no_duplicate_effects": true
+  }
+}

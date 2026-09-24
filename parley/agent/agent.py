@@ -33,7 +33,7 @@ from typing import Any, AsyncIterator, Callable
 
 from ..kernel.calls import CallOutcome, CallRecord
 from ..kernel.dispatcher import Dispatcher, ToolExecutor
-from ..kernel.policy import FloorPolicy, InterruptionKind, WorkPolicy
+from ..kernel.policy import FloorPolicy, InterruptionKind, WorkPolicy, policy_for
 from ..protocol.actions import Claim, ClaimKind
 from ..protocol.events import (
     AudioClip,
@@ -96,6 +96,7 @@ class ParleyAgent:
         self._agent_is_speaking = False
         self._pending_interruption = False
         self._perceptions: dict[str, Any] = {}
+        self._grounding: list[asyncio.Task[Any]] = []
         self._finalised = False
 
     # ================================================================ loop
@@ -179,7 +180,10 @@ class ParleyAgent:
             overlapping_agent_speech=overlapping,
         )
         interp = self.interpreter.interpret(
-            turn, self.state, in_flight=len(self.kernel.registry.in_flight())
+            turn,
+            self.state,
+            in_flight=len(self.kernel.registry.in_flight()),
+            prefer_slots=self.manifest.params_for_intent(self.state.intent),
         )
         self.trace.kernel(event.t, "interpretation", **interp.to_payload())
 
@@ -243,8 +247,21 @@ class ParleyAgent:
             )
             just_bound.add(match.slot)
 
+        # A restated value changes nothing about the state, but the user did
+        # supply it this turn. Without it, "book UK404" repeated after a failed
+        # attempt bound no new slot, so the mutating tool was never re-planned
+        # and the retry silently never happened. The idempotency ledger is what
+        # makes this safe: a genuine duplicate is suppressed before dispatch.
+        just_bound |= {m.slot for m in interp.restatements}
+
         if interp.corrections:
             self.floor.acknowledge_correction(m.slot for m in interp.corrections)
+        elif just_bound and not event.end_of_turn:
+            # Mid-turn: say what we heard now rather than waiting for the turn
+            # to finish. Any tool call at this point is speculative and therefore
+            # unspeakable, so this is the only thing keeping the first-response
+            # latency low on a multi-chunk turn.
+            self.floor.acknowledge_slots(just_bound)
 
         return just_bound
 
@@ -277,23 +294,35 @@ class ParleyAgent:
     async def _on_audio(self, event: AudioClip) -> None:
         from ..multimodal import ground_audio
 
-        await self._ground(ground_audio, event, event.clip_id, SlotSource.AUDIO)
+        self._start_grounding(ground_audio, event, event.clip_id, SlotSource.AUDIO)
 
     async def _on_frame(self, event: VideoFrame) -> None:
         from ..multimodal import ground_frame
 
-        await self._ground(ground_frame, event, event.frame_id, SlotSource.VISION)
+        self._start_grounding(ground_frame, event, event.frame_id, SlotSource.VISION)
+
+    def _start_grounding(
+        self, grounder: Callable[..., Any], event: Any, ident: str, source: SlotSource
+    ) -> None:
+        """Acknowledge now, decode in the background.
+
+        "Process raw audio and frames **behind conversational acknowledgments**"
+        is not a description of tone — it is a concurrency requirement. Awaiting
+        the decode inline would park the whole event loop for the duration, so
+        an interruption arriving mid-decode would be handled late and the
+        cancellation grace period would blow out. The acknowledgment goes out
+        first and the decode becomes a task, exactly like a tool call.
+        """
+        ack = self.floor.acknowledge_media(
+            "audio" if source is SlotSource.AUDIO else "vision"
+        )
+        self._agent_is_speaking = ack is not None
+        task = asyncio.create_task(
+            self._ground(grounder, event, ident, source), name=f"ground:{ident}"
+        )
+        self._grounding.append(task)
 
     async def _ground(self, grounder: Callable[..., Any], event: Any, ident: str, source: SlotSource) -> None:
-        """Acknowledge first, decode behind the acknowledgment, clarify rather than guess.
-
-        Objective 5 asks for exactly this ordering. The acknowledgment goes out
-        before any decoding starts, so perception latency never shows up as
-        silence.
-        """
-        ack = self.floor.progress()
-        self._agent_is_speaking = ack is not None
-
         perception = await grounder(event, clock=self.clock)
         self._perceptions[ident] = perception
         self.trace.kernel(self.clock.now, "perception", **perception.to_payload())
@@ -314,10 +343,30 @@ class ParleyAgent:
             )
             return
 
-        self.state.set_slot(
+        delta = self.state.set_slot(
             perception.slot, perception.label,
             confidence=perception.confidence, source=source, evidence=ident,
+            surface=str(perception.label).replace("_", " "),
         )
+
+        # A second photograph superseding the first is a slot correction whose
+        # source happens to be a camera rather than a voice. The dataflow rule
+        # does not care which modality bound the slot, and routing perception
+        # around the cancellation path left the first lookup running against a
+        # value nobody held any more.
+        if delta.invalidating_slots:
+            await self.kernel.apply_work_policy(
+                policy_for(InterruptionKind.SLOT_CORRECTION), delta.invalidating_slots
+            )
+            self.floor.acknowledge_correction([perception.slot])
+
+        if self.state.intent is None:
+            inferred = self.planner.infer_intent(self.state)
+            if inferred:
+                self.state.set_intent(inferred)
+                self.trace.kernel(self.clock.now, "intent_inferred",
+                                  intent=inferred, from_slots=sorted(self.state.slots))
+
         planned = self.planner.plan(
             self.state, end_of_turn=True, committed=False, just_bound={perception.slot}
         )
@@ -338,6 +387,11 @@ class ParleyAgent:
         disagree with it has to be resolved — or disclosed — before we speak.
         """
         self._finalised = True
+
+        # Perception first: a frame still decoding may yet bind a slot that the
+        # final snapshot has to carry, and may yet dispatch a call.
+        if self._grounding:
+            await asyncio.gather(*self._grounding, return_exceptions=True)
 
         in_flight = self.kernel.registry.in_flight()
         if in_flight:
@@ -391,9 +445,12 @@ class ParleyAgent:
                         warrant=f"settled {record.outcome.value} at {record.settled_at:.0f} ms",
                     )
                 )
-                parts.append(_describe_result(record))
-            else:
-                parts.append(_describe_result(record))
+            sentence = _describe_result(record)
+            # Two calls can legitimately produce the same sentence (a search
+            # narrowed to the same count, say). Saying it twice is noise the
+            # quality multiplier notices.
+            if sentence not in parts:
+                parts.append(sentence)
 
         for name, slot in self.state.slots.items():
             if slot.confidence >= 0.55:

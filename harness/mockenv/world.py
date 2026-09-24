@@ -62,7 +62,7 @@ class World(BaseModel):
     def commit(self, tool: str, args: dict[str, Any], call_id: str, t: float) -> Effect:
         self._counter += 1
         eff = Effect(
-            effect_id=f"eff-{self._counter}",
+            effect_id=f"eff{self._counter:04d}",
             tool=tool,
             args=dict(args),
             call_id=call_id,
@@ -190,6 +190,16 @@ MANUAL_PAGES: dict[str, dict[str, Any]] = {
             "Clean the inlet filter mesh.",
         ],
     },
+    "washer_drum_noise": {
+        "page": "WM-11.2",
+        "title": "Grinding or rumbling during spin",
+        "meaning": "Something is loose in the drum, or the bearings are worn.",
+        "steps": [
+            "Stop the cycle and check the drum for coins or clips.",
+            "Confirm the machine is level on all four feet.",
+            "If the noise persists when empty, the bearings need service.",
+        ],
+    },
     "tv_hdmi_no_signal": {
         "page": "TV-3.4",
         "title": "No signal on HDMI",
@@ -198,6 +208,58 @@ MANUAL_PAGES: dict[str, dict[str, Any]] = {
             "Confirm the source device is powered on.",
             "Re-seat the HDMI cable at both ends.",
             "Try a different HDMI port and reselect the input.",
+        ],
+    },
+}
+
+# Sound classes the audio path recognises, mapped to a likely mechanical cause.
+# Keyed by the classifier's own labels so the audio and diagnosis paths meet at
+# a label the agent must first resolve -- and may have to ask about.
+SOUND_DIAGNOSES: dict[str, dict[str, Any]] = {
+    "beeping": {
+        "page": "SND-1.1",
+        "title": "Repeating beep",
+        "meaning": "The appliance is signalling an unacknowledged alert.",
+        "steps": [
+            "Check the display for an error code.",
+            "Press and hold the start button for three seconds to clear the alert.",
+        ],
+    },
+    "continuous_tone": {
+        "page": "SND-1.2",
+        "title": "Steady tone",
+        "meaning": "A stuck control-panel button, or a door sensor that never closed.",
+        "steps": [
+            "Open and firmly reclose the door.",
+            "Wipe the control panel and check no button is depressed.",
+        ],
+    },
+    "grinding": {
+        "page": "SND-2.1",
+        "title": "Grinding under load",
+        "meaning": "Debris in the drum or worn bearings.",
+        "steps": [
+            "Run an empty cycle and listen again.",
+            "Check the drum and filter for loose objects.",
+            "If it grinds while empty, book a service visit.",
+        ],
+    },
+    "clicking": {
+        "page": "SND-3.1",
+        "title": "Regular clicking",
+        "meaning": "The relay is cycling, usually a failing water valve or thermostat.",
+        "steps": [
+            "Note whether the clicking follows the fill stage.",
+            "Power-cycle at the wall and retry once.",
+        ],
+    },
+    "silence": {
+        "page": "SND-0.1",
+        "title": "No sound at all",
+        "meaning": "The unit is not receiving power, or is in standby.",
+        "steps": [
+            "Confirm the plug is seated and the socket is live.",
+            "Hold the power button for five seconds.",
         ],
     },
 }

@@ -30,7 +30,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..clock import Clock
 from ..trace import Trace
-from .world import MANUAL_PAGES, World, flight_catalogue, hotel_catalogue
+from .world import MANUAL_PAGES, SOUND_DIAGNOSES, World, flight_catalogue, hotel_catalogue
 
 
 class FaultKind(str, Enum):
@@ -95,6 +95,7 @@ class MockEnvironment:
             "book_hotel": self._book_hotel,
             "create_ticket": self._create_ticket,
             "lookup_manual": self._lookup_manual,
+            "diagnose_sound": self._diagnose_sound,
             "identify_frame": self._identify_frame,
             "get_booking_status": self._get_booking_status,
         }
@@ -211,6 +212,14 @@ class MockEnvironment:
         page = MANUAL_PAGES.get(label)
         if page is None:
             return {"found": False, "label": label, "candidates": sorted(MANUAL_PAGES)}
+        return {"found": True, **page}
+
+    def _diagnose_sound(self, args: dict[str, Any], call_id: str) -> Any:
+        """Map a recognised sound class to a likely mechanical cause."""
+        sound = args.get("sound", "")
+        page = SOUND_DIAGNOSES.get(sound)
+        if page is None:
+            return {"found": False, "sound": sound, "candidates": sorted(SOUND_DIAGNOSES)}
         return {"found": True, **page}
 
     def _identify_frame(self, args: dict[str, Any], call_id: str) -> Any:

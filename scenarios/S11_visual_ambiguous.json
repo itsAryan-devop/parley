@@ -1,0 +1,104 @@
+{
+  "id": "S11_visual_ambiguous",
+  "title": "A frame with two indicators lit",
+  "modality": "visual",
+  "description": "The evidence genuinely is split, so picking one would be a guess. Objective 5 wants a specific clarification, and a confidently wrong perception loses twice \u2014 task completion and the truthfulness term.",
+  "probes": [
+    "ambiguous perception",
+    "clarification",
+    "abstention"
+  ],
+  "manifest": [
+    {
+      "name": "lookup_manual",
+      "description": "look up a device fault in the service manual",
+      "read_only": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "diagnose_sound",
+      "description": "identify the mechanical cause of an appliance sound",
+      "read_only": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "sound",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "create_ticket",
+      "description": "raise a service ticket for an engineer visit",
+      "mutating": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "env": {
+    "latency_ms": {
+      "search_flights": 700,
+      "search_hotels": 650,
+      "book_flight": 900,
+      "cancel_booking": 200,
+      "get_booking_status": 120,
+      "lookup_manual": 500,
+      "diagnose_sound": 450,
+      "create_ticket": 800
+    }
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "t": 0.0,
+      "session_id": "S11"
+    },
+    {
+      "type": "tool_manifest",
+      "t": 0.0,
+      "manifest": "@manifest"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 100,
+      "text": "what does this light mean?",
+      "end_of_turn": true
+    },
+    {
+      "type": "video_frame",
+      "t": 350,
+      "frame_id": "router_led_ambiguous",
+      "path": "media/scenarios/frames/router_led_ambiguous.png"
+    },
+    {
+      "type": "session_end",
+      "t": 3000,
+      "reason": "complete"
+    }
+  ],
+  "expect": {
+    "must_clarify": true,
+    "tools_not_called": [
+      "lookup_manual",
+      "create_ticket"
+    ],
+    "absent_slots": [
+      "label"
+    ],
+    "notes": "Binding a label here would be a guess dressed as an answer."
+  }
+}

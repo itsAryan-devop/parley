@@ -50,20 +50,23 @@ class Planner:
 
     # ------------------------------------------------------------------
 
-    def candidates(self, intent: str | None) -> list[ToolSpec]:
-        """Tools serving `intent`, plus tools that declare no intent at all.
+    @property
+    def plannable(self) -> list[ToolSpec]:
+        """Every tool a plan may contain.
 
-        Verifiers and compensators are excluded: they are the kernel's business
-        and are dispatched by name when an effect needs resolving, never as part
-        of a plan.
+        Verifiers and compensators are excluded: they are the kernel's business,
+        dispatched by name when an effect needs resolving, never as part of a
+        plan. Including them would let the planner "helpfully" cancel a booking.
         """
         return [
             spec
             for spec in self.manifest.tools.values()
-            if spec.verifies is None
-            and spec.inverse_of is None
-            and (spec.intent is None or spec.intent == intent)
+            if spec.verifies is None and spec.inverse_of is None
         ]
+
+    def candidates(self, intent: str | None) -> list[ToolSpec]:
+        """Tools serving `intent`, plus tools that declare no intent at all."""
+        return [s for s in self.plannable if s.intent is None or s.intent == intent]
 
     def bind_args(self, spec: ToolSpec, state: SessionState) -> tuple[dict[str, Any], set[str]] | None:
         """Fill a tool's parameters from state, or None if a required one is missing.
@@ -104,12 +107,22 @@ class Planner:
         just_bound = just_bound or set()
         out: list[PlannedCall] = []
 
-        for spec in self.candidates(state.intent):
+        for spec in self.plannable:
             bound = self.bind_args(spec, state)
             if bound is None:
                 continue
             args, read = bound
             if not args:
+                continue
+
+            # A tool belonging to another goal is still worth running when the
+            # user just handed it exactly what it needs. "...and a hotel in Goa"
+            # alongside a live flight search is an *addition*, not a switch, and
+            # gating purely on the single current intent meant the hotel search
+            # never ran. Requiring a freshly-bound parameter is what stops this
+            # from re-planning the whole manifest every turn.
+            serves_current_goal = spec.intent is None or spec.intent == state.intent
+            if not serves_current_goal and not (read & just_bound):
                 continue
 
             if spec.mutating:
@@ -146,6 +159,32 @@ class Planner:
             )
 
         return out
+
+    def infer_intent(self, state: SessionState) -> str | None:
+        """Work out the goal from the slots that are bound, when nobody said it.
+
+        A camera frame binds `label` without anyone uttering a goal word, and
+        with `intent` left None the intent-tagged tools were all filtered out —
+        so a perfectly good perception led to no tool call at all. If the bound
+        slots are consumable by exactly one goal's tools, that is the goal.
+        Ambiguous evidence returns None rather than a guess.
+        """
+        bound = set(state.slots)
+        if not bound:
+            return None
+
+        scored: dict[str, int] = {}
+        for intent in self.manifest.intents():
+            overlap = len(bound & self.manifest.params_for_intent(intent))
+            if overlap:
+                scored[intent] = overlap
+
+        if not scored:
+            return None
+        ranked = sorted(scored.items(), key=lambda kv: -kv[1])
+        if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
+            return None
+        return ranked[0][0]
 
     def slots_to_keep(self, new_intent: str | None) -> set[str]:
         """Which slots survive a goal switch.
