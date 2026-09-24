@@ -144,6 +144,87 @@ scenario. This is exactly the sort of case that produces a stale re-run in a nai
 
 ---
 
+## Round 2 — 24 Sep 2026: telling a self-repair from a correction
+
+The taxonomy is only worth having if the agent can actually *classify* an
+utterance into it. `SELF_REPAIR` vs `SLOT_CORRECTION` is the hard pair: both
+look like "X — no wait — Y", and they demand opposite behaviour (do nothing
+vs. cancel that slot's readers).
+
+### R2.1 Shriberg's disfluency structure (1994), and incremental detection
+
+The standard annotation for a spoken repair has four parts:
+
+```
+    "fly me to Delhi    —    uh, no, I mean    —    Mumbai    on Tuesday"
+                 └reparandum┘  └─interregnum──┘   └─repair─┘
+                            ↑ interruption point
+```
+
+- **reparandum** — the part being replaced
+- **interruption point** — where the speaker breaks off
+- **interregnum** — the editing phrase bridging the gap ("uh", "sorry", "I mean")
+- **repair** — what replaces the reparandum
+
+Detection "needs to be strongly incremental: word by word, enabling downstream
+processing to begin as early as possible", and a repair "becomes apparent only
+when the interregnum is detected or when the repair onset is encountered"
+(arXiv 1408.6788; arXiv 2011.06754). RNN word-by-word taggers are the standard
+computational treatment.
+
+**→ Action.** This gives the decision rule we were missing, and it is sharp:
+
+> Both kinds have a reparandum, an interregnum and a repair. They differ in **what
+> the repair does to the value**. If the repair supplies a *different* value of the
+> same slot type, it is a `SLOT_CORRECTION`. If it *restates the same* value — or
+> supplies no value at all, merely resuming — it is a `SELF_REPAIR`.
+
+"to Delhi — no, Mumbai": repair value ≠ reparandum value → correction, patch the
+slot. "book the… uh… the Tuesday one": the repair restates the referent already
+bound → self-repair, do nothing. The interregnum type is corroborating evidence,
+not the decision: *filled pauses* ("uh", "um") skew to self-repair, *editing
+terms* ("no", "sorry", "actually", "I mean") skew to correction — but "uh, no,
+Mumbai" has both, and the value comparison still decides it correctly.
+
+This also tells us **when** to decide: at repair onset, not at end-of-turn.
+Waiting for the end-of-turn marker would forfeit the 15% latency block on
+exactly the turns that matter most.
+
+### R2.2 Where ML earns its place here
+
+Six features fall straight out of R2.1 and the taxonomy, and they are cheap:
+
+| # | Feature | Separates |
+|---|---|---|
+| 1 | interregnum class (none / filled pause / editing term) | repair vs not |
+| 2 | repair supplies a value for an already-bound slot | correction vs self-repair |
+| 3 | new value == previously bound value | self-repair vs correction |
+| 4 | utterance introduces a verb/object for a different intent | goal switch |
+| 5 | utterance is a pure narrowing modifier ("only", "just", "make it") | refinement |
+| 6 | overlap with our own speech; whether anything is in flight | barge-in vs new request |
+
+**→ Action — the ML decision, and its constraints.** Rules over these features
+get most cases; the residue is genuinely fuzzy and is what a learned model is
+for. But the runtime constraints are hard: 120 s per scenario, a 300 s warm-up,
+and **no runtime downloads** (a cold model pull would eat both the cap and the
+latency block). So:
+
+- **Train offline** with scikit-learn on a generated corpus built from the
+  taxonomy (templates × slot values × interregnum variants), sklearn a *dev*
+  dependency only.
+- **Ship weights as JSON** in the repo — a multinomial logistic regression over
+  ~20 features is a few kilobytes.
+- **Infer in pure numpy**, ~20 lines. Microseconds, zero virtual time, fully
+  deterministic, nothing to download.
+- **Keep the rule engine as a parallel path** and record both verdicts in the
+  trace. When they disagree, the rule wins on the state-modifying branches
+  (a wrong `GOAL_SWITCH` cancels real work) and the model wins on the rest.
+
+This is ML where it pays and rules where a wrong answer is expensive — and the
+disagreement record is itself good evidence for the jury Q&A.
+
+---
+
 ## Standing conclusions
 
 1. **The dataflow claim is defensible and differentiating.** No surveyed system models slot →

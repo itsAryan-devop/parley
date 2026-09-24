@@ -56,6 +56,8 @@ class InterruptionKind(str, Enum):
     SELF_REPAIR = "self_repair"
     BARGE_IN = "barge_in"
     REPEAT_REQUEST = "repeat_request"
+    BACKCHANNEL = "backchannel"
+    """"mhm", "right", "okay" — the user signalling attention, not interrupting."""
     NEW_REQUEST = "new_request"
     """Not an interruption: the opening utterance of a turn with nothing in flight."""
 
@@ -78,7 +80,16 @@ class InterruptionPolicy:
 
     @property
     def is_interruption(self) -> bool:
-        return self.kind not in (InterruptionKind.SELF_REPAIR, InterruptionKind.NEW_REQUEST)
+        """Whether this even counts as the user interrupting us.
+
+        A disfluency, a backchannel and the opening of a turn are all things a
+        naive VAD reports as interruptions and none of them are.
+        """
+        return self.kind not in (
+            InterruptionKind.SELF_REPAIR,
+            InterruptionKind.BACKCHANNEL,
+            InterruptionKind.NEW_REQUEST,
+        )
 
     def to_payload(self) -> dict[str, str]:
         return {
@@ -125,6 +136,12 @@ POLICIES: dict[InterruptionKind, InterruptionPolicy] = {
         FloorPolicy.YIELD,
         WorkPolicy.KEEP_ALL,
         "answerable from the transcript; re-running a tool here would be a stale re-run",
+    ),
+    InterruptionKind.BACKCHANNEL: InterruptionPolicy(
+        InterruptionKind.BACKCHANNEL,
+        FloorPolicy.CONTINUE,
+        WorkPolicy.KEEP_ALL,
+        "a listener noise; stopping here would be the VAD's mistake, not the user's request",
     ),
     InterruptionKind.NEW_REQUEST: InterruptionPolicy(
         InterruptionKind.NEW_REQUEST,
