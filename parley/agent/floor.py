@@ -289,6 +289,19 @@ class FloorManager:
         text = f"{_sentence_case(' and '.join(phrases))} instead — updating that."
         return self._emit(Utterance(text=text, kind=SpeechKind.REPAIR, claims=claims))
 
+    def _describe_args(self, record: CallRecord) -> str:
+        """Name a call's subject in the words the user used.
+
+        Falls back to the raw argument only when no slot holds it — otherwise
+        the agent reads back "PNQ" at someone who said "Pune".
+        """
+        if not record.args:
+            return record.tool.replace("_", " ")
+        name, value = next(iter(sorted(record.args.items())))
+        slot = self.state.slots.get(name)
+        spoken = slot.spoken if slot is not None and slot.value == value else value
+        return phrase_slot(name, spoken)
+
     def acknowledge_media(self, modality: str) -> Speak | None:
         """"Let me take a look at that." — said before any decoding starts.
 
@@ -304,6 +317,57 @@ class FloorManager:
         """
         text = "Let me listen to that." if modality == "audio" else "Let me take a look at that."
         return self._emit(Utterance(text=text, kind=SpeechKind.ACK))
+
+    def acknowledge_suppression(self, record: CallRecord, prior: CallRecord | None) -> Speak | None:
+        """"That one's already booked." — said when a duplicate is blocked.
+
+        Suppressing the duplicate is correct and invisible, and invisibility is
+        the problem: the user asked twice because we said nothing the first
+        time, and silence makes them ask a third time. Observed directly in the
+        double-booking scenario, where the agent correctly refused to book twice
+        and then said nothing at all to two further requests.
+
+        What it says depends on what the kernel can prove: an in-flight prior
+        warrants "already going through", a settled one warrants "already done".
+        Neither is available unless the corresponding CallRecord says so.
+        """
+        what = self._describe_args(record)
+        action = describe_tool(record.tool).split()[0]
+
+        if prior is not None and prior.in_flight:
+            return self._emit(
+                Utterance(
+                    text=f"Already {action} {what} — hang on.",
+                    kind=SpeechKind.PROGRESS,
+                    claims=[
+                        Claim(
+                            kind=ClaimKind.IN_PROGRESS, subject=prior.call_id, value=prior.tool,
+                            warrant=f"in flight since {prior.dispatched_at:.0f} ms",
+                        )
+                    ],
+                )
+            )
+
+        if prior is not None and prior.outcome is CallOutcome.COMPLETED_STILL_VALID:
+            return self._emit(
+                Utterance(
+                    text=f"That's already done — {what} is confirmed.",
+                    kind=SpeechKind.REPAIR,
+                    claims=[
+                        Claim(
+                            kind=ClaimKind.COMPLETED, subject=prior.call_id, value=prior.tool,
+                            warrant=f"settled {prior.outcome.value} at {prior.settled_at:.0f} ms",
+                        )
+                    ],
+                )
+            )
+
+        # We blocked it but cannot prove what happened to the original. Say the
+        # only true thing: we are not doing it twice.
+        return self._emit(
+            Utterance(text=f"I've not repeated that — {what} was already requested.",
+                      kind=SpeechKind.REPAIR)
+        )
 
     def progress(self) -> Speak | None:
         """Narrate live work. Degrades to nothing rather than to a claim."""
@@ -359,7 +423,7 @@ class FloorManager:
         Reached when a mutating call was cancelled and the manifest declares no
         verifier. Silence here is the failure mode that makes the snapshot lie.
         """
-        what = phrase_slot(*next(iter(record.args.items()))) if record.args else record.tool
+        what = self._describe_args(record)
         text = (
             f"One thing — I'd already started {describe_tool(record.tool)} {what} "
             "when you changed that, and I can't confirm whether it went through."
@@ -372,7 +436,7 @@ class FloorManager:
 
     def disclose_compensation(self, record: CallRecord) -> Speak | None:
         """"I had already booked that — I've undone it." Truthful, and specific."""
-        what = phrase_slot(*next(iter(record.args.items()))) if record.args else record.tool
+        what = self._describe_args(record)
         text = (
             f"I'd already gone ahead with {what} before you changed your mind, "
             "so I've reversed it."

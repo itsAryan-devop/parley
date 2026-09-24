@@ -273,13 +273,12 @@ def _latency(result: RunResult) -> Component:
     if not prompts:
         return Component("latency", 1.0, WEIGHTS["latency"], ["no user input"], [])
 
+    # The tolerance guards against an action emitted at the same instant as its
+    # prompt being ordered before it by floating-point noise.
     gaps: list[float] = []
     for t in prompts:
-        nxt = next((s for s in substantive if s >= t), None)
-        if nxt is None:
-            gaps.append(LATENCY_ZERO_MS)
-        else:
-            gaps.append(nxt - t)
+        nxt = next((s for s in substantive if s >= t - 1e-6), None)
+        gaps.append(LATENCY_ZERO_MS if nxt is None else max(0.0, nxt - t))
 
     scores = [
         1.0 if g <= LATENCY_TARGET_MS
@@ -289,7 +288,10 @@ def _latency(result: RunResult) -> Component:
     score = sum(scores) / len(scores)
 
     worst = max(gaps)
-    notes = [f"median {sorted(gaps)[len(gaps) // 2]:.0f} ms, worst {worst:.0f} ms"]
+    notes = [
+        f"median {sorted(gaps)[len(gaps) // 2]:.0f} ms, worst {worst:.0f} ms",
+        "gaps " + ", ".join(f"{t:.0f}->{g:.0f}ms" for t, g in zip(prompts, gaps)),
+    ]
     failures = []
     cap = result.scenario.expect.max_first_response_ms
     if cap is not None and gaps[0] > cap:

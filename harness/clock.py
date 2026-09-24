@@ -177,8 +177,20 @@ class Clock:
 
     @property
     def now(self) -> float:
-        """Milliseconds since session start."""
-        return self._loop.time() / MS
+        """Milliseconds since session start.
+
+        Rounded, because the seconds/milliseconds round trip is not exact: a
+        700 ms deadline is stored as 0.7 s, which is really 0.69999999999999996,
+        and converting back gives 699.9999999999999. An action emitted at
+        exactly its prompt's timestamp then compared as *earlier* than the
+        prompt, so the latency scorer skipped it and measured the gap to the
+        next response instead — 1900 ms of phantom latency on a scenario where
+        the agent answered instantly.
+
+        Six decimals keeps sub-microsecond ordering while making equal instants
+        compare equal.
+        """
+        return round(self._loop.time() / MS, 6)
 
     async def sleep(self, ms: float) -> None:
         await asyncio.sleep(ms * MS)

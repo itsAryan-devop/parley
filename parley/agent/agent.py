@@ -275,15 +275,41 @@ class ParleyAgent:
         )
 
         for call in planned:
+            issued_at = self.clock.now
             record = await self.kernel.dispatch(
                 call.tool, call.args, call.read_slots,
                 speculative=call.speculative, intent=self.state.intent,
             )
-            # Speculation is invisible: narrating a guess would be claiming we
-            # are doing something the user did not ask for.
-            if not call.speculative and record.in_flight:
+            if call.speculative:
+                # Speculation is invisible: narrating a guess would be claiming
+                # we are doing something the user did not ask for.
+                continue
+
+            if record.outcome is CallOutcome.DUPLICATE_SUPPRESSED:
+                spoken = self.floor.acknowledge_suppression(record, self._prior_for(record))
+            elif record.dispatched_at < issued_at and record.mutating:
+                # We joined a state-changing call already running rather than
+                # issuing a second one. Correct, and silent — which is why the
+                # user asked again. Read-only reuse stays silent: we already
+                # said we were searching, and "that's already done" about a
+                # search is both uninformative and faintly untrue.
+                spoken = self.floor.acknowledge_suppression(record, record)
+            elif record.in_flight:
                 spoken = self.floor.acknowledge_dispatch(record)
-                self._agent_is_speaking = spoken is not None
+            else:
+                spoken = None
+            self._agent_is_speaking = spoken is not None
+
+    def _prior_for(self, suppressed: CallRecord) -> CallRecord | None:
+        """The call a suppressed duplicate was blocked in favour of."""
+        entry = self.kernel.ledger.get(suppressed.idempotency_key or "")
+        if entry is None:
+            return None
+        for call_id in reversed(entry.call_ids):
+            record = self.kernel.registry.get(call_id)
+            if record is not None and record is not suppressed:
+                return record
+        return None
 
     def _is_committal(self, text: str) -> bool:
         words = {w.strip(",.!?").lower() for w in text.split()}
