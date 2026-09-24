@@ -126,11 +126,17 @@ class Planner:
                 continue
 
             if spec.mutating:
+                # `committed` already means the user asked for the action *this
+                # turn* — a commit verb was spoken. That is the whole gate.
+                #
+                # It used to additionally require a freshly-bound parameter,
+                # which silently broke the commonest shape there is: bind the
+                # subject in one turn ("look at this panel"), ask for the action
+                # in the next ("raise a ticket for that"). Nothing was bound by
+                # the second turn, so the ticket was never raised. Re-firing on
+                # every committal turn is safe precisely because the idempotency
+                # ledger suppresses the duplicate and now says so out loud.
                 if not committed:
-                    continue
-                # Fire when this turn completed the call, not on every turn that
-                # happens to have the parameters lying around.
-                if not (read & just_bound):
                     continue
                 out.append(
                     PlannedCall(

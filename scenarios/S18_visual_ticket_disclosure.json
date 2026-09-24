@@ -1,12 +1,13 @@
 {
-  "id": "S15_audio_then_interrupt",
-  "title": "An interruption arriving while a clip is still decoding",
-  "modality": "audio",
-  "description": "Adversarial timing. The interruption lands mid-decode, which only measures anything if perception runs as a background task rather than blocking the event loop.",
+  "id": "S18_visual_ticket_disclosure",
+  "title": "A ticket is raised from a photo, then the user changes appliance",
+  "modality": "visual",
+  "description": "The subject is bound by a camera frame in one turn and the action is asked for in the next. The ticket then commits before the user switches appliance \u2014 and `create_ticket` declares neither a verifier nor an inverse, so the honest outcome is to say out loud that a ticket may exist. Silence here is what makes a state snapshot lie.",
   "probes": [
-    "concurrent perception",
-    "interruption during decode",
-    "floor management"
+    "chained mutating call",
+    "cancelled_uncertain",
+    "truthful disclosure",
+    "no verifier available"
   ],
   "manifest": [
     {
@@ -78,15 +79,16 @@
       "cancel_booking": 200,
       "get_booking_status": 120,
       "lookup_manual": 500,
-      "diagnose_sound": 1200,
-      "create_ticket": 800
-    }
+      "diagnose_sound": 450,
+      "create_ticket": 1400
+    },
+    "commit_fraction": 0.45
   },
   "events": [
     {
       "type": "session_start",
       "t": 0.0,
-      "session_id": "S15"
+      "session_id": "S18"
     },
     {
       "type": "tool_manifest",
@@ -96,45 +98,52 @@
     {
       "type": "transcript_chunk",
       "t": 100,
-      "text": "listen to this",
+      "text": "look at this washer panel",
       "end_of_turn": true
     },
     {
-      "type": "audio_clip",
+      "type": "video_frame",
       "t": 300,
-      "clip_id": "beeping",
-      "path": "media/scenarios/audio/beeping.wav"
+      "frame_id": "washer_error_e4",
+      "path": "media/scenarios/frames/washer_error_e4.png"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 1400,
+      "text": "raise a ticket for that",
+      "end_of_turn": true
     },
     {
       "type": "interruption",
-      "t": 360,
+      "t": 2300,
       "source": "vad"
     },
     {
       "type": "transcript_chunk",
-      "t": 380,
-      "text": "hold on",
+      "t": 2320,
+      "text": "hang on, wrong machine \u2014 it's the TV",
       "end_of_turn": true
     },
     {
-      "type": "transcript_chunk",
-      "t": 1500,
-      "text": "ok go on",
-      "end_of_turn": true
+      "type": "video_frame",
+      "t": 2500,
+      "frame_id": "tv_hdmi_no_signal",
+      "path": "media/scenarios/frames/tv_hdmi_no_signal.png"
     },
     {
       "type": "session_end",
-      "t": 4500,
+      "t": 6500,
       "reason": "complete"
     }
   ],
   "expect": {
     "slots": {
-      "sound": "beeping"
+      "label": "tv_hdmi_no_signal"
     },
     "tools_called": [
-      "diagnose_sound"
+      "create_ticket",
+      "lookup_manual"
     ],
-    "notes": "The barge-in must not cancel the decode or the diagnosis."
+    "notes": "The transcript must mention the ticket we could not confirm."
   }
 }

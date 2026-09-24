@@ -1,12 +1,12 @@
 {
-  "id": "S15_audio_then_interrupt",
-  "title": "An interruption arriving while a clip is still decoding",
+  "id": "S16_audio_corrected_by_speech",
+  "title": "A clip is superseded by the user simply saying what it was",
   "modality": "audio",
-  "description": "Adversarial timing. The interruption lands mid-decode, which only measures anything if perception runs as a background task rather than blocking the event loop.",
+  "description": "Perception binds `sound` from the recording; the user then corrects it in words. Speech outranks a classifier, the diagnosis in flight read the old value and must be cancelled, and the snapshot must end on what the user said rather than what we heard.",
   "probes": [
-    "concurrent perception",
-    "interruption during decode",
-    "floor management"
+    "cross-modal correction",
+    "speech overrides perception",
+    "selective cancellation"
   ],
   "manifest": [
     {
@@ -78,7 +78,7 @@
       "cancel_booking": 200,
       "get_booking_status": 120,
       "lookup_manual": 500,
-      "diagnose_sound": 1200,
+      "diagnose_sound": 1800,
       "create_ticket": 800
     }
   },
@@ -86,7 +86,7 @@
     {
       "type": "session_start",
       "t": 0.0,
-      "session_id": "S15"
+      "session_id": "S16"
     },
     {
       "type": "tool_manifest",
@@ -96,35 +96,29 @@
     {
       "type": "transcript_chunk",
       "t": 100,
-      "text": "listen to this",
+      "text": "listen to the machine",
       "end_of_turn": true
     },
     {
       "type": "audio_clip",
       "t": 300,
-      "clip_id": "beeping",
-      "path": "media/scenarios/audio/beeping.wav"
+      "clip_id": "grinding",
+      "path": "media/scenarios/audio/grinding.wav"
     },
     {
       "type": "interruption",
-      "t": 360,
+      "t": 900,
       "source": "vad"
     },
     {
       "type": "transcript_chunk",
-      "t": 380,
-      "text": "hold on",
-      "end_of_turn": true
-    },
-    {
-      "type": "transcript_chunk",
-      "t": 1500,
-      "text": "ok go on",
+      "t": 920,
+      "text": "actually that's the beeping one, not the grinding",
       "end_of_turn": true
     },
     {
       "type": "session_end",
-      "t": 4500,
+      "t": 5200,
       "reason": "complete"
     }
   ],
@@ -132,9 +126,10 @@
     "slots": {
       "sound": "beeping"
     },
-    "tools_called": [
+    "cancelled_tools": [
       "diagnose_sound"
     ],
-    "notes": "The barge-in must not cancel the decode or the diagnosis."
+    "no_duplicate_effects": true,
+    "notes": "The diagnosis for `grinding` read `sound` and must not survive."
   }
 }

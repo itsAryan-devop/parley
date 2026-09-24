@@ -74,27 +74,36 @@ TRAVEL = [
     },
 ]
 
+# The enums are load-bearing, not decoration. A manifest parameter with an enum
+# becomes vocabulary the agent can hear, which is what lets a user *correct a
+# perception in words* -- "that's the beeping one, not the grinding". Without
+# them the classifier's verdict is unchallengeable, which is the wrong way round:
+# a person who can hear their own washing machine outranks our classifier.
+FAULT_LABELS = ["router_power_led_red", "router_wan_led_amber", "washer_error_e4",
+                "washer_drum_noise", "tv_hdmi_no_signal"]
+SOUND_LABELS = ["beeping", "continuous_tone", "grinding", "clicking", "silence"]
+
 SUPPORT = [
     {
         "name": "lookup_manual",
         "description": "look up a device fault in the service manual",
         "read_only": True,
         "intent": "troubleshoot",
-        "params": [{"name": "label", "type": "string", "required": True}],
+        "params": [{"name": "label", "type": "string", "required": True, "enum": FAULT_LABELS}],
     },
     {
         "name": "diagnose_sound",
         "description": "identify the mechanical cause of an appliance sound",
         "read_only": True,
         "intent": "troubleshoot",
-        "params": [{"name": "sound", "type": "string", "required": True}],
+        "params": [{"name": "sound", "type": "string", "required": True, "enum": SOUND_LABELS}],
     },
     {
         "name": "create_ticket",
         "description": "raise a service ticket for an engineer visit",
         "mutating": True,
         "intent": "troubleshoot",
-        "params": [{"name": "label", "type": "string", "required": True}],
+        "params": [{"name": "label", "type": "string", "required": True, "enum": FAULT_LABELS}],
     },
 ]
 
@@ -455,6 +464,36 @@ SCENARIOS: list[dict] = [
             "no_duplicate_effects": True,
         },
     },
+    {
+        "id": "S18_visual_ticket_disclosure",
+        "title": "A ticket is raised from a photo, then the user changes appliance",
+        "modality": "visual",
+        "description": (
+            "The subject is bound by a camera frame in one turn and the action is "
+            "asked for in the next. The ticket then commits before the user switches "
+            "appliance — and `create_ticket` declares neither a verifier nor an "
+            "inverse, so the honest outcome is to say out loud that a ticket may "
+            "exist. Silence here is what makes a state snapshot lie."
+        ),
+        "probes": ["chained mutating call", "cancelled_uncertain", "truthful disclosure",
+                   "no verifier available"],
+        "manifest": SUPPORT,
+        "env": {"latency_ms": {**FAST, "create_ticket": 1400}, "commit_fraction": 0.45},
+        "events": start("S18") + [
+            say(100, "look at this washer panel", eot=True),
+            frame(300, "washer_error_e4"),
+            say(1400, "raise a ticket for that", eot=True),
+            interrupt(2300),
+            say(2320, "hang on, wrong machine — it's the TV", eot=True),
+            frame(2500, "tv_hdmi_no_signal"),
+            end(6500),
+        ],
+        "expect": {
+            "slots": {"label": "tv_hdmi_no_signal"},
+            "tools_called": ["create_ticket", "lookup_manual"],
+            "notes": "The transcript must mention the ticket we could not confirm.",
+        },
+    },
     # ---------------------------------------------------------------- audio
     {
         "id": "S13_audio_grounding",
@@ -495,6 +534,60 @@ SCENARIOS: list[dict] = [
             "must_clarify": True,
             "tools_not_called": ["create_ticket"],
             "absent_slots": ["sound"],
+        },
+    },
+    {
+        "id": "S16_audio_corrected_by_speech",
+        "title": "A clip is superseded by the user simply saying what it was",
+        "modality": "audio",
+        "description": (
+            "Perception binds `sound` from the recording; the user then corrects it in "
+            "words. Speech outranks a classifier, the diagnosis in flight read the old "
+            "value and must be cancelled, and the snapshot must end on what the user "
+            "said rather than what we heard."
+        ),
+        "probes": ["cross-modal correction", "speech overrides perception", "selective cancellation"],
+        "manifest": SUPPORT,
+        "env": {"latency_ms": {**FAST, "diagnose_sound": 1800}},
+        "events": start("S16") + [
+            say(100, "listen to the machine", eot=True),
+            clip(300, "grinding"),
+            interrupt(900),
+            say(920, "actually that's the beeping one, not the grinding", eot=True),
+            end(5200),
+        ],
+        "expect": {
+            "slots": {"sound": "beeping"},
+            "cancelled_tools": ["diagnose_sound"],
+            "no_duplicate_effects": True,
+            "notes": "The diagnosis for `grinding` read `sound` and must not survive.",
+        },
+    },
+    {
+        "id": "S17_audio_backchannel_during_diagnosis",
+        "title": "A listener noise while a diagnosis runs",
+        "modality": "audio",
+        "description": (
+            "'mhm' is the user signalling attention, not interrupting. A VAD-triggered "
+            "system stops speaking and flushes the pipeline here; both are wrong, and "
+            "the flush would force a stale re-run of the diagnosis."
+        ),
+        "probes": ["backchannel", "no spurious cancellation", "floor continues"],
+        "manifest": SUPPORT,
+        "env": {"latency_ms": {**FAST, "diagnose_sound": 1500}},
+        "events": start("S17") + [
+            say(100, "have a listen to this", eot=True),
+            clip(300, "clicking"),
+            interrupt(800),
+            say(820, "mhm", eot=True),
+            interrupt(1100),
+            say(1120, "yeah", eot=True),
+            end(4500),
+        ],
+        "expect": {
+            "slots": {"sound": "clicking"},
+            "survived_tools": ["diagnose_sound"],
+            "tools_not_called": ["create_ticket"],
         },
     },
     {

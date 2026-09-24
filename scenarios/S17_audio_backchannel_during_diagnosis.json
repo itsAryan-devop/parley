@@ -1,12 +1,12 @@
 {
-  "id": "S15_audio_then_interrupt",
-  "title": "An interruption arriving while a clip is still decoding",
+  "id": "S17_audio_backchannel_during_diagnosis",
+  "title": "A listener noise while a diagnosis runs",
   "modality": "audio",
-  "description": "Adversarial timing. The interruption lands mid-decode, which only measures anything if perception runs as a background task rather than blocking the event loop.",
+  "description": "'mhm' is the user signalling attention, not interrupting. A VAD-triggered system stops speaking and flushes the pipeline here; both are wrong, and the flush would force a stale re-run of the diagnosis.",
   "probes": [
-    "concurrent perception",
-    "interruption during decode",
-    "floor management"
+    "backchannel",
+    "no spurious cancellation",
+    "floor continues"
   ],
   "manifest": [
     {
@@ -78,7 +78,7 @@
       "cancel_booking": 200,
       "get_booking_status": 120,
       "lookup_manual": 500,
-      "diagnose_sound": 1200,
+      "diagnose_sound": 1500,
       "create_ticket": 800
     }
   },
@@ -86,7 +86,7 @@
     {
       "type": "session_start",
       "t": 0.0,
-      "session_id": "S15"
+      "session_id": "S17"
     },
     {
       "type": "tool_manifest",
@@ -96,30 +96,35 @@
     {
       "type": "transcript_chunk",
       "t": 100,
-      "text": "listen to this",
+      "text": "have a listen to this",
       "end_of_turn": true
     },
     {
       "type": "audio_clip",
       "t": 300,
-      "clip_id": "beeping",
-      "path": "media/scenarios/audio/beeping.wav"
+      "clip_id": "clicking",
+      "path": "media/scenarios/audio/clicking.wav"
     },
     {
       "type": "interruption",
-      "t": 360,
+      "t": 800,
       "source": "vad"
     },
     {
       "type": "transcript_chunk",
-      "t": 380,
-      "text": "hold on",
+      "t": 820,
+      "text": "mhm",
       "end_of_turn": true
     },
     {
+      "type": "interruption",
+      "t": 1100,
+      "source": "vad"
+    },
+    {
       "type": "transcript_chunk",
-      "t": 1500,
-      "text": "ok go on",
+      "t": 1120,
+      "text": "yeah",
       "end_of_turn": true
     },
     {
@@ -130,11 +135,13 @@
   ],
   "expect": {
     "slots": {
-      "sound": "beeping"
+      "sound": "clicking"
     },
-    "tools_called": [
+    "survived_tools": [
       "diagnose_sound"
     ],
-    "notes": "The barge-in must not cancel the decode or the diagnosis."
+    "tools_not_called": [
+      "create_ticket"
+    ]
   }
 }

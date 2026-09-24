@@ -142,6 +142,10 @@ _NUMBER_WORDS = {
 }
 
 
+#: Tokens that reject the value that follows them rather than supplying it.
+_NEGATORS = frozenset({"not", "isn't", "isnt", "wasn't", "wasnt", "never", "without"})
+
+
 @dataclass
 class Match:
     slot: str
@@ -150,6 +154,13 @@ class Match:
     start: int
     end: int
     confidence: float
+    negated: bool = False
+    """True when the value was explicitly rejected — "not the grinding one".
+
+    Binding a negated value is the sort of error that reads as the agent not
+    listening at all, and it is entirely avoidable: the word immediately before
+    the value says so.
+    """
 
 
 @dataclass
@@ -204,7 +215,14 @@ class Lexicon:
                 if param.enum:
                     bucket = values.setdefault(param.name, {})
                     for option in param.enum:
-                        bucket.setdefault(str(option).lower(), option)
+                        text = str(option).lower()
+                        bucket.setdefault(text, option)
+                        # Machine labels are snake_case; people say them with
+                        # spaces. "continuous_tone" has to be hearable as
+                        # "continuous tone" or the user cannot name it at all.
+                        spaced = text.replace("_", " ")
+                        if spaced != text:
+                            bucket.setdefault(spaced, option)
 
         return cls(
             values=values,
@@ -260,7 +278,8 @@ class Lexicon:
                 slot, value = self._disambiguate(options, lowered, m.start(), preferred)
                 found.append(
                     Match(slot=slot, value=value, surface=text[m.start():m.end()],
-                          start=m.start(), end=m.end(), confidence=0.95)
+                          start=m.start(), end=m.end(), confidence=0.95,
+                          negated=_is_negated(lowered, m.start()))
                 )
 
         for slot, pats in self.patterns.items():
@@ -315,6 +334,20 @@ class Lexicon:
         if best[0] is None:
             return None, 0.0
         return best[0], min(1.0, 0.55 + 0.2 * best[1])
+
+
+def _is_negated(lowered: str, start: int) -> bool:
+    """Is the value at `start` being rejected rather than supplied?
+
+    Looks back over the two preceding words so that "not the grinding" and
+    "not grinding" both register. Determiners and fillers between the negator
+    and the value are common in speech and must not hide it.
+    """
+    preceding = lowered[:start].replace(",", " ").split()
+    for token in preceding[-2:]:
+        if token in _NEGATORS:
+            return True
+    return False
 
 
 #: Phrases after which the next word or two names what the user is *abandoning*.

@@ -202,7 +202,21 @@ class ParleyAgent:
                 self._turn_text.clear()
             return
 
+        spoken_before = len(self.floor.transcript)
         await self._replan(interp, event, just_bound)
+
+        # The user finished a turn that produced no new plan — a barge-in, or a
+        # request we already have in hand. Saying nothing here is what makes a
+        # user repeat themselves; saying where we are up to is both responsive
+        # and true. Only after end-of-turn: interrupting a half-finished
+        # sentence to narrate progress would be worse than silence.
+        if (
+            event.end_of_turn
+            and len(self.floor.transcript) == spoken_before
+            and interp.policy.floor is not FloorPolicy.CONTINUE
+            and self.kernel.registry.in_flight()
+        ):
+            self.floor.progress()
 
         if event.end_of_turn:
             self._turn_text.clear()
@@ -442,10 +456,26 @@ class ParleyAgent:
         remembering to check — which is the difference between an agent that
         usually tells the truth and one that cannot do otherwise.
         """
-        usable = [
-            c for c in self.kernel.registry
-            if c.outcome is CallOutcome.COMPLETED_STILL_VALID and c.result is not None
-        ]
+        # Staleness is re-checked *now*, not trusted from settlement time. A
+        # call can finish perfectly valid and be superseded a second later: the
+        # manual lookup for the washing machine completed before the user
+        # switched to the television, so its outcome says STILL_VALID and its
+        # answer is about the wrong appliance. Grounding the final response in
+        # it would be truthful about the call and misleading about the world.
+        usable = []
+        for record in self.kernel.registry:
+            if record.outcome is not CallOutcome.COMPLETED_STILL_VALID or record.result is None:
+                continue
+            if self.state.is_stale(record.read_slots, record.state_revision):
+                self.trace.kernel(
+                    self.clock.now, "result_superseded",
+                    call_id=record.call_id, tool=record.tool,
+                    read_slots=sorted(record.read_slots),
+                    dispatched_at_revision=record.state_revision,
+                    now_revision=self.state.revision,
+                )
+                continue
+            usable.append(record)
         if not usable:
             missing = self.planner.missing_for(self.state.intent, self.state)
             if missing:

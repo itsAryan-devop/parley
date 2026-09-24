@@ -193,8 +193,9 @@ def extract_features(
     corrections: list[Match] = []
     additions: list[Match] = []
     restatements: list[Match] = []
+    rejected: list[Match] = [m for m in matches if m.negated]
 
-    for m in matches:
+    for m in (m for m in matches if not m.negated):
         current = state.slots.get(m.slot)
         if current is None:
             additions.append(m)
@@ -225,6 +226,7 @@ def extract_features(
         "n_corrections": float(len(corrections)),
         "n_additions": float(len(additions)),
         "n_restatements": float(len(restatements)),
+        "n_rejected": float(len(rejected)),
         "narrowing_addition": float(any(m.slot in NARROWING_SLOTS for m in additions)),
         "intent_detected": float(intent is not None),
         "intent_differs": float(intent is not None and state.intent is not None and intent != state.intent),

@@ -1,0 +1,232 @@
+# Build log
+
+What was built, in what order, and — more usefully — what broke. Kept because
+the 15 Oct round is a **Q&A on design decisions and trade-offs**, and the honest
+answer to "why is it like that?" is usually "because the first version wasn't,
+and here is what went wrong."
+
+Companion to [`DESIGN.md`](DESIGN.md) (what we decided) and
+[`RESEARCH.md`](RESEARCH.md) (what the field already knew).
+
+---
+
+## Order of work
+
+| # | Step | Verified by |
+|---|---|---|
+| 1 | Protocol layer — events, actions, state snapshot, tool manifest | 31 unit tests |
+| 2 | Virtual-clock harness, trace, mock environment | 37 more tests |
+| 3 | Coordination kernel — dataflow cancellation, idempotency, effect ledger | 96 total |
+| 4 | NLU — manifest-driven extraction, seven-way interruption taxonomy | 117 total |
+| 5 | Learned classifier + honest ablation | 130 total |
+| 6 | Floor manager, planner, agent loop, multimodal grounding | 170 total |
+| 7 | Scenario suite, runner, rubric scorer | 204 total · **15/15 clean** |
+| 8 | Timing fuzzer, viewer, Docker, README | 233 total · **18/18 clean** |
+
+Each step was run and verified before the next began, and each was followed by a
+research pass. Research findings and the actions taken from them are in
+[`RESEARCH.md`](RESEARCH.md).
+
+---
+
+## Every bug worth remembering
+
+Grouped by what they teach, not by when they happened. The ones marked **⚑** were
+found by tooling that did not exist when the bug was written — which is the
+argument for having built the tooling.
+
+### Concurrency and time
+
+**Windows' clock resolution silently erased adversarial timing.** asyncio fires
+every timer within `_clock_resolution` of now in one batch. On Windows that is
+~15.6 ms, so events 5 ms apart collapsed into a single tick — exactly the timing
+the hidden set is built from. Pinned to 1 ns. *Caught by a determinism test that
+asserted an exact interleaving rather than a set.*
+
+**Floating point invented 1900 ms of latency.** ⚑ A 700 ms deadline is stored as
+`0.7` s, which is really `0.69999999999999996`. Converting back gave
+`699.9999999999999`, so an action emitted at exactly its prompt's timestamp
+compared as *earlier* than the prompt. The latency scorer skipped it and measured
+the gap to the next response instead. `Clock.now` rounds to six decimals.
+
+**A call vanished from the trace.** ⚑ Two transcript chunks collapsed onto one
+timestamp, so a speculative call was superseded in the instant it was created.
+`asyncio.create_task` *schedules* rather than runs — the coroutine body never
+executed, and the "every exit writes an outcome" guarantee lives inside that
+body. The structural guarantee had a hole: it assumed the body always starts.
+Fixed with a done-callback and a `started` flag, so "cancelled before anything
+happened" stays a fact rather than an assumption.
+
+**Perception blocked the event loop.** "Process raw audio and frames *behind
+conversational acknowledgments*" is a concurrency requirement, not a description
+of tone. Awaiting the decode inline parked everything, so an interruption
+arriving mid-decode was handled late. Decoding is now a background task.
+
+### State and identity
+
+**"Slot never existed" was conflated with "slot was cleared."** Both leave no
+entry, and they mean opposite things for staleness. Treating absence as staleness
+marked healthy calls `COMPLETED_NOW_STALE`, which then triggered compensation for
+effects that were perfectly valid. Cleared slots now leave a revision-carrying
+tombstone.
+
+**The idempotency key included `intent` — a genuine double-booking.** ⚑ Booking
+6E202 before the intent resolved, then again once it had become `book_flight`,
+produced two different keys for the same action and the ledger waved the second
+through. Two reservations for one seat: precisely the failure the theme names.
+The identity of a business action is what it *does*, not what we were calling the
+goal at the time. The mock environment's own duplicate check keyed on tool and
+arguments alone and was right all along.
+
+**A completed call stayed "valid" forever.** The manual lookup for a washing
+machine finished before the user switched to a television. Its outcome said
+`COMPLETED_STILL_VALID` and its answer was about the wrong appliance. Staleness
+is now re-checked when the final response is composed, not trusted from
+settlement time.
+
+### Understanding
+
+**Punctuation hid multi-word cues.** "uh, no, Mumbai" lost its editing term to a
+comma; "what was that?" lost its repeat cue to a question mark. Both landed in
+branches with *different cancellation behaviour*, so this was a scoring bug, not
+a cosmetic one.
+
+**"hold on" is a floor grab as a phrase but not as tokens.** Cue matching now
+works by phrase deletion. Relatedly: "wait" over our speech is a barge-in, in
+silence it is hesitation — same word, different branch, and ordering had to
+reflect that.
+
+**An inserted "uh" derailed everything.** Under ASR-style noise, backchannels,
+repeat requests and barge-ins all collapsed into `SELF_REPAIR`. Stripping
+hesitation and stutter *before* matching semantic cues — while still recording
+disfluency as a feature — lifted rule accuracy under noise from **0.809 → 0.891**.
+With audio at 30% of the hidden set this was probably the most valuable single
+fix in the project, and it came out of chasing a model that turned out not to be
+needed.
+
+**"the Tuesday one" bound `party_size = 1`.** ⚑ The word "one" as a pronoun read
+as a count, injecting a false slot into the *scored* snapshot. Number words now
+require a counting context.
+
+**"a hotel in Goa" bound `destination`, not `city`.** Both slots share a city
+vocabulary and dictionary order decided. The hotel search could then never find
+its required parameter and simply never ran. Slot assignment is now
+preposition-aware, with the active goal's parameters breaking remaining ties.
+
+**"forget flights, find me a hotel" chose `book_flight`.** Both goals appear
+exactly once, so the cue count tied and dictionary order picked the goal being
+*abandoned*. Words following a dismissal are now struck out before scoring.
+
+**"not the grinding" bound `grinding`.** A negated value was being treated as a
+supplied one — the sort of error that reads as not listening at all, and entirely
+avoidable since the preceding word says so.
+
+### Planning
+
+**Intent-tagged tools were invisible when intent was None.** A camera frame bound
+a slot perfectly and then no tool ran at all, because `candidates(None)` returned
+only tools *declaring* no intent. Added slot-driven intent inference, and made
+cross-goal tools plannable when the user has just supplied exactly what they
+need — "…and a hotel in Goa" is an addition, not a switch, and the leading
+conjunction says so.
+
+**A mutating tool could not be fired from a previous turn's slots.** "Look at
+this panel" then "raise a ticket for that" bound nothing in the second turn, so
+the ticket was never raised. Requiring a freshly-bound parameter broke the
+commonest shape there is. The commit verb is the gate; the idempotency ledger
+makes re-firing safe.
+
+**The same search ran three times.** ⚑ The planner re-plans every turn and the
+slots were still bound. Re-running a read-only call whose inputs have not changed
+*is* a stale re-run. Added result reuse and supersession of obsolete speculations.
+
+**A restated value bound nothing, so retries never happened.** "book UK404"
+repeated after a transient fault bound no new slot, so the mutating tool was
+never re-planned. Restatements now count as supplied.
+
+### Speaking
+
+**Duplicate suppression was silent.** ⚑ The agent correctly refused to book twice
+and then said *nothing* to two further requests, so the user asked three times
+into silence. Suppressing the duplicate is right; being invisible about it is
+what caused the repetition. Then the fix over-applied and announced "that's
+already done" about a reused flight *search* — uninformative and faintly untrue —
+so it is now gated to state-changing tools.
+
+**The agent said "PNQ" to someone who said "Pune".** Canonical values are correct
+for tool arguments and wrong for speech. Slots carry a `surface` form for saying
+and a `value` for doing.
+
+**"Booking flight flight AI101."** The tool name already supplies the noun.
+
+**`str.capitalize()` lower-cased proper nouns** — "to Mumbai" became "To mumbai"
+in the first thing the user hears.
+
+**Multimodal latency scored 0.00** because the frame acknowledgment was a
+content-free filler, and a filler is not a substantive response. It is now a
+grounded acknowledgment.
+
+### Perception
+
+**The classifier was confidently wrong off-distribution.** Logistic regression
+labelled blown-out photographs and frames with two LEDs lit at ~0.9 confidence —
+exactly the failure objective 5 penalises twice. Added Mahalanobis abstention
+with a threshold set from how far genuine in-distribution data actually reaches.
+
+**Temperature calibration fitted to 0.50** — the floor of the scan — because a
+perfectly separated validation set makes the NLL optimum run to `T → 0`.
+Calibration may soften; it must never sharpen. Constrained to `T ≥ 1`, after
+which the abstention distance does the real work and the temperature is an
+honest no-op.
+
+**"Hard" examples were not hard.** The first attempt nudged an LED's hue towards
+the red/amber boundary and the classifier shrugged and got them right. Genuine
+ambiguity needs genuinely *split* evidence — two indicators lit at once — and it
+must be held out of training entirely. Teaching a classifier to pick one label
+for such a frame would train away the behaviour that scores.
+
+### Tooling and scoring
+
+**`Trace.emit()` collided on payload keys named `kind`, `name` or `t`.** A tool
+fault record naturally wants its own `kind`. Header parameters are now
+positional-only. This would have corrupted the one artefact the entire score is
+read from.
+
+**The scorer counted a retry-after-failure as a stale re-run.** The public suite
+names retries explicitly; the effect never landed, so retrying is correct.
+
+**Two scenarios fired their interruption after the call had already completed**,
+testing nothing at all. Found by reading the trace rather than the pass/fail.
+
+**The scorer penalised correct silence.** Answering "mhm" is not fast, it is
+rude. Turns whose floor policy is `CONTINUE` are excluded from the latency
+measure — narrowly, and only those; barge-ins and corrections are still measured.
+
+---
+
+## Things deliberately not done
+
+- **No LLM in the loop.** 75% of the score is the coordination layer and the
+  latency block is 15%; inference time is pure cost. The kernel is the product.
+- **No cross-session memory.** Out of scope per the guide, and a tempting way to
+  fail a hidden-set scenario.
+- **No tool names in the kernel.** Everything comes from the manifest, because
+  "unseen tools" is named in the public suite and therefore near-certain in the
+  hidden set.
+- **No tuning against the public suite.** Passing fifteen scenarios we wrote
+  proves little. The fuzzer is the real test: 4500 perturbed runs, invariants
+  only.
+
+## Standing risks
+
+1. **The real evaluation kit is not in hand.** Every interface assumption needs
+   re-checking when it lands. The adapter boundary is `harness/runner.py`.
+2. **`docker build` is unverified on this machine** — Docker Desktop's engine
+   will not start here. `scripts/check_dockerfile.py` validates COPY paths, the
+   Python version band, dependency coverage, committed weights, and actually
+   executes both inline build guards. The build itself still needs one run on a
+   working daemon before submission.
+3. **Deadline discrepancy**: the deck says 25 Sep, the team reports 30 Sep. Plan
+   to the 25th.
+4. **Team name** is `ThaparPatiala_<TEAM>` throughout and must be substituted
+   before the release tag.

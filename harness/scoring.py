@@ -260,9 +260,38 @@ def _latency(result: RunResult) -> Component:
     prompt with "one moment" would otherwise score full marks on latency while
     failing objective 1's ban on excessive fillers.
     """
+    # Turns where staying silent is the *correct* behaviour are excluded.
+    # Answering "mhm" is not fast, it is rude — a backchannel is the user
+    # signalling attention, and a self-repair is them still mid-sentence. Both
+    # carry floor policy CONTINUE, meaning "keep doing what you were doing", so
+    # measuring time-to-response on them would reward interrupting the user.
+    #
+    # This is a judgement call about an ambiguous rubric line, so it is narrow:
+    # only CONTINUE turns are exempt. Barge-ins and corrections still demand a
+    # response and are still measured.
+    interpretations = sorted(
+        (r.t, r.payload.get("policy", {}).get("floor"))
+        for r in result.trace.named("interpretation", RecordKind.KERNEL)
+    )
+
+    def silence_is_correct(t: float) -> bool:
+        """Did the turn beginning at or just after `t` warrant no reply?
+
+        A bare VAD signal has no interpretation of its own — the words that
+        follow it do. So a `interruption` event fired by someone saying "mhm"
+        resolves to the backchannel interpretation a few milliseconds later,
+        and excluding the chunk while still counting the signal would penalise
+        exactly the behaviour we want.
+        """
+        return any(
+            floor == "continue" and t - 1e-6 <= at <= t + 250.0
+            for at, floor in interpretations
+        )
+
     prompts: list[float] = [
         r.t for r in result.trace.of_kind(RecordKind.EVENT)
         if r.name in ("transcript_chunk", "interruption", "video_frame", "audio_clip")
+        and not silence_is_correct(r.t)
     ]
     substantive: list[float] = sorted(
         r.t for r in result.trace.of_kind(RecordKind.ACTION)

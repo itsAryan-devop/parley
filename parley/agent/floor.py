@@ -62,7 +62,11 @@ _PHRASING: dict[str, str] = {
     "kayak_size": "a {v}",
     "max_price": "under {v}",
     "cabin": "in {v}",
-    "label": "about the {v}",
+    # Bare: describe_tool already contributes the noun, so "sound {v}" made
+    # diagnose_sound read "diagnosing sound sound grinding".
+    "label": "{v}",
+    "sound": "{v}",
+    "symptom": "{v}",
 }
 
 _GERUND: dict[str, str] = {
@@ -299,7 +303,12 @@ class FloorManager:
             return record.tool.replace("_", " ")
         name, value = next(iter(sorted(record.args.items())))
         slot = self.state.slots.get(name)
-        spoken = slot.spoken if slot is not None and slot.value == value else value
+        if slot is not None and slot.value == value:
+            spoken = slot.spoken
+        else:
+            # The slot has moved on, so there is no surface form to recover.
+            # Machine labels are snake_case and must not be read out that way.
+            spoken = str(value).replace("_", " ")
         return phrase_slot(name, spoken)
 
     def acknowledge_media(self, modality: str) -> Speak | None:
