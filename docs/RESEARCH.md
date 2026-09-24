@@ -223,6 +223,51 @@ latency block). So:
 This is ML where it pays and rules where a wrong answer is expensive — and the
 disagreement record is itself good evidence for the jury Q&A.
 
+### R2.3 What actually happened when we built it
+
+Recorded because the result was not the one we expected, and the honest version
+is more useful in a Q&A than a flattering one.
+
+| Split | Rules | Model |
+|---|---|---|
+| training phrasings | 0.935 | 0.978 |
+| held-out phrasings (clean) | **1.000** | 0.945 |
+| held-out phrasings + ASR noise | **0.891** | 0.876 |
+
+**The model does not beat the rules.** That is not a surprise in hindsight: the
+feature vector was hand-designed to be discriminative, so a linear model over it
+is fitting a boundary the rules already encode. On clean held-out text both
+saturate; under noise the rules win.
+
+Three things came out of chasing that, and all three were worth more than the
+model itself:
+
+1. **A real extraction bug.** Held-out evaluation surfaced `'that uh uh one'`
+   binding `party_size = 1` — the word "one" as a pronoun being read as a count.
+   "Book the Tuesday one" would have injected a false slot into the **scored**
+   snapshot. Number words now require a counting context.
+2. **A mislabelled class.** "Get me a flight into Mumbai" while `destination=BLR`
+   is bound is a `SLOT_CORRECTION`, not a `NEW_REQUEST`. The rule engine was
+   right and the corpus was wrong; the corpus was fixed.
+3. **Noise robustness in the rules.** Training on clean text and evaluating on
+   noisy text exposed that an inserted "uh" or a stutter derailed the rule
+   ordering — backchannels, repeat requests and barge-ins all collapsing into
+   `SELF_REPAIR`. Stripping hesitation and stutter *before* matching semantic
+   cues (while still recording disfluency as a feature) lifted rule accuracy
+   under noise from **0.809 → 0.891**. Since 30% of the hidden set is audio,
+   this is probably the single most valuable thing the ML detour produced.
+
+**The decision.** The model ships, but only because the *arbitrated ensemble*
+beats rules alone — **0.922 vs 0.907** on a noisy test split whose seed was used
+neither for fitting nor for selecting the arbitration policy. A +1.5 point
+margin is small and is reported as small. The model is a second opinion with a
+calibrated confidence, and it is structurally forbidden from triggering a
+destructive branch on its own.
+
+**→ Action.** Kept the model under arbitration; added the noise-augmented
+training mixture; wrote the ensemble comparison into `scripts/train_classifier.py`
+so the claim is re-measurable rather than asserted.
+
 ---
 
 ## Standing conclusions

@@ -60,13 +60,24 @@ REPEAT_CUES = frozenset(
         "say that again", "repeat", "what was that", "come again", "pardon",
         "sorry what", "one more time", "again please", "didn't catch",
         "did not catch", "what did you say",
+        # Shortened forms that survive an ASR deletion. "say that again" losing
+        # a word is still unambiguously a repeat request, and audio is 30% of
+        # the hidden set.
+        "say again", "that again", "more time", "catch that", "did you say",
+        "what was",
     }
 )
 
 FLOOR_GRABS = frozenset({"stop", "wait", "hold on", "hang on", "shush", "quiet", "listen"})
 """Pure floor-grabs: the user wants the microphone, not a different outcome."""
 
-BACKCHANNELS = frozenset({"mhm", "uh huh", "yeah", "yep", "right", "ok", "okay", "sure", "got it"})
+BACKCHANNELS = frozenset(
+    {
+        "mhm", "uh huh", "huh", "yeah", "yah", "yep", "yup", "right", "ok",
+        "okay", "sure", "got it", "i see", "gotcha",
+        # "huh" is listed because decontamination strips the "uh" from "uh huh".
+    }
+)
 """Listener noises. NOT interruptions -- the user is signalling attention."""
 
 _STOPWORDS = frozenset(
@@ -136,11 +147,20 @@ class Lexicon:
             "date": {d: d.capitalize() for d in _WEEKDAYS}
             | {"today": "today", "tomorrow": "tomorrow", "day after tomorrow": "day_after"},
             "time_of_day": dict(_TIME_OF_DAY),
-            "party_size": dict(_NUMBER_WORDS),
+            # Number words are deliberately NOT a bare vocabulary for party_size.
+            # "book the Tuesday one" and "that uh uh one" both end in a pronoun,
+            # not a count, and matching it bound party_size=1 out of thin air --
+            # a false slot in the snapshot, which is scored. A count needs a
+            # counting context, so it lives in the patterns below instead.
         }
+        _COUNT = "|".join(_NUMBER_WORDS)
+        _HEADS = "people|passengers|adults|guests|travellers|travelers|tickets|seats|rooms|of us"
         patterns: dict[str, list[re.Pattern[str]]] = {
             "flight_no": [re.compile(r"\b(?P<v>[A-Z0-9]{2}\s?\d{2,4})\b")],
-            "party_size": [re.compile(r"\b(?P<v>\d{1,2})\s+(?:people|passengers|of us|adults|guests)\b", re.I)],
+            "party_size": [
+                re.compile(rf"\b(?P<v>\d{{1,2}}|{_COUNT})\s+(?:{_HEADS})\b", re.I),
+                re.compile(rf"\bfor\s+(?P<v>\d{{1,2}}|{_COUNT})\b(?!\s*(?:am|pm|o'clock))", re.I),
+            ],
             "date": [re.compile(r"\b(?P<v>\d{4}-\d{2}-\d{2})\b")],
             "max_price": [re.compile(r"(?:under|below|less than|at most)\s+(?:inr\s*|rs\.?\s*|₹\s*)?(?P<v>\d{3,6})", re.I)],
         }
@@ -230,6 +250,9 @@ def _coerce(raw: str) -> Any:
     text = raw.strip()
     if re.fullmatch(r"-?\d+", text):
         return int(text)
+    spelled = _NUMBER_WORDS.get(text.lower())
+    if spelled is not None:
+        return spelled
     return text
 
 
