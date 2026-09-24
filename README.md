@@ -43,7 +43,7 @@ Or locally, on Python 3.10–3.12:
 ```bash
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 python scripts/run_scenarios.py          # public suite + scorecard
-python -m pytest                          # 224 tests
+python -m pytest                          # 242 tests
 python scripts/fuzz.py --trials 60        # adversarial timing
 python scripts/view.py --trace S02_slot_correction   # the timeline viewer
 ```
@@ -59,17 +59,18 @@ Scored against our reconstruction of the published rubric
 
 | | scenarios | mean score |
 |---|---|---|
-| text | 9 | 110.4 |
-| audio | 3 | 103.3 |
-| visual | 3 | 103.3 |
-| **all** | **15** | **107.6** |
+| text | 12 | 110.4 |
+| audio | 5 | 104.0 |
+| visual | 4 | 106.2 |
+| **all** | **21** | **108.1** |
 
-**15/15 scenarios pass every check they declare.** Scores exceed 100 because the quality multiplier
+**21/21 scenarios pass every check they declare.** Scores exceed 100 because the quality multiplier
 (0.80×–1.20×) applies on top of the 100-point rubric.
 
-**4500/4500 adversarially perturbed runs hold every invariant** — event timestamps jittered
-±1400 ms, tool latency scaled 0.3×–2.5×, commit points moved, events collapsed onto identical
-timestamps, faults injected, sessions truncated mid-flight.
+**Every adversarially perturbed run holds every invariant** — 4500 runs at ±1400 ms jitter on the
+first eighteen scenarios, 2100 at ±1200 ms on all twenty-one, with tool latency scaled 0.3×–2.5×,
+commit points moved, events collapsed onto identical timestamps, faults injected, and sessions
+truncated mid-flight.
 
 Perception abstains on **100%** of undecidable frames and **11/12** undecidable clips rather than
 guessing.
@@ -182,8 +183,8 @@ Two subtleties that took real debugging:
 
 ### Adversarial timing
 
-The hidden set is ~60 scenarios of "edge cases and adversarial timing". Passing fifteen scenarios we
-wrote proves little — they are the cases we thought of. `harness/fuzz.py` perturbs everything and
+The hidden set is ~60 scenarios of "edge cases and adversarial timing". Passing twenty-one scenarios
+we wrote proves little — they are the cases we thought of. `harness/fuzz.py` perturbs everything and
 asserts only **invariants**, never expectations:
 
 > no duplicate state-changing effect · no call left pending or missing from the trace · no effect
