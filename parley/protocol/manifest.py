@@ -49,6 +49,12 @@ class ToolSpec(BaseModel):
     """If set, this tool compensates (undoes) the named tool. Used to resolve
     `COMPLETED_NOW_STALE` effects."""
 
+    verifies: str | None = None
+    """If set, this (read-only) tool reports whether the named tool's effect
+    actually landed. Cancelling a state-modifying call leaves genuine
+    uncertainty — the cancel may have arrived after the side effect committed —
+    and a verifier is the only honest way to resolve it."""
+
     idempotency_params: list[str] | None = None
     """Subset of params that define identity for duplicate suppression.
     None == all resolved args participate."""
@@ -92,6 +98,13 @@ class ToolManifest(BaseModel):
         """The tool declared as the compensating action for `tool_name`, if any."""
         for spec in self.tools.values():
             if spec.inverse_of == tool_name:
+                return spec
+        return None
+
+    def verifier_for(self, tool_name: str) -> ToolSpec | None:
+        """The read-only tool that can tell us whether `tool_name`'s effect landed."""
+        for spec in self.tools.values():
+            if spec.verifies == tool_name and not spec.mutating:
                 return spec
         return None
 
@@ -202,6 +215,7 @@ def parse_manifest(raw: Any) -> ToolManifest:
             params=_coerce_params(entry),
             mutating=_coerce_flag(entry, name),
             inverse_of=entry.get("inverse_of") or entry.get("compensates"),
+            verifies=entry.get("verifies") or entry.get("checks"),
             idempotency_params=entry.get("idempotency_params"),
             intent=entry.get("intent") or entry.get("domain") or entry.get("group"),
         )

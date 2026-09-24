@@ -103,6 +103,17 @@ class SessionState(BaseModel):
     slots: dict[str, Slot] = Field(default_factory=dict)
     revision: int = 0
 
+    tombstones: dict[str, int] = Field(default_factory=dict)
+    """Slots that were cleared, and the revision at which that happened.
+
+    A cleared slot and a slot that never existed look identical once the entry
+    is gone, but they mean opposite things for staleness: clearing `seat`
+    invalidates every in-flight call that read it, whereas a call claiming to
+    have read a slot that was never bound cannot have been invalidated by
+    anything. Deleting outright conflated the two and marked healthy calls
+    stale. The tombstone keeps just enough history to tell them apart.
+    """
+
     # ---- the closed set of mutations -------------------------------------
 
     def _bump(self) -> int:
@@ -124,6 +135,7 @@ class SessionState(BaseModel):
         same_value = existed and self.slots[name].value == value
         rev = self.revision if same_value else self._bump()
 
+        self.tombstones.pop(name, None)  # re-binding revives the slot
         self.slots[name] = Slot(
             name=name,
             value=value,
@@ -152,6 +164,7 @@ class SessionState(BaseModel):
             return StateDelta(revision=self.revision)
         rev = self._bump()
         del self.slots[name]
+        self.tombstones[name] = rev
         return StateDelta(revision=rev, cleared_slots=[name])
 
     def set_intent(self, intent: str | None) -> StateDelta:
@@ -176,6 +189,7 @@ class SessionState(BaseModel):
 
         for n in dropped:
             del self.slots[n]
+            self.tombstones[n] = rev
         self.intent = new_intent
 
         return StateDelta(
@@ -196,11 +210,22 @@ class SessionState(BaseModel):
         return 0.0 if slot is None else slot.confidence
 
     def is_stale(self, read_slots: set[str], dispatched_revision: int) -> bool:
-        """Did any slot this call depended on change after the call went out?"""
-        return any(
-            name not in self.slots or self.slots[name].revision > dispatched_revision
-            for name in read_slots
-        )
+        """Did any slot this call depended on change after the call went out?
+
+        Three cases, and the third is the one that matters:
+          * still bound   -> stale iff it changed after dispatch
+          * tombstoned    -> stale iff it was cleared after dispatch
+          * never seen    -> not stale; nothing that does not exist can have
+                             invalidated this call
+        """
+        for name in read_slots:
+            slot = self.slots.get(name)
+            if slot is not None:
+                if slot.revision > dispatched_revision:
+                    return True
+            elif self.tombstones.get(name, -1) > dispatched_revision:
+                return True
+        return False
 
     def snapshot(self) -> StateSnapshot:
         return StateSnapshot(

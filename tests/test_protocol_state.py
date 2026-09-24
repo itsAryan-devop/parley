@@ -65,6 +65,43 @@ def test_clearing_a_slot_makes_its_readers_stale(st: SessionState) -> None:
     assert st.is_stale({"seat"}, at_dispatch) is True
 
 
+def test_a_slot_that_never_existed_makes_nothing_stale(st: SessionState) -> None:
+    """Regression: 'cleared' and 'never bound' must not be conflated.
+
+    Both leave no entry in `slots`. Treating absence as staleness marked healthy
+    calls `COMPLETED_NOW_STALE`, which in turn triggered compensation for
+    effects that were still perfectly valid. Tombstones keep the distinction.
+    """
+    st.set_slot("destination", "Delhi")
+    at_dispatch = st.revision
+    st.set_slot("party_size", 2)
+
+    assert st.is_stale({"never_heard_of_it"}, at_dispatch) is False
+    assert st.is_stale({"destination"}, at_dispatch) is False
+
+
+def test_rebinding_a_cleared_slot_revives_it(st: SessionState) -> None:
+    st.set_slot("seat", "12A")
+    st.clear_slot("seat")
+    assert "seat" in st.tombstones
+
+    at_dispatch = st.revision
+    st.set_slot("seat", "14C")
+    assert "seat" not in st.tombstones
+    assert st.is_stale({"seat"}, at_dispatch) is True  # the rebind is itself a change
+    assert st.snapshot().slots["seat"] == "14C"
+
+
+def test_tombstones_stay_out_of_the_snapshot(st: SessionState) -> None:
+    """The snapshot is what the grader compares; tombstones are internal."""
+    st.set_slot("seat", "12A")
+    st.set_slot("destination", "Delhi")
+    st.clear_slot("seat")
+
+    assert st.snapshot().slots == {"destination": "Delhi"}
+    assert "seat" not in st.snapshot().slot_meta
+
+
 def test_goal_switch_retains_applicable_slots(st: SessionState) -> None:
     st.set_intent("book_flight")
     st.set_slot("date", "Tuesday")
