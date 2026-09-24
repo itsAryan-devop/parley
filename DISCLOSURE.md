@@ -139,6 +139,41 @@ after the first draft, including changes forced by failing tests.
   - The model is **never** allowed to trigger a destructive branch (`GOAL_SWITCH`,
     `SLOT_CORRECTION`) on its own, because a false positive there cancels real work.
 
+### F6 — Streaming speech recognition and panel reading
+
+- **Origin:** **Both.** The decision to use a *streaming* recogniser, the stable-prefix
+  rule and its measurement are human-directed; the modules, corpus generator and sweep
+  are AI-Generated. The acoustic and OCR models are third-party, unmodified.
+- **Files:** `parley/multimodal/asr.py`, `parley/multimodal/ocr.py`,
+  `scripts/make_speech.py`, `scripts/asr_stability.py`, `models/`
+- **Third-party components, with licences:**
+  - **Vosk** `vosk-model-small-en-us-0.15` (Alpha Cephei) — Apache-2.0. Committed
+    unmodified to `models/`. ~68 MB.
+  - **RapidOCR** PP-OCRv4 ONNX weights — Apache-2.0. Shipped inside the wheel.
+  - Neither is fine-tuned, retrained, or altered. Both run fully offline; nothing is
+    fetched at runtime.
+- **Prior art from a teammate, acknowledged:** Devaansh Gupta independently built a
+  Theme 05 prototype ([interruptible-realtime-agent](https://github.com/DevaanshGupta8/interruptible-realtime-agent))
+  that used real ASR and OCR before this project did. **No code was copied.** Two of
+  his findings changed our design and are credited here because they are his:
+  1. Whisper silently edits disfluencies out of a transcript unless primed with a
+     disfluent `initial_prompt` — which would have destroyed the reparandum/
+     interregnum signal the entire interruption taxonomy rests on. We verified this,
+     and it is a direct reason we chose a streaming recogniser instead.
+  2. Applying transcripts strictly in arrival order, so a slow first clip cannot
+     overwrite a correction carried by a later one.
+- **Honest limitations, recorded deliberately:**
+  - The stability corpus is **synthesised with Windows SAPI**, not human speech. It
+    measures recogniser *behaviour*; it is not an accuracy benchmark and no accuracy
+    claim is made from it.
+  - **Revisions cannot be eliminated.** The recogniser rescores an utterance when it
+    closes, so a final result can contradict a partial however long we wait. Measured
+    at the shipped setting: 18 revisions over 40 clips, of which **1** touched a
+    slot-bearing word.
+  - OCR is verified on **synthetic panels only** until real device photographs are
+    supplied. Glare, angle and reflection are untested, and the blur threshold is
+    explicitly not calibrated for photographs.
+
 ---
 
 ## 5. Ethical & Compliance Confirmation

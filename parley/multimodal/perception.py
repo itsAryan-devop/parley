@@ -50,9 +50,18 @@ class Perception:
     modality: str = "vision"
     features: dict[str, float] = field(default_factory=dict)
     error: str | None = None
+    evidence: str | None = None
+    """What the label rests on, in words, when it is something more specific
+    than "the classifier said so" -- e.g. `panel reads E4`. Carried into the
+    trace so a grounded claim can cite its warrant rather than assert it."""
+    overrode: str | None = None
+    """Set when a stronger witness contradicted the classifier. A silent
+    override is indistinguishable from a bug three weeks later."""
+    text: Any = None
+    """The `ocr.FrameText` behind the decision, when text was read."""
 
     def to_payload(self) -> dict[str, Any]:
-        return {
+        payload = {
             "slot": self.slot,
             "label": self.label,
             "confidence": round(self.confidence, 3),
@@ -64,6 +73,13 @@ class Perception:
             "error": self.error,
             "features": {k: round(v, 4) for k, v in self.features.items()},
         }
+        if self.evidence:
+            payload["evidence"] = self.evidence
+        if self.overrode:
+            payload["overrode"] = self.overrode
+        if self.text is not None and hasattr(self.text, "to_payload"):
+            payload["read"] = self.text.to_payload()
+        return payload
 
 
 def decide(

@@ -1,0 +1,282 @@
+[
+  {
+    "id": "c01",
+    "text": "I need a flight from Chicago to Denver, uh, no sorry, to Dallas, on Friday.",
+    "rate": 0,
+    "has_correction": true,
+    "path": "media/speech/c01.wav"
+  },
+  {
+    "id": "c01_fast",
+    "text": "I need a flight from Chicago to Denver, uh, no sorry, to Dallas, on Friday.",
+    "rate": 3,
+    "has_correction": true,
+    "path": "media/speech/c01_fast.wav"
+  },
+  {
+    "id": "c02",
+    "text": "Book me a flight to Delhi, no wait, Mumbai.",
+    "rate": 0,
+    "has_correction": true,
+    "path": "media/speech/c02.wav"
+  },
+  {
+    "id": "c02_fast",
+    "text": "Book me a flight to Delhi, no wait, Mumbai.",
+    "rate": 3,
+    "has_correction": true,
+    "path": "media/speech/c02_fast.wav"
+  },
+  {
+    "id": "c03",
+    "text": "Find a hotel in Goa for Tuesday, actually make that Wednesday.",
+    "rate": 0,
+    "has_correction": true,
+    "path": "media/speech/c03.wav"
+  },
+  {
+    "id": "c03_fast",
+    "text": "Find a hotel in Goa for Tuesday, actually make that Wednesday.",
+    "rate": 3,
+    "has_correction": true,
+    "path": "media/speech/c03_fast.wav"
+  },
+  {
+    "id": "c04",
+    "text": "I want to fly to Miami, um, I mean Orlando.",
+    "rate": 0,
+    "has_correction": true,
+    "path": "media/speech/c04.wav"
+  },
+  {
+    "id": "c04_fast",
+    "text": "I want to fly to Miami, um, I mean Orlando.",
+    "rate": 3,
+    "has_correction": true,
+    "path": "media/speech/c04_fast.wav"
+  },
+  {
+    "id": "c05",
+    "text": "Search flights to Pune on Monday, sorry, Tuesday morning.",
+    "rate": 0,
+    "has_correction": true,
+    "path": "media/speech/c05.wav"
+  },
+  {
+    "id": "c05_fast",
+    "text": "Search flights to Pune on Monday, sorry, Tuesday morning.",
+    "rate": 3,
+    "has_correction": true,
+    "path": "media/speech/c05_fast.wav"
+  },
+  {
+    "id": "c06",
+    "text": "Get me a room in Jaipur, er, Udaipur instead.",
+    "rate": 0,
+    "has_correction": true,
+    "path": "media/speech/c06.wav"
+  },
+  {
+    "id": "c06_fast",
+    "text": "Get me a room in Jaipur, er, Udaipur instead.",
+    "rate": 3,
+    "has_correction": true,
+    "path": "media/speech/c06_fast.wav"
+  },
+  {
+    "id": "c07",
+    "text": "Book the six a.m. flight, no, make it the evening one.",
+    "rate": 0,
+    "has_correction": true,
+    "path": "media/speech/c07.wav"
+  },
+  {
+    "id": "c07_fast",
+    "text": "Book the six a.m. flight, no, make it the evening one.",
+    "rate": 3,
+    "has_correction": true,
+    "path": "media/speech/c07_fast.wav"
+  },
+  {
+    "id": "c08",
+    "text": "I need two tickets, uh, three tickets to Bangalore.",
+    "rate": 0,
+    "has_correction": true,
+    "path": "media/speech/c08.wav"
+  },
+  {
+    "id": "c08_fast",
+    "text": "I need two tickets, uh, three tickets to Bangalore.",
+    "rate": 3,
+    "has_correction": true,
+    "path": "media/speech/c08_fast.wav"
+  },
+  {
+    "id": "c09",
+    "text": "Flight from Delhi to Chennai, hold on, from Mumbai to Chennai.",
+    "rate": 0,
+    "has_correction": true,
+    "path": "media/speech/c09.wav"
+  },
+  {
+    "id": "c09_fast",
+    "text": "Flight from Delhi to Chennai, hold on, from Mumbai to Chennai.",
+    "rate": 3,
+    "has_correction": true,
+    "path": "media/speech/c09_fast.wav"
+  },
+  {
+    "id": "c10",
+    "text": "Reserve a hotel for four nights, sorry, for three nights.",
+    "rate": 0,
+    "has_correction": true,
+    "path": "media/speech/c10.wav"
+  },
+  {
+    "id": "c10_fast",
+    "text": "Reserve a hotel for four nights, sorry, for three nights.",
+    "rate": 3,
+    "has_correction": true,
+    "path": "media/speech/c10_fast.wav"
+  },
+  {
+    "id": "c11",
+    "text": "Change my booking to Thursday, actually Friday works better.",
+    "rate": 0,
+    "has_correction": true,
+    "path": "media/speech/c11.wav"
+  },
+  {
+    "id": "c11_fast",
+    "text": "Change my booking to Thursday, actually Friday works better.",
+    "rate": 3,
+    "has_correction": true,
+    "path": "media/speech/c11_fast.wav"
+  },
+  {
+    "id": "c12",
+    "text": "Look up flights to Kolkata, um, cancel that, find me a train.",
+    "rate": 0,
+    "has_correction": true,
+    "path": "media/speech/c12.wav"
+  },
+  {
+    "id": "c12_fast",
+    "text": "Look up flights to Kolkata, um, cancel that, find me a train.",
+    "rate": 3,
+    "has_correction": true,
+    "path": "media/speech/c12_fast.wav"
+  },
+  {
+    "id": "c13",
+    "text": "I'd like the window seat, no, the aisle seat please.",
+    "rate": 0,
+    "has_correction": true,
+    "path": "media/speech/c13.wav"
+  },
+  {
+    "id": "c13_fast",
+    "text": "I'd like the window seat, no, the aisle seat please.",
+    "rate": 3,
+    "has_correction": true,
+    "path": "media/speech/c13_fast.wav"
+  },
+  {
+    "id": "c14",
+    "text": "Send it to the Andheri office, uh, the Bandra office.",
+    "rate": 0,
+    "has_correction": true,
+    "path": "media/speech/c14.wav"
+  },
+  {
+    "id": "c14_fast",
+    "text": "Send it to the Andheri office, uh, the Bandra office.",
+    "rate": 3,
+    "has_correction": true,
+    "path": "media/speech/c14_fast.wav"
+  },
+  {
+    "id": "c15",
+    "text": "Book a cab for nine thirty, sorry, nine fifteen.",
+    "rate": 0,
+    "has_correction": true,
+    "path": "media/speech/c15.wav"
+  },
+  {
+    "id": "c15_fast",
+    "text": "Book a cab for nine thirty, sorry, nine fifteen.",
+    "rate": 3,
+    "has_correction": true,
+    "path": "media/speech/c15_fast.wav"
+  },
+  {
+    "id": "p01",
+    "text": "Find me a flight from Delhi to Mumbai on Tuesday morning.",
+    "rate": 0,
+    "has_correction": false,
+    "path": "media/speech/p01.wav"
+  },
+  {
+    "id": "p01_fast",
+    "text": "Find me a flight from Delhi to Mumbai on Tuesday morning.",
+    "rate": 3,
+    "has_correction": false,
+    "path": "media/speech/p01_fast.wav"
+  },
+  {
+    "id": "p02",
+    "text": "Book a hotel in Goa for the weekend.",
+    "rate": 0,
+    "has_correction": false,
+    "path": "media/speech/p02.wav"
+  },
+  {
+    "id": "p02_fast",
+    "text": "Book a hotel in Goa for the weekend.",
+    "rate": 3,
+    "has_correction": false,
+    "path": "media/speech/p02_fast.wav"
+  },
+  {
+    "id": "p03",
+    "text": "What flights are available to Hyderabad tomorrow?",
+    "rate": 0,
+    "has_correction": false,
+    "path": "media/speech/p03.wav"
+  },
+  {
+    "id": "p03_fast",
+    "text": "What flights are available to Hyderabad tomorrow?",
+    "rate": 3,
+    "has_correction": false,
+    "path": "media/speech/p03_fast.wav"
+  },
+  {
+    "id": "p04",
+    "text": "Reserve two seats on the morning flight to Chennai.",
+    "rate": 0,
+    "has_correction": false,
+    "path": "media/speech/p04.wav"
+  },
+  {
+    "id": "p04_fast",
+    "text": "Reserve two seats on the morning flight to Chennai.",
+    "rate": 3,
+    "has_correction": false,
+    "path": "media/speech/p04_fast.wav"
+  },
+  {
+    "id": "p05",
+    "text": "Show me hotels near the airport in Bangalore.",
+    "rate": 0,
+    "has_correction": false,
+    "path": "media/speech/p05.wav"
+  },
+  {
+    "id": "p05_fast",
+    "text": "Show me hotels near the airport in Bangalore.",
+    "rate": 3,
+    "has_correction": false,
+    "path": "media/speech/p05_fast.wav"
+  }
+]

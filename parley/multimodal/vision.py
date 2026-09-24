@@ -165,7 +165,100 @@ def _get_model() -> LabelModel | None:
     return _model  # type: ignore[return-value]
 
 
-async def ground_frame(event: Any, *, clock: Any = None, slot: str = "label") -> Perception:
+#: Error codes that identify a device state directly. A panel reading `E4` is
+#: not evidence *about* a fault, it *is* the fault reported by the device
+#: itself, so a match here outranks anything inferred from colour.
+#:
+#: This is perception knowledge, not planning knowledge: it says what the frame
+#: shows, never what to do about it. The remedy stays behind the manual-lookup
+#: tool, which is why the agent still carries no device-specific logic.
+_CODE_LABELS: dict[str, str] = {
+    "E4": "washer_error_e4",
+    "4E": "washer_error_e4",   # the same inlet fault, printed in the other order
+}
+
+
+def _fuse(perception: Perception, text: Any) -> Perception:
+    """Reconcile the colour classifier with what the panel actually says.
+
+    Direct evidence wins. A recognised glyph sequence reports the device's own
+    diagnosis; hue mass is an inference about how the device looks. When they
+    disagree the glyphs are right, and the override is recorded rather than
+    applied silently -- a perception that quietly contradicts the model it just
+    ran is exactly the kind of thing that is impossible to debug later.
+    """
+    perception.features = dict(perception.features)
+    perception.text = text
+
+    if text.error_codes:
+        perception.features["ocr_codes"] = float(len(text.error_codes))
+
+    code = text.code
+    label = _CODE_LABELS.get(code) if code else None
+
+    if label:
+        if perception.label != label:
+            perception.overrode = perception.label or ("abstained" if perception.ambiguous else "nothing")
+        perception.label = label
+        perception.ambiguous = False
+        perception.question = None
+        perception.error = None
+        # Read glyphs, not a calibrated posterior. 0.95 rather than 1.0 because
+        # the recogniser can still misread, and a claim of certainty would be
+        # the one thing the provable-speech gate cannot warrant.
+        perception.confidence = 0.95
+        perception.evidence = f"panel reads {code}"
+        return perception
+
+    if code and perception.label is None:
+        # A real code we have no label for. Saying "I can see E4 but I don't
+        # know it" is far more useful than a generic failure, and it gives the
+        # user something concrete to confirm.
+        perception.evidence = f"panel reads {code}"
+        perception.question = (
+            f"I can see {code} on the panel but I don't recognise that code — "
+            "which appliance is this?"
+        )
+        perception.ambiguous = True
+        perception.candidates = [code]
+        return perception
+
+    if perception.label is None and text.needs_retake:
+        # A specific, actionable question instead of a shrug. Only reachable
+        # when nothing was read AND the frame is soft; see ocr.BLUR_FLOOR.
+        perception.question = (
+            "The picture is too blurry for me to read the panel — "
+            "could you hold the camera closer to the display?"
+        )
+        perception.error = "blurred beyond reading"
+
+    return perception
+
+
+def _read_text(source: Any, features: dict[str, float] | None) -> Any:
+    """Read the panel, but only when the frame plausibly has a panel to read.
+
+    OCR costs roughly a second -- three orders of magnitude more than the
+    classifier -- so it is gated on the `text_like` feature the classifier has
+    already computed for free. A frame that is a single lit LED on a dark case
+    has nothing to read, and spending a second establishing that on every
+    scenario would put the visual suite's wall-clock cost up by more than the
+    capability is worth.
+    """
+    if features is not None and features.get("text_like", 0.0) < 0.25:
+        return None
+    try:
+        from . import ocr
+    except ImportError:  # pragma: no cover
+        return None
+    if not ocr.available():
+        return None
+    return ocr.read_frame(source)
+
+
+async def ground_frame(
+    event: Any, *, clock: Any = None, slot: str = "label", read_text: bool = True
+) -> Perception:
     """Classify a frame. Decoding is modelled as costing virtual time."""
     source = getattr(event, "path", None) or getattr(event, "data_b64", None)
     ident = getattr(event, "frame_id", "frame")
@@ -190,9 +283,14 @@ async def ground_frame(event: Any, *, clock: Any = None, slot: str = "label") ->
             modality="vision", features=features, error="no vision model available",
         )
 
-    return decide(
+    perception = decide(
         slot, model.probs(features),
         source_id=ident, modality="vision", features=features,
         phrase="the picture",
         out_of_distribution=model.is_out_of_distribution(features),
     )
+
+    text = _read_text(source, features) if read_text else None
+    if text is not None:
+        perception = _fuse(perception, text)
+    return perception

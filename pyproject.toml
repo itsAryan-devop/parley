@@ -16,6 +16,14 @@ dependencies = ["pydantic>=2.6", "numpy>=1.24", "pillow>=10.0"]
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-asyncio>=0.23", "scikit-learn>=1.3"]
 
+# Live speech and panel reading. Deliberately *optional*: the scored engine
+# imports nothing from either, so the 29 scenarios and the full test suite run
+# on a clean install with neither extra present. Both ship their weights inside
+# the repo or the wheel -- installing them still downloads nothing at runtime.
+voice = ["vosk>=0.3.45"]
+vision = ["rapidocr-onnxruntime>=1.3"]
+demo = ["parley[voice]", "parley[vision]"]
+
 [tool.setuptools.packages.find]
 include = ["parley*", "harness*"]
 
