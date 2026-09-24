@@ -17,6 +17,11 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _console import utf8
+
+utf8()
 
 from harness.fuzz import fuzz
 from harness.scenario import load_all
