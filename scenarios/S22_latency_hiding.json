@@ -1,12 +1,12 @@
 {
-  "id": "S01_happy_path",
-  "title": "Search then book, no interruptions",
+  "id": "S22_latency_hiding",
+  "title": "The search starts mid-sentence and the confirmation adopts it",
   "modality": "text",
-  "description": "The baseline. If this fails nothing else matters.",
+  "description": "The theme's own scope note says full-duplex means beginning to retrieve before the utterance ends. Here the destination and date are bound by 1100 ms and the search goes out speculatively; the turn does not finish until 1900 ms. Because the tail adds no new slot, the confirmation JOINS the call already in flight instead of issuing a second one \u2014 the result is ready at max(turn, tool) rather than turn + tool.",
   "probes": [
-    "task completion",
-    "chained calls",
-    "snapshot accuracy"
+    "speculative execution",
+    "speculation join",
+    "latency hiding"
   ],
   "manifest": [
     {
@@ -105,7 +105,7 @@
   ],
   "env": {
     "latency_ms": {
-      "search_flights": 700,
+      "search_flights": 1200,
       "search_hotels": 650,
       "book_flight": 900,
       "cancel_booking": 200,
@@ -119,7 +119,7 @@
     {
       "type": "session_start",
       "t": 0.0,
-      "session_id": "S01"
+      "session_id": "S22"
     },
     {
       "type": "tool_manifest",
@@ -129,58 +129,45 @@
     {
       "type": "transcript_chunk",
       "t": 100,
-      "text": "find me a flight",
+      "text": "I need to get",
       "end_of_turn": false
     },
     {
       "type": "transcript_chunk",
-      "t": 400,
-      "text": "to Mumbai",
+      "t": 500,
+      "text": "to Hyderabad",
       "end_of_turn": false
     },
     {
       "type": "transcript_chunk",
-      "t": 700,
-      "text": "on Tuesday",
+      "t": 1100,
+      "text": "on Thursday",
       "end_of_turn": false
     },
     {
       "type": "transcript_chunk",
-      "t": 1000,
-      "text": "please",
-      "end_of_turn": true
-    },
-    {
-      "type": "transcript_chunk",
-      "t": 2600,
-      "text": "book AI101 please",
+      "t": 1900,
+      "text": "if there's anything going",
       "end_of_turn": true
     },
     {
       "type": "session_end",
-      "t": 5200,
+      "t": 4200,
       "reason": "complete"
     }
   ],
   "expect": {
     "intent": "book_flight",
     "slots": {
-      "destination": "BOM",
-      "date": "Tuesday",
-      "flight_no": "AI101"
+      "destination": "HYD",
+      "date": "Thursday"
     },
     "tools_called": [
-      "search_flights",
-      "book_flight"
+      "search_flights"
     ],
-    "live_effects": [
-      {
-        "tool": "book_flight",
-        "args": {
-          "flight_no": "AI101"
-        }
-      }
+    "survived_tools": [
+      "search_flights"
     ],
-    "max_first_response_ms": 300
+    "notes": "No first-response cap here: the opening chunk 'I need to get' carries no slot and nothing true to say about it, and a filler would be worse than the 400 ms of silence."
   }
 }

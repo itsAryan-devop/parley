@@ -300,8 +300,14 @@ class Interpreter:
     `SLOT_CORRECTION`) and by the model elsewhere.
     """
 
-    #: Kinds where a false positive cancels real work, so rules win ties.
-    DESTRUCTIVE = frozenset({InterruptionKind.GOAL_SWITCH, InterruptionKind.SLOT_CORRECTION})
+    #: Kinds the model may not decide on its own, because a false positive is
+    #: user-visible and expensive: two cancel real work, and the third makes the
+    #: agent parrot its last sentence back at someone who never asked it to.
+    DESTRUCTIVE = frozenset({
+        InterruptionKind.GOAL_SWITCH,
+        InterruptionKind.SLOT_CORRECTION,
+        InterruptionKind.REPEAT_REQUEST,
+    })
 
     def __init__(self, lexicon: Lexicon, model: Any | None = None) -> None:
         self.lexicon = lexicon

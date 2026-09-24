@@ -118,9 +118,16 @@ class Dispatcher:
                 return prior
 
         # --- retire guesses this dispatch makes obsolete ------------------
-        if not speculative:
-            for stale_guess in self.registry.superseded_speculations(tool, args):
-                await self.cancel(stale_guess, "superseded_by_confirmation")
+        # A newer guess supersedes an older one just as a confirmation does:
+        # "to Hyderabad" then "on Thursday" produces two speculative searches,
+        # and nobody will ever want the first one's answer. Leaving it running
+        # is only read-only waste, but it is waste with a cost — it occupies the
+        # environment and muddies the trace.
+        for stale_guess in self.registry.superseded_speculations(tool, args):
+            await self.cancel(
+                stale_guess,
+                "superseded_by_confirmation" if not speculative else "superseded_by_newer_guess",
+            )
 
         # --- idempotency claim, before dispatch ---------------------------
         key: str | None = None

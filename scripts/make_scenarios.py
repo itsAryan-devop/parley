@@ -151,9 +151,14 @@ SCENARIOS: list[dict] = [
         "probes": ["task completion", "chained calls", "snapshot accuracy"],
         "manifest": TRAVEL,
         "env": {"latency_ms": FAST},
+        # Streamed the way a recogniser actually emits: several partial chunks,
+        # end-of-turn only on the last. A single chunk carrying the whole
+        # utterance is convenient and unlike anything the harness delivers.
         "events": start("S01") + [
-            say(100, "find me a flight to Mumbai"),
-            say(700, "on Tuesday", eot=True),
+            say(100, "find me a flight"),
+            say(400, "to Mumbai"),
+            say(700, "on Tuesday"),
+            say(1000, "please", eot=True),
             say(2600, "book AI101 please", eot=True),
             end(5200),
         ],
@@ -462,6 +467,40 @@ SCENARIOS: list[dict] = [
             "slots": {"label": "tv_hdmi_no_signal"},
             "cancelled_tools": ["lookup_manual"],
             "no_duplicate_effects": True,
+        },
+    },
+    {
+        "id": "S22_latency_hiding",
+        "title": "The search starts mid-sentence and the confirmation adopts it",
+        "modality": "text",
+        "description": (
+            "The theme's own scope note says full-duplex means beginning to retrieve "
+            "before the utterance ends. Here the destination and date are bound by "
+            "1100 ms and the search goes out speculatively; the turn does not finish "
+            "until 1900 ms. Because the tail adds no new slot, the confirmation JOINS "
+            "the call already in flight instead of issuing a second one — the result "
+            "is ready at max(turn, tool) rather than turn + tool."
+        ),
+        "probes": ["speculative execution", "speculation join", "latency hiding"],
+        "manifest": TRAVEL,
+        "env": {"latency_ms": {**FAST, "search_flights": 1200}},
+        "events": start("S22") + [
+            say(100, "I need to get"),
+            say(500, "to Hyderabad"),
+            say(1100, "on Thursday"),
+            say(1900, "if there's anything going", eot=True),
+            end(4200),
+        ],
+        "expect": {
+            "intent": "book_flight",
+            "slots": {"destination": "HYD", "date": "Thursday"},
+            "tools_called": ["search_flights"],
+            "survived_tools": ["search_flights"],
+            "notes": (
+                "No first-response cap here: the opening chunk 'I need to get' carries "
+                "no slot and nothing true to say about it, and a filler would be worse "
+                "than the 400 ms of silence."
+            ),
         },
     },
     {

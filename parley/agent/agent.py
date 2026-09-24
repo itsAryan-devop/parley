@@ -93,6 +93,9 @@ class ParleyAgent:
         )
 
         self._turn_text: list[str] = []
+        self._turn_open = False
+        """True between a chunk without an end-of-turn marker and the one that
+        closes the turn. Chunks arriving while it is set are continuations."""
         self._agent_is_speaking = False
         self._pending_interruption = False
         self._perceptions: dict[str, Any] = {}
@@ -167,8 +170,16 @@ class ParleyAgent:
     # ================================================================ speech
 
     async def _on_transcript(self, event: TranscriptChunk) -> None:
-        overlapping = self._pending_interruption or self._agent_is_speaking
+        # Overlap only means something at a turn boundary. Once a turn is open —
+        # the previous chunk carried no end-of-turn marker — the next chunk is
+        # the same sentence continuing, whatever we happened to say in the
+        # meantime. Without this, our own mid-turn acknowledgment made the
+        # user's trailing words look like a barge-in against us, and a trailing
+        # "please" was classified as an interruption to its own utterance.
+        continuing = self._turn_open
+        overlapping = (self._pending_interruption or self._agent_is_speaking) and not continuing
         self._pending_interruption = False
+        self._turn_open = not event.end_of_turn
         self._turn_text.append(event.text)
 
         # Interpret the chunk, not the accumulated turn: a repair is detectable
@@ -270,6 +281,18 @@ class ParleyAgent:
         # and the retry silently never happened. The idempotency ledger is what
         # makes this safe: a genuine duplicate is suppressed before dispatch.
         just_bound |= {m.slot for m in interp.restatements}
+
+        # Inferred only once the slots are actually bound. Nobody says the word
+        # "flight" in "I need to get to Hyderabad on Thursday", but a
+        # destination and a date are consumable by exactly one goal's tools and
+        # that is enough. Left unset, every intent-tagged tool stays invisible
+        # and the turn produces no plan at all.
+        if self.state.intent is None and just_bound:
+            inferred = self.planner.infer_intent(self.state)
+            if inferred:
+                self.state.set_intent(inferred)
+                self.trace.kernel(event.t, "intent_inferred",
+                                  intent=inferred, from_slots=sorted(self.state.slots))
 
         if interp.corrections:
             self.floor.acknowledge_correction(m.slot for m in interp.corrections)
