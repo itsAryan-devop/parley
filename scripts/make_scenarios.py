@@ -465,6 +465,92 @@ SCENARIOS: list[dict] = [
         },
     },
     {
+        "id": "S19_missing_slot_clarification",
+        "title": "A request we cannot act on yet",
+        "modality": "text",
+        "description": (
+            "'Book me a flight' names a goal and no destination. The agent must ask, "
+            "specifically and immediately — waiting until the final response to say "
+            "'I still need a destination' is slower and worse, because the user has "
+            "stopped talking and is waiting."
+        ),
+        "probes": ["clarification", "missing required slot", "no speculative dispatch"],
+        "manifest": TRAVEL,
+        "env": {"latency_ms": FAST},
+        "events": start("S19") + [
+            say(100, "book me a flight", eot=True),
+            say(1400, "to Chennai on Friday", eot=True),
+            end(4000),
+        ],
+        "expect": {
+            "intent": "book_flight",
+            "slots": {"destination": "MAA", "date": "Friday"},
+            "must_clarify": True,
+            "tools_called": ["search_flights"],
+            "max_first_response_ms": 300,
+        },
+    },
+    {
+        "id": "S20_reentrant_interruptions",
+        "title": "Two corrections twenty milliseconds apart",
+        "modality": "text",
+        "description": (
+            "Interruption handling must be safe to enter while already handling one. "
+            "The second correction lands before the first has finished being applied, "
+            "and the snapshot must end on the last thing the user said — not on "
+            "whichever handler happened to finish last."
+        ),
+        "probes": ["re-entrancy", "rapid successive corrections", "snapshot convergence"],
+        "manifest": TRAVEL,
+        "env": {"latency_ms": {**FAST, "search_flights": 1600}},
+        "events": start("S20") + [
+            say(100, "flights to Delhi on Monday", eot=True),
+            interrupt(700),
+            say(720, "no, Mumbai", eot=True),
+            interrupt(740),
+            say(745, "sorry, Bengaluru", eot=True),
+            end(4500),
+        ],
+        "expect": {
+            "intent": "book_flight",
+            "slots": {"destination": "BLR", "date": "Monday"},
+            "cancelled_tools": ["search_flights"],
+            "no_duplicate_effects": True,
+        },
+    },
+    {
+        "id": "S21_permanent_failure_is_reported",
+        "title": "A tool that will not succeed",
+        "modality": "text",
+        "description": (
+            "The booking fails permanently on every attempt. The agent must not claim "
+            "success, must not invent a reference number, and must not silently drop "
+            "it. The provable-speech gate makes the first two structurally impossible; "
+            "this scenario checks the third."
+        ),
+        "probes": ["permanent fault", "no false completion claim", "honest failure"],
+        "manifest": TRAVEL,
+        "env": {
+            "latency_ms": {**FAST, "book_flight": 400},
+            "faults": [
+                {"tool": "book_flight", "kind": "permanent", "on_call": 1, "message": "sold out"},
+                {"tool": "book_flight", "kind": "permanent", "on_call": 2, "message": "sold out"},
+            ],
+        },
+        "events": start("S21") + [
+            say(100, "flight to Jaipur on Sunday", eot=True),
+            say(1200, "book AI777", eot=True),
+            say(2400, "did that work? book AI777", eot=True),
+            end(5000),
+        ],
+        "expect": {
+            "intent": "book_flight",
+            "live_effects": [],
+            "must_not_claim_completion": True,
+            "no_duplicate_effects": True,
+        },
+    },
+    {
         "id": "S18_visual_ticket_disclosure",
         "title": "A ticket is raised from a photo, then the user changes appliance",
         "modality": "visual",

@@ -48,7 +48,7 @@ from ..protocol.events import (
 )
 from ..protocol.manifest import ToolManifest, parse_manifest
 from ..protocol.state import SessionState, SlotSource
-from .floor import FloorManager
+from .floor import FloorManager, describe_tool
 from .lexicon import Lexicon
 from .model import InterruptionModel
 from .nlu import Interpretation, Interpreter, Turn
@@ -97,6 +97,7 @@ class ParleyAgent:
         self._pending_interruption = False
         self._perceptions: dict[str, Any] = {}
         self._grounding: list[asyncio.Task[Any]] = []
+        self._asked_for: set[str] = set()
         self._finalised = False
 
     # ================================================================ loop
@@ -214,9 +215,11 @@ class ParleyAgent:
             event.end_of_turn
             and len(self.floor.transcript) == spoken_before
             and interp.policy.floor is not FloorPolicy.CONTINUE
-            and self.kernel.registry.in_flight()
         ):
-            self.floor.progress()
+            if self.kernel.registry.in_flight():
+                self.floor.progress()
+            else:
+                self._ask_for_missing()
 
         if event.end_of_turn:
             self._turn_text.clear()
@@ -324,6 +327,32 @@ class ParleyAgent:
             if record is not None and record is not suppressed:
                 return record
         return None
+
+    def _ask_for_missing(self) -> None:
+        """Nothing could be planned and nothing is running — so ask why.
+
+        A specific question scores where silence does not, and where a generic
+        failure scores worse still. Each slot is asked about once: repeating
+        "Where to?" every turn is its own failure mode.
+        """
+        if self.state.intent is None:
+            return
+        missing = [
+            name for name in self.planner.missing_for(self.state.intent, self.state)
+            if name not in self._asked_for
+        ]
+        if not missing:
+            return
+
+        slot = missing[0]
+        self._asked_for.add(slot)
+        spec = next(
+            (s for s in self.planner.plannable for p in s.params
+             if p.name == slot and p.enum),
+            None,
+        )
+        options = next((p.enum for p in spec.params if p.name == slot), []) if spec else []
+        self.floor.clarify_missing(slot, options or [])
 
     def _is_committal(self, text: str) -> bool:
         words = {w.strip(",.!?").lower() for w in text.split()}
@@ -476,8 +505,34 @@ class ParleyAgent:
                 )
                 continue
             usable.append(record)
+        # A state change that failed has to be said out loud. Not claiming
+        # success is necessary but not sufficient: silence about a booking that
+        # did not happen leaves the user believing it did, which is the same
+        # outcome as lying about it.
+        failed = [
+            r for r in self.kernel.registry
+            if r.outcome is CallOutcome.FAILED and r.mutating and r.error
+            and not any(
+                o.signature == r.signature and o.outcome.had_effect
+                for o in self.kernel.registry
+            )
+        ]
+        failure_lines = []
+        seen_failures: set[tuple] = set()
+        for record in failed:
+            if record.signature in seen_failures:
+                continue
+            seen_failures.add(record.signature)
+            reason = record.error.split(":", 1)[-1].strip()
+            failure_lines.append(
+                f"I couldn't {describe_tool(record.tool).replace('ing ', ' ')} "
+                f"{_subject(record)} — {reason}."
+            )
+
         if not usable:
             missing = self.planner.missing_for(self.state.intent, self.state)
+            if failure_lines:
+                return " ".join(failure_lines), [], []
             if missing:
                 return (
                     f"I still need {' and '.join(m.replace('_', ' ') for m in missing)} before I can help.",
@@ -517,7 +572,14 @@ class ParleyAgent:
                     )
                 )
 
-        return " ".join(parts), claims, grounded
+        return " ".join(failure_lines + parts), claims, grounded
+
+
+def _subject(record: CallRecord) -> str:
+    """The first argument, in words, for a one-line failure report."""
+    if not record.args:
+        return "that"
+    return str(next(iter(sorted(record.args.values())))).replace("_", " ")
 
 
 def _describe_result(record: CallRecord) -> str:

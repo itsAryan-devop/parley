@@ -69,6 +69,21 @@ _PHRASING: dict[str, str] = {
     "symptom": "{v}",
 }
 
+#: Natural phrasings for the slots we expect. Anything absent falls back to a
+#: form generated from the slot name, so unseen tools are still askable.
+_QUESTIONS: dict[str, str] = {
+    "destination": "Where to?",
+    "origin": "Where from?",
+    "city": "Which city?",
+    "date": "What day?",
+    "time_of_day": "Morning, afternoon or evening?",
+    "party_size": "How many people?",
+    "flight_no": "Which flight?",
+    "hotel_id": "Which hotel?",
+    "label": "What's the device doing?",
+    "sound": "What does it sound like?",
+}
+
 _GERUND: dict[str, str] = {
     "search": "searching", "find": "finding", "book": "booking",
     "create": "creating", "cancel": "cancelling", "lookup": "looking up",
@@ -455,6 +470,22 @@ class FloorManager:
             call_id=record.call_id, tool=record.tool,
         )
         return self._emit(Utterance(text=text, kind=SpeechKind.REPAIR))
+
+    def clarify_missing(self, slot: str, options: Iterable[str] = ()) -> Clarify:
+        """Ask for a required slot we do not have, in the fewest words that work.
+
+        Objective 5 wants ambiguous perceptions clarified, and the same applies
+        to a request we simply cannot act on: "book me a flight" with no
+        destination. Waiting until the final response to say "I still need a
+        destination" is both slower and worse — the user has stopped talking and
+        is waiting for us.
+
+        The phrasing table is a convenience, not a dependency: an unseen slot
+        falls back to a form built from its own name, so a tool nobody has ever
+        seen can still be asked about.
+        """
+        question = _QUESTIONS.get(slot) or f"What {slot.replace('_', ' ')} should I use?"
+        return self.clarify(question, slot=slot, options=options, reason="missing_required")
 
     def clarify(
         self, question: str, *, slot: str | None = None, options: Iterable[str] = (), reason: str = "ambiguous"

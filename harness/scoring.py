@@ -141,6 +141,20 @@ def _task_completion(result: RunResult) -> Component:
         if not ok:
             failures.append("expected a clarification and none was asked")
 
+    if expect.must_not_claim_completion:
+        # Checked across every utterance, not just the final one. The gate makes
+        # an unwarranted completion claim structurally impossible; this confirms
+        # the gate is actually in the path.
+        claimed = [
+            (r.name, c)
+            for r in result.trace.of_kind(RecordKind.ACTION)
+            for c in r.payload.get("claims", [])
+            if c.get("kind") == "completed"
+        ]
+        checks.append(not claimed)
+        if claimed:
+            failures.append(f"claimed completion when nothing completed: {claimed}")
+
     # A final response must exist and be grounded in a real result.
     if result.final is None:
         checks.append(False)
