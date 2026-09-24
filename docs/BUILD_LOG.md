@@ -185,6 +185,35 @@ ambiguity needs genuinely *split* evidence — two indicators lit at once — an
 must be held out of training entirely. Teaching a classifier to pick one label
 for such a frame would train away the behaviour that scores.
 
+### Measuring what we assumed
+
+**Speculation had never actually worked.** ⚑ The design note claimed a
+latency win; nobody had asked the code to demonstrate one. The first run of
+`scripts/speculation_report.py` found **four speculative calls across the whole
+suite, zero joins, zero milliseconds hidden**. The mechanism was fine — the
+scenarios were not. Nearly every turn was a single chunk with `end_of_turn`
+set, so speculation, which by design fires only *before* a turn ends, never got
+a chance. Real recognisers emit several partials per turn, and the guide's own
+input list says "text chunks **with end-of-turn markers**", plural. After
+streaming the scenarios properly: **50% join rate, 1100 ms hidden.**
+
+**The agent parroted itself.** ⚑ Rewriting those scenarios exposed it. After
+emitting a mid-turn acknowledgment, `_agent_is_speaking` stayed true, so the
+user's own sentence *continuing* scored as a barge-in against us. That branch
+has low rule confidence, which left the learned model free to override it with
+`REPEAT_REQUEST` — and the agent replied *"I said: On Thursday — got it."* to
+someone who had not asked it to repeat anything. Overlap now counts only at a
+turn boundary, and `REPEAT_REQUEST` joined the branches the model may not
+decide alone.
+
+**Intent was never inferred from speech.** "I need to get to Hyderabad on
+Thursday" never says the word *flight*, so intent stayed `None` and every
+intent-tagged tool remained invisible. Slot-driven inference existed for the
+perception path only.
+
+**A newer guess did not retire the older one.** Two speculative searches ran
+concurrently and one answer was always discarded.
+
 ### Tooling and scoring
 
 **`Trace.emit()` collided on payload keys named `kind`, `name` or `t`.** A tool
@@ -220,7 +249,13 @@ measure — narrowly, and only those; barge-ins and corrections are still measur
 ## Standing risks
 
 1. **The real evaluation kit is not in hand.** Every interface assumption needs
-   re-checking when it lands. The adapter boundary is `harness/runner.py`.
+   re-checking when it lands. Mitigated but not eliminated: `harness/adapter.py`
+   plus `tests/test_adapter.py` demonstrate the agent running a full scenario
+   off a deliberately alien schema — seconds instead of milliseconds, different
+   type names, nested payload envelopes, heartbeat events, out-of-order
+   delivery — with correct cancellation and exactly one booking. What that
+   proves is that the *boundary* is real, not that the real kit will fit
+   through it without work.
 2. **`docker build` is unverified on this machine** — Docker Desktop's engine
    will not start here. `scripts/check_dockerfile.py` validates COPY paths, the
    Python version band, dependency coverage, committed weights, and actually

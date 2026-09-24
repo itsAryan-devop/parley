@@ -43,7 +43,7 @@ Or locally, on Python 3.10–3.12:
 ```bash
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 python scripts/run_scenarios.py          # public suite + scorecard
-python -m pytest                          # 242 tests
+python -m pytest                          # 254 tests
 python scripts/fuzz.py --trials 60        # adversarial timing
 python scripts/view.py --trace S02_slot_correction   # the timeline viewer
 ```
@@ -59,18 +59,22 @@ Scored against our reconstruction of the published rubric
 
 | | scenarios | mean score |
 |---|---|---|
-| text | 12 | 110.4 |
+| text | 13 | 110.4 |
 | audio | 5 | 104.0 |
 | visual | 4 | 106.2 |
-| **all** | **21** | **108.1** |
+| **all** | **22** | **108.2** |
 
-**21/21 scenarios pass every check they declare.** Scores exceed 100 because the quality multiplier
+**22/22 scenarios pass every check they declare.** Scores exceed 100 because the quality multiplier
 (0.80×–1.20×) applies on top of the 100-point rubric.
 
-**Every adversarially perturbed run holds every invariant** — 4500 runs at ±1400 ms jitter on the
-first eighteen scenarios, 2100 at ±1200 ms on all twenty-one, with tool latency scaled 0.3×–2.5×,
-commit points moved, events collapsed onto identical timestamps, faults injected, and sessions
-truncated mid-flight.
+**Every adversarially perturbed run holds every invariant** — thousands of runs at up to ±1400 ms
+jitter, with tool latency scaled 0.3×–2.5×, commit points moved, events collapsed onto identical
+timestamps, faults injected, events redelivered, end-of-turn markers dropped, spurious VAD signals
+fired, and sessions truncated mid-flight.
+
+**Speculation hides 1100 ms at a 50% join rate** — above the 39% published for n-gram-driven
+speculation, which is the expected direction: bound slots are a stronger signal than predicting the
+next tool in a sequence. Measured from the traces by `scripts/speculation_report.py`, not asserted.
 
 Perception abstains on **100%** of undecidable frames and **11/12** undecidable clips rather than
 guessing.
@@ -164,8 +168,16 @@ call look consistent with the new value, and it would survive when it should die
 
 The official evaluation kit had not been released when this was built, so we built a spec-faithful
 replica from the guide's description of it: virtual clock, deterministic mock tools with latency
-and fault injection, full trace logging, and a scorer implementing the published rubric. The agent
-talks to it through an adapter, so swapping in the real kit is a boundary change.
+and fault injection, full trace logging, and a scorer implementing the published rubric.
+
+**The agent imports nothing from `harness/`.** It consumes objects with a `.type` and a `.t` and
+emits actions through a callback, so adapting to a different kit means writing two translation
+functions and moving nothing inside `parley/`. That is a cheap claim to make, so it is
+[tested](tests/test_adapter.py) rather than asserted: `harness/adapter.py` maps a deliberately
+alien schema — different discriminator key, **timestamps in seconds**, `is_final` instead of
+`end_of_turn`, payloads nested in a `data` envelope, heartbeat events we have no concept of, and
+out-of-order delivery — and the agent runs a full scenario off it, absorbing a mid-stream
+destination correction, cancelling only the affected call, and committing exactly one booking.
 
 **Virtual time is implemented by subclassing the event loop and overriding its clock**, rather than
 by spinning `asyncio.sleep(0)` to guess when things have settled. Time advances to the next
@@ -183,7 +195,7 @@ Two subtleties that took real debugging:
 
 ### Adversarial timing
 
-The hidden set is ~60 scenarios of "edge cases and adversarial timing". Passing twenty-one scenarios
+The hidden set is ~60 scenarios of "edge cases and adversarial timing". Passing twenty-two scenarios
 we wrote proves little — they are the cases we thought of. `harness/fuzz.py` perturbs everything and
 asserts only **invariants**, never expectations:
 
