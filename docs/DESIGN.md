@@ -82,22 +82,47 @@ arrows, snapshot diffs — so a human can *see* an interruption being absorbed.
 
 ---
 
-## 4. Interruption taxonomy
+## 4. Interruption taxonomy — two orthogonal decisions
 
-The guide treats "interruption" as one concept. We hold that it is five events with five different
-correct responses, and that collapsing them is the dominant way teams lose the 35% block.
+The guide treats "interruption" as one concept. Every production framework we surveyed
+([RESEARCH.md](RESEARCH.md) R1.1) treats it as one decision too: Pipecat "cancels any pending tasks
+in LLM and TTS"; LiveKit stops the TTS stream and clears the buffer; TASTE2 runs a fixed four-step
+flush. **All of them conflate *stop speaking* with *stop working*.**
 
-| Kind | Example mid-flight | Correct response | Cancels? |
+That conflation is the bug. An interruption forces two decisions, and they are independent:
+
+- **Floor policy** — what happens to *our voice*. The literature's verbs: `CONTINUE`, `ADAPT`,
+  `YIELD` (arXiv 2609.13117).
+- **Work policy** — what happens to *our in-flight tool calls*: `KEEP_ALL`, `SELECTIVE`,
+  `CANCEL_ALL`. Ours.
+
+Crossing them gives the policy matrix. The naive system is the diagonal — yield implies cancel
+everything. The score lives off the diagonal:
+
+| | **Keep all work** | **Selective cancel** | **Cancel all work** |
 |---|---|---|---|
-| `SLOT_CORRECTION` | "…to Delhi — no, Mumbai" | patch one slot; invalidate only its readers | **selective** |
-| `GOAL_SWITCH` | "forget flights, find a hotel" | cancel all in-flight; re-plan; **retain** still-applicable slots (dates, party size) | all |
-| `REFINEMENT` | "make it morning flights only" | let the call finish; filter/re-rank the result | **none** |
-| `SELF_REPAIR` | "book the… uh… the Tuesday one" | no action — not an interruption; suppress re-planning | none |
-| `BARGE_IN` | user talks over our filler | stop speaking, yield the floor | **none** (speech only) |
+| **Continue speaking** | `SELF_REPAIR` — "book the… uh… the Tuesday one" | — | — |
+| **Adapt utterance** | `REFINEMENT` — "make it morning flights only" | — | — |
+| **Yield floor** | `BARGE_IN` — user talks over a filler<br>`REPEAT_REQUEST` — "sorry, say that again" | `SLOT_CORRECTION` — "…to Delhi — no, Mumbai" | `GOAL_SWITCH` — "forget flights, find a hotel" |
+
+The six named cells, with the response each demands:
+
+| Kind | Floor | Work | Response |
+|---|---|---|---|
+| `SLOT_CORRECTION` | YIELD | SELECTIVE | patch one slot; cancel exactly its readers; keep the rest running |
+| `GOAL_SWITCH` | YIELD | CANCEL_ALL | re-plan; **retain** slots the new goal can still consume |
+| `REFINEMENT` | ADAPT | KEEP_ALL | let the call finish; filter/re-rank its result; splice the utterance |
+| `SELF_REPAIR` | CONTINUE | KEEP_ALL | not an interruption at all — suppress re-planning entirely |
+| `BARGE_IN` | YIELD | KEEP_ALL | stop speaking; **do not** touch tool work |
+| `REPEAT_REQUEST` | YIELD | KEEP_ALL | re-speak from the transcript; **never** re-run a tool |
+
+**The two cells that matter competitively are `BARGE_IN` and `REPEAT_REQUEST`** — yield the floor,
+keep all work — because every surveyed framework cancels the work there, and a re-run of an already
+executed call is exactly what "absence of stale re-runs" penalises.
 
 Grounding: objective 3 names "localized slot corrections" as distinct from re-planning, and the
-in-car use case names "dropping *stale* route calculations" — i.e. stale ones, not all of them. The
-five-way split is our engineering judgement.
+in-car use case names "dropping *stale* route calculations" — stale ones, not all of them. The
+floor verbs are from the literature; the work axis and the matrix are ours.
 
 **Over-cancelling scores as badly as under-cancelling:** task completion (40%) falls while nothing
 is gained on recovery (35%).
@@ -202,10 +227,19 @@ So "checking flights to Mumbai for Tuesday" is emitted when *and only when* dest
 are actually bound. This buys the 15% latency block at zero inference cost and defends the ×1.2
 multiplier at the same time.
 
-### 7.3 Speculation policy
+### 7.3 Speculation policy, with join semantics
 Read-only tools may be dispatched speculatively as soon as their required slots reach
 `confidence ≥ τ_spec`, because they are free to cancel. State-modifying tools are **never**
-speculated — the manifest's read-only flag makes this a mechanical decision, not a judgement call.
+speculated — the manifest's read-only flag makes this a mechanical decision, not a judgement call
+(side-effect risk at issue time: arXiv 2606.02483).
+
+The non-obvious half is **join**. When the planner later confirms a call whose `(tool, args)`
+matches a live speculative call, it must **adopt that call** rather than issue a second one — the
+observation is then ready at `max(plan, tool)` instead of `plan + tool` (PASTE, arXiv 2603.18897).
+Without join, speculation manufactures precisely the duplicate calls the 10% block penalises. A
+miss is discarded and costs nothing, so speculation is never slower than baseline; published hit
+rates of ~39% still yield double-digit latency wins, and slot-driven speculation should beat that
+comfortably because a bound destination plus a bound date is not a guess.
 
 ---
 
