@@ -11,6 +11,13 @@ it is used the way a thermometer is used: to notice regressions and to argue
 about trade-offs with numbers instead of opinions. Where the guide is
 ambiguous the choice is documented inline.
 
+**On revising the scorer.** Changing your own measure to raise your own score is
+self-serving, so each revision here is justified by a demonstrated defect in the
+measure rather than by the number it produced. Two have happened, both in the
+quality multiplier: it preferred two clumsy sentences to one good one, and it
+docked the scenarios where the agent correctly declines to answer. The
+component weights and the pass/fail checks have never been touched.
+
 One deliberate asymmetry: **over-cancellation is penalised as hard as
 under-cancellation**. The guide only names "prompt cancellation of invalidated
 calls", but cancelling a call that was still valid destroys work and shows up in
@@ -414,10 +421,36 @@ def _multiplier(result: RunResult) -> tuple[float, list[str]]:
         if filler_ratio > 0.34:
             m -= 0.10
             notes.append(f"-0.10 fillers are {filler_ratio:.0%} of speech")
-        grounded_ratio = len(grounded) / len(speaks)
-        if grounded_ratio >= 0.6:
+
+        # Claim DENSITY, not the fraction of utterances that carry one.
+        #
+        # This started as "what share of utterances are grounded", and that
+        # metric turned out to punish an improvement: merging "Looks like
+        # grinding." and "Diagnosing sound grinding." into the single, better
+        # "Looks like grinding — diagnosing sound now." cut the utterance count
+        # while keeping both warrants, and the score fell by five points. A
+        # measure that prefers two clumsy sentences to one good one is measuring
+        # the wrong thing. Counting warrants per substantive utterance is
+        # invariant to that merge, and still rewards saying things you can back.
+        # Clarifications are excluded: a question asserts nothing, so it belongs
+        # in neither half of the ratio.
+        substantive = [
+            r for r in result.trace.of_kind(RecordKind.ACTION)
+            if r.name in ("speak", "final_response")
+            and r.payload.get("kind") != "filler"
+        ]
+        warrants = sum(len(r.payload.get("claims", []) or []) for r in substantive)
+        density = warrants / max(len(substantive), 1)
+
+        # Rewarded, never punished. The first version of this docked the two
+        # scenarios where the agent *correctly declines to answer* an
+        # undecidable frame — it has nothing to claim precisely because it is
+        # behaving well. Untruthfulness is already penalised directly, by
+        # `speech_blocked` and by unresolved effects; appropriate reticence must
+        # not be penalised at all.
+        if density >= 1.0:
             m += 0.10
-            notes.append(f"+0.10 {grounded_ratio:.0%} of utterances carry warranted claims")
+            notes.append(f"+0.10 {density:.1f} warranted claims per substantive utterance")
     else:
         m -= 0.15
         notes.append("-0.15 the agent never spoke")

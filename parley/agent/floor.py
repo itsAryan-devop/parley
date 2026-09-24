@@ -393,6 +393,60 @@ class FloorManager:
                       kind=SpeechKind.REPAIR)
         )
 
+    def report_perception(
+        self,
+        label: str,
+        confidence: float,
+        source_id: str,
+        follow_on: CallRecord | None = None,
+        corrected: bool = False,
+    ) -> Speak | None:
+        """"Looks like grinding — diagnosing sound now."
+
+        Said once the decode resolves. The agent was previously silent about
+        what it actually *saw*, going straight from "let me take a look" to
+        "looking up manual router power led red" — which reports what we are
+        doing but never what we perceived, and the perception is the one thing
+        the user cannot check for themselves.
+
+        Folded together with the acknowledgment for the call it triggers,
+        because splitting them produced two consecutive sentences both built
+        around the same word.
+
+        Hedged deliberately: a perception is an inference from pixels or
+        samples, not something the user said, and the phrasing should not
+        pretend otherwise. The confidence rides into the trace on the claim.
+        """
+        if confidence < SPEAK_THRESHOLD:
+            return None
+
+        spoken = str(label).replace("_", " ")
+        claims = [
+            Claim(
+                kind=ClaimKind.PERCEPTION,
+                subject=source_id,
+                value=label,
+                warrant=f"classified from {source_id} at {confidence:.2f}",
+                confidence=confidence,
+            )
+        ]
+        lead = "Actually, looks like" if corrected else "Looks like"
+        text = f"{lead} {spoken}."
+
+        if follow_on is not None and follow_on.in_flight:
+            self._spoken_calls.add(follow_on.call_id)
+            text = f"{lead} {spoken} — {describe_tool(follow_on.tool)} now."
+            claims.append(
+                Claim(
+                    kind=ClaimKind.IN_PROGRESS,
+                    subject=follow_on.call_id,
+                    value=follow_on.tool,
+                    warrant=f"dispatched at {follow_on.dispatched_at:.0f} ms, still in flight",
+                )
+            )
+
+        return self._emit(Utterance(text=text, kind=SpeechKind.ACK, claims=claims))
+
     def progress(self) -> Speak | None:
         """Narrate live work. Degrades to nothing rather than to a claim."""
         live = [c for c in self.registry.in_flight() if not c.speculative]

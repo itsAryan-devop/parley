@@ -446,11 +446,11 @@ class ParleyAgent:
         # does not care which modality bound the slot, and routing perception
         # around the cancellation path left the first lookup running against a
         # value nobody held any more.
-        if delta.invalidating_slots:
+        corrected = bool(delta.invalidating_slots)
+        if corrected:
             await self.kernel.apply_work_policy(
                 policy_for(InterruptionKind.SLOT_CORRECTION), delta.invalidating_slots
             )
-            self.floor.acknowledge_correction([perception.slot])
 
         if self.state.intent is None:
             inferred = self.planner.infer_intent(self.state)
@@ -459,13 +459,26 @@ class ParleyAgent:
                 self.trace.kernel(self.clock.now, "intent_inferred",
                                   intent=inferred, from_slots=sorted(self.state.slots))
 
+        # Dispatch first, then speak once. The perception and the call it
+        # triggers belong in the same sentence; emitting them separately gave
+        # two consecutive utterances built around the same word.
         planned = self.planner.plan(
             self.state, end_of_turn=True, committed=False, just_bound={perception.slot}
         )
-        for call in planned:
-            record = await self.kernel.dispatch(
+        records = [
+            await self.kernel.dispatch(
                 call.tool, call.args, call.read_slots, intent=self.state.intent
             )
+            for call in planned
+        ]
+        lead = next((r for r in records if r.in_flight), None)
+
+        self.floor.report_perception(
+            perception.label, perception.confidence, ident,
+            follow_on=lead, corrected=corrected,
+        )
+
+        for record in records:
             if record.in_flight:
                 self.floor.acknowledge_dispatch(record)
 

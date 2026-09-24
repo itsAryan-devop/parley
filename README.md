@@ -60,9 +60,9 @@ Scored against our reconstruction of the published rubric
 | | scenarios | mean score |
 |---|---|---|
 | text | 13 | 110.4 |
-| audio | 5 | 104.0 |
-| visual | 4 | 106.2 |
-| **all** | **22** | **108.2** |
+| audio | 5 | 108.0 |
+| visual | 4 | 108.8 |
+| **all** | **22** | **109.5** |
 
 **22/22 scenarios pass every check they declare.** Scores exceed 100 because the quality multiplier
 (0.80×–1.20×) applies on top of the 100-point rubric.
