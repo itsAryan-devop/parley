@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "timeline",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8770"],
+      "port": 8770,
+      "url": "http://localhost:8770"
+    }
+  ]
+}

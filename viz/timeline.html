@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PARLEY — duplex timeline</title>
+<style>
+  :root {
+    --bg: #0e1116; --panel: #161b22; --line: #262c36; --text: #e6edf3;
+    --muted: #8b949e; --user: #58a6ff; --agent: #3fb950; --tool: #a371f7;
+    --cancel: #f85149; --warn: #d29922; --spec: #6e7681;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#fff; --panel:#f6f8fa; --line:#d0d7de; --text:#1f2328; --muted:#656d76; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+         background:var(--bg); color:var(--text); }
+  header { padding:18px 24px; border-bottom:1px solid var(--line); display:flex;
+           gap:20px; align-items:center; flex-wrap:wrap; }
+  h1 { font-size:16px; margin:0; font-weight:650; letter-spacing:.2px; }
+  h1 small { color:var(--muted); font-weight:400; margin-left:10px; }
+  select, button, input { background:var(--panel); color:var(--text);
+    border:1px solid var(--line); border-radius:6px; padding:6px 10px; font:inherit; }
+  button { cursor:pointer; }
+  main { padding:20px 24px 60px; }
+  .lanes { position:relative; overflow-x:auto; border:1px solid var(--line);
+           border-radius:10px; background:var(--panel); }
+  .lane { position:relative; height:46px; border-bottom:1px solid var(--line); }
+  .lane:last-child { border-bottom:0; }
+  .lane-label { position:sticky; left:0; z-index:3; display:inline-block; width:132px;
+    padding:0 12px; line-height:46px; font-size:12px; color:var(--muted);
+    background:var(--panel); border-right:1px solid var(--line); }
+  .track { position:absolute; inset:0 0 0 132px; }
+  .ev { position:absolute; top:11px; height:24px; border-radius:5px; font-size:11px;
+        line-height:24px; padding:0 7px; white-space:nowrap; overflow:hidden;
+        cursor:pointer; border:1px solid transparent; }
+  .ev:hover { filter:brightness(1.25); z-index:4; overflow:visible; }
+  .user { background:color-mix(in srgb,var(--user) 22%,transparent); border-color:var(--user); }
+  .agent{ background:color-mix(in srgb,var(--agent) 20%,transparent); border-color:var(--agent); }
+  .tool { background:color-mix(in srgb,var(--tool) 20%,transparent); border-color:var(--tool); }
+  .tool.spec { border-style:dashed; opacity:.65; }
+  .tool.dead { background:color-mix(in srgb,var(--cancel) 18%,transparent); border-color:var(--cancel); }
+  .tool.stale{ background:color-mix(in srgb,var(--warn) 20%,transparent); border-color:var(--warn); }
+  .mark { position:absolute; top:6px; width:2px; height:34px; }
+  .mark.cancel { background:var(--cancel); }
+  .mark.interrupt { background:var(--user); }
+  .axis { position:relative; height:26px; margin-left:132px; color:var(--muted); font-size:11px; }
+  .axis span { position:absolute; transform:translateX(-50%); }
+  .grid { position:absolute; top:0; bottom:26px; width:1px; background:var(--line); opacity:.5; }
+  .legend { display:flex; gap:16px; flex-wrap:wrap; margin:16px 0 0; font-size:12px; color:var(--muted); }
+  .legend i { display:inline-block; width:11px; height:11px; border-radius:3px;
+              margin-right:5px; vertical-align:-1px; border:1px solid; }
+  #detail { margin-top:18px; border:1px solid var(--line); border-radius:10px;
+            background:var(--panel); padding:14px 16px; min-height:72px; }
+  #detail pre { margin:8px 0 0; font-size:12px; white-space:pre-wrap; word-break:break-word;
+                color:var(--muted); max-height:260px; overflow:auto; }
+  .tag { display:inline-block; font-size:11px; padding:1px 7px; border-radius:99px;
+         border:1px solid var(--line); margin-right:6px; color:var(--muted); }
+  .drop { border:2px dashed var(--line); border-radius:10px; padding:36px; text-align:center;
+          color:var(--muted); margin-bottom:18px; }
+  .drop.on { border-color:var(--user); color:var(--text); }
+</style>
+</head>
+<body>
+<header>
+  <h1>PARLEY <small>duplex timeline</small></h1>
+  <select id="pick"><option value="">— load a trace —</option></select>
+  <input type="file" id="file" accept=".jsonl,.json">
+  <button id="fit">fit</button>
+  <span id="stats" style="color:var(--muted);font-size:12px"></span>
+</header>
+
+<main>
+  <div class="drop" id="drop">Drop a <code>runs/*.jsonl</code> trace here, or pick one above.</div>
+  <div class="lanes" id="lanes"></div>
+  <div class="axis" id="axis"></div>
+  <div class="legend">
+    <span><i style="background:color-mix(in srgb,var(--user) 22%,transparent);border-color:var(--user)"></i>user</span>
+    <span><i style="background:color-mix(in srgb,var(--agent) 20%,transparent);border-color:var(--agent)"></i>agent speech</span>
+    <span><i style="background:color-mix(in srgb,var(--tool) 20%,transparent);border-color:var(--tool)"></i>tool call</span>
+    <span><i style="border-color:var(--tool);border-style:dashed"></i>speculative</span>
+    <span><i style="background:color-mix(in srgb,var(--cancel) 18%,transparent);border-color:var(--cancel)"></i>cancelled</span>
+    <span><i style="background:color-mix(in srgb,var(--warn) 20%,transparent);border-color:var(--warn)"></i>completed but stale</span>
+  </div>
+  <div id="detail"><em style="color:var(--muted)">Click any bar to inspect its trace record.</em></div>
+</main>
+
+<script>
+// A trace is JSONL: one {t, seq, kind, name, payload} record per line. Everything
+// below is derived from it -- the viewer has no knowledge of the agent at all,
+// which is the point: if it can be drawn from the trace, it was in the trace.
+const LANES = [
+  ["user",   "user"],
+  ["agent",  "agent speech"],
+  ["tools",  "tool calls"],
+  ["kernel", "decisions"],
+  ["state",  "snapshot"],
+];
+
+let records = [], span = 1000, calls = new Map();
+
+function parse(text) {
+  return text.split("\n").filter(l => l.trim()).map(l => JSON.parse(l));
+}
+
+function build() {
+  calls = new Map();
+  for (const r of records) {
+    if (r.kind === "action" && r.name === "tool_call") {
+      calls.set(r.payload.call_id, {
+        id: r.payload.call_id, tool: r.payload.tool, args: r.payload.args,
+        start: r.t, end: null, spec: !!r.payload.speculative,
+        mutating: !!r.payload.mutating, outcome: "pending", rec: r,
+      });
+    }
+    if (r.kind === "kernel" && r.name === "call_settled") {
+      const c = calls.get(r.payload.call_id);
+      if (c) { c.end = r.t; c.outcome = r.payload.outcome; c.settled = r; }
+    }
+    if (r.kind === "kernel" && r.name === "duplicate_suppressed") {
+      calls.set(r.payload.call_id, {
+        id: r.payload.call_id, tool: r.payload.tool, args: r.payload.args,
+        start: r.t, end: r.t, spec: false, mutating: true,
+        outcome: "duplicate_suppressed", rec: r,
+      });
+    }
+  }
+  span = Math.max(1, ...records.map(r => r.t)) * 1.04;
+}
+
+const pct = t => (t / span * 100) + "%";
+
+function el(tag, cls, html) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (html !== undefined) n.innerHTML = html;
+  return n;
+}
+
+function show(rec, title) {
+  const d = document.getElementById("detail");
+  d.innerHTML = `<div><span class="tag">${rec.kind}</span>
+    <span class="tag">${rec.name}</span>
+    <span class="tag">t = ${rec.t.toFixed(1)} ms</span>
+    <strong>${title || ""}</strong></div>
+    <pre>${JSON.stringify(rec.payload, null, 2)}</pre>`;
+}
+
+function place(track, rec, cls, left, width, label, title) {
+  const n = el("div", "ev " + cls, label);
+  n.style.left = pct(left);
+  n.style.width = width === null ? "auto" : `max(6px, ${pct(width)})`;
+  n.title = title || label;
+  n.onclick = () => show(rec, title || label);
+  track.appendChild(n);
+  return n;
+}
+
+function render() {
+  const lanes = document.getElementById("lanes");
+  lanes.innerHTML = "";
+  const tracks = {};
+
+  for (const [key, label] of LANES) {
+    const lane = el("div", "lane");
+    lane.appendChild(el("span", "lane-label", label));
+    const track = el("div", "track");
+    lane.appendChild(track);
+    lanes.appendChild(lane);
+    tracks[key] = track;
+  }
+
+  for (const r of records) {
+    if (r.kind === "event" && r.name === "transcript_chunk") {
+      const eot = r.payload.end_of_turn ? " ⏎" : "";
+      place(tracks.user, r, "user", r.t, null, esc(r.payload.text) + eot);
+    }
+    if (r.kind === "event" && r.name === "interruption") {
+      const m = el("div", "mark interrupt");
+      m.style.left = pct(r.t);
+      m.title = "interruption signal";
+      m.onclick = () => show(r, "interruption");
+      tracks.user.appendChild(m);
+    }
+    if (r.kind === "event" && (r.name === "video_frame" || r.name === "audio_clip")) {
+      const id = r.payload.frame_id || r.payload.clip_id;
+      place(tracks.user, r, "user", r.t, null,
+            (r.name === "video_frame" ? "🖼 " : "🔊 ") + esc(id));
+    }
+    if (r.kind === "action" && r.name === "speak") {
+      place(tracks.agent, r, "agent", r.t, null,
+            `[${r.payload.kind}] ` + esc(r.payload.text));
+    }
+    if (r.kind === "action" && r.name === "clarify") {
+      place(tracks.agent, r, "agent", r.t, null, "❓ " + esc(r.payload.question));
+    }
+    if (r.kind === "action" && r.name === "final_response") {
+      place(tracks.agent, r, "agent", r.t, null, "✔ " + esc(r.payload.text));
+    }
+    if (r.kind === "action" && r.name === "cancel") {
+      const m = el("div", "mark cancel");
+      m.style.left = pct(r.t);
+      m.title = `cancel ${r.payload.call_id} — ${r.payload.reason}`;
+      m.onclick = () => show(r, "cancel");
+      tracks.tools.appendChild(m);
+    }
+    if (r.kind === "kernel" && ["interpretation","work_policy","goal_switch","speculation_join",
+        "result_reused","effect_probe","compensated","disclosed_uncertain_effect",
+        "duplicate_suppressed","intent_inferred","perception"].includes(r.name)) {
+      const label = r.name === "interpretation"
+        ? `${r.payload.kind} · ${r.payload.policy.floor}/${r.payload.policy.work}`
+        : r.name.replace(/_/g, " ");
+      place(tracks.kernel, r, "tool", r.t, null, esc(label));
+    }
+    if (r.kind === "action" && r.name === "final_response") {
+      place(tracks.state, r, "agent", r.t, null,
+            "rev " + r.payload.state.revision + " · " +
+            esc(JSON.stringify(r.payload.state.slots)));
+    }
+  }
+
+  // Tool lifetimes: a bar from dispatch to settlement, coloured by outcome.
+  for (const c of calls.values()) {
+    const end = c.end === null ? span : c.end;
+    let cls = "tool";
+    if (c.spec) cls += " spec";
+    if (c.outcome.startsWith("cancelled") || c.outcome === "duplicate_suppressed") cls += " dead";
+    else if (c.outcome === "completed_now_stale" || c.outcome === "compensated") cls += " stale";
+    const bar = place(tracks.tools, c.settled || c.rec, cls, c.start, end - c.start,
+      `${c.tool}${c.mutating ? " ✎" : ""}`,
+      `${c.id} ${c.tool}(${JSON.stringify(c.args)}) → ${c.outcome}`);
+    bar.style.top = "11px";
+  }
+
+  // Axis
+  const axis = document.getElementById("axis");
+  axis.innerHTML = "";
+  const step = niceStep(span / 8);
+  for (let t = 0; t <= span; t += step) {
+    const s = el("span", "", t >= 1000 ? (t / 1000).toFixed(1) + "s" : t + "ms");
+    s.style.left = pct(t);
+    axis.appendChild(s);
+  }
+
+  const n = records.length, spoken = records.filter(r => r.name === "speak").length;
+  document.getElementById("stats").textContent =
+    `${n} records · ${calls.size} calls · ${spoken} utterances · ${(span/1000).toFixed(1)}s`;
+  document.getElementById("drop").style.display = "none";
+}
+
+function niceStep(raw) {
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  return [1, 2, 5, 10].map(m => m * pow).find(s => s >= raw) || pow * 10;
+}
+
+const esc = s => String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+function load(text) { records = parse(text); build(); render(); }
+
+document.getElementById("file").onchange = e => {
+  const f = e.target.files[0];
+  if (f) f.text().then(load);
+};
+document.getElementById("pick").onchange = e => {
+  if (e.target.value) fetch(e.target.value).then(r => r.text()).then(load);
+};
+document.getElementById("fit").onclick = render;
+
+const drop = document.getElementById("drop");
+document.body.ondragover = e => { e.preventDefault(); drop.classList.add("on"); };
+document.body.ondragleave = () => drop.classList.remove("on");
+document.body.ondrop = e => {
+  e.preventDefault(); drop.classList.remove("on");
+  const f = e.dataTransfer.files[0];
+  if (f) f.text().then(load);
+};
+
+// When served over http (see scripts/view.py), offer whatever is in runs/, and
+// honour ?trace=<name> so a scenario can be linked to directly.
+const pick = document.getElementById("pick");
+const wanted = new URLSearchParams(location.search).get("trace");
+
+fetch("../runs/").then(r => r.ok ? r.text() : "").then(html => {
+  const seen = new Set();
+  for (const m of html.matchAll(/href="([^"]*?([^"\/]+\.jsonl))"/g)) {
+    if (seen.has(m[2])) continue;
+    seen.add(m[2]);
+    const o = document.createElement("option");
+    o.value = "../runs/" + m[2];
+    o.textContent = m[2];
+    pick.appendChild(o);
+  }
+  const first = wanted
+    ? "../runs/" + (wanted.endsWith(".jsonl") ? wanted : wanted + ".jsonl")
+    : (pick.options[1] && pick.options[1].value);
+  if (first) {
+    pick.value = first;
+    fetch(first).then(r => r.text()).then(load).catch(() => {});
+  }
+}).catch(() => {});
+</script>
+</body>
+</html>
