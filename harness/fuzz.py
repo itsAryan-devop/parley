@@ -50,6 +50,12 @@ class Perturbation:
     """How many events were snapped onto another event's timestamp."""
     injected_faults: list[str] = field(default_factory=list)
     truncated_ms: float | None = None
+    duplicated: int = 0
+    """Events delivered twice — a redelivery, which real queues do."""
+    eot_dropped: int = 0
+    """End-of-turn markers lost, as a flaky recogniser would lose them."""
+    spurious_vad: int = 0
+    """Interruption signals with no speech behind them."""
 
     def describe(self) -> str:
         bits = [
@@ -64,6 +70,12 @@ class Perturbation:
             bits.append(f"faults={','.join(self.injected_faults)}")
         if self.truncated_ms is not None:
             bits.append(f"cut@{self.truncated_ms:.0f}ms")
+        if self.duplicated:
+            bits.append(f"dup={self.duplicated}")
+        if self.eot_dropped:
+            bits.append(f"eot_dropped={self.eot_dropped}")
+        if self.spurious_vad:
+            bits.append(f"spurious_vad={self.spurious_vad}")
         return " ".join(bits)
 
 
@@ -117,6 +129,39 @@ def perturb(scenario: Scenario, seed: int, *, jitter_ms: float = 250.0) -> tuple
         a, b = rng.sample(movable, 2)
         b["t"] = a["t"]
         p.collapsed = 1
+
+    # --- delivery faults ---------------------------------------------------
+    # Everything below models the transport rather than the speaker, and each
+    # is something a real streaming pipeline does at least occasionally.
+
+    # Redelivery. A duplicated "book AI101" must not book twice — the
+    # idempotency ledger is the only thing standing between this and a double
+    # charge, so it is worth generating deliberately.
+    if movable and rng.random() < 0.3:
+        original = rng.choice(movable)
+        copy = dict(original)
+        copy["t"] = original["t"] + rng.uniform(0.0, 30.0)
+        events.append(copy)
+        movable.append(copy)
+        p.duplicated = 1
+
+    # A lost end-of-turn marker. The agent must not hang waiting for a turn
+    # that never formally ends, and must still finalise sensibly.
+    finals = [e for e in movable if e.get("end_of_turn")]
+    if finals and rng.random() < 0.25:
+        rng.choice(finals)["end_of_turn"] = False
+        p.eot_dropped = 1
+
+    # Spurious VAD. A cough, a door, a passing lorry: the signal fires with no
+    # speech behind it. Treating that as an interruption would cancel work on
+    # the strength of background noise.
+    if rng.random() < 0.3 and movable:
+        anchor = rng.choice(movable)["t"]
+        events.append({
+            "type": "interruption", "t": max(1.0, anchor + rng.uniform(-200.0, 200.0)),
+            "source": "vad",
+        })
+        p.spurious_vad = 1
 
     # Occasionally cut the session short, mid-flight.
     if rng.random() < 0.25:

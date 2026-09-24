@@ -128,6 +128,45 @@ def test_perturbation_actually_perturbs() -> None:
     assert changed >= 8, f"only {changed}/10 perturbations moved any event"
 
 
+def test_delivery_faults_are_actually_generated() -> None:
+    """Guard: the transport-level perturbations must fire often enough to matter.
+
+    Redelivery, a lost end-of-turn marker and a spurious VAD signal are all
+    things a real streaming pipeline does, and each targets a specific
+    guarantee — the idempotency ledger, turn finalisation, and not cancelling
+    work on the strength of background noise. If the generator quietly stopped
+    producing them, the campaigns above would be passing for free.
+    """
+    seen = {"duplicated": 0, "eot_dropped": 0, "spurious_vad": 0}
+    for seed in range(60):
+        _, p = perturb(SCENARIOS[0], seed, jitter_ms=500.0)
+        for key in seen:
+            seen[key] += getattr(p, key)
+    for key, n in seen.items():
+        assert n >= 5, f"{key} fired only {n}/60 times"
+
+
+def test_a_redelivered_booking_does_not_book_twice() -> None:
+    """The sharpest delivery fault: the same instruction arrives twice.
+
+    Nothing about the user's intent changed — the transport hiccupped — and the
+    idempotency ledger is the only thing between that and a double charge.
+    """
+    duplicated = 0
+    for scenario in SCENARIOS:
+        for seed in range(12):
+            mutated, p = perturb(scenario, seed, jitter_ms=600.0)
+            if not p.duplicated:
+                continue
+            duplicated += 1
+            result = run_scenario(mutated, model=MODEL)
+            assert not result.world.duplicates(), (
+                f"{scenario.id} [{p.describe()}] double-committed: "
+                f"{sorted(result.world.duplicates())}"
+            )
+    assert duplicated > 20, f"only {duplicated} runs actually had a redelivery"
+
+
 def test_perturbations_are_reproducible_from_their_seed() -> None:
     """A violation is only actionable if the schedule that caused it can be
     recreated exactly."""
