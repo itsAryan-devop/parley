@@ -11,7 +11,7 @@ requires-python = ">=3.10,<3.13"
 # runtime downloads mean every dependency has to be small, offline and fast to
 # import. scikit-learn trains the interruption classifier but never runs it --
 # the fitted weights ship as JSON and inference is numpy only.
-dependencies = ["pydantic>=2.6", "numpy>=1.24"]
+dependencies = ["pydantic>=2.6", "numpy>=1.24", "pillow>=10.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-asyncio>=0.23", "scikit-learn>=1.3"]

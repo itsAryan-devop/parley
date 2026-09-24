@@ -39,6 +39,18 @@ class Slot(BaseModel):
     """State revision at which this slot last changed."""
     evidence: str | None = None
     """The transcript span / frame id / audio clip id that produced the value."""
+    surface: str | None = None
+    """How the user actually said it, when that differs from the canonical value.
+
+    `value` is what goes into tool arguments and into the scored snapshot —
+    "BOM". `surface` is what goes into speech — "Mumbai". Saying the airport
+    code back to someone who said a city name is the kind of small unnaturalness
+    the quality multiplier is there to catch.
+    """
+
+    @property
+    def spoken(self) -> Any:
+        return self.surface if self.surface is not None else self.value
 
 
 class SlotMeta(BaseModel):
@@ -128,6 +140,7 @@ class SessionState(BaseModel):
         confidence: float = 1.0,
         source: SlotSource = SlotSource.TEXT,
         evidence: str | None = None,
+        surface: str | None = None,
     ) -> StateDelta:
         """Bind a slot. Correcting an existing binding invalidates its readers;
         binding a fresh slot does not."""
@@ -143,6 +156,7 @@ class SessionState(BaseModel):
             source=source,
             revision=rev,
             evidence=evidence,
+            surface=surface,
         )
 
         if same_value:

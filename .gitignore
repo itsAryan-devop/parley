@@ -5,3 +5,10 @@ __pycache__/
 .pytest_cache/
 runs/
 *.log
+
+# Regenerable in seconds with `python scripts/make_media.py` and ~84 MB of PNGs
+# and WAVs. The scenario media and the undecidable set ARE committed: scenarios
+# must be reproducible from a clean clone, and the undecidable set is the
+# evidence for the abstention behaviour, which a judge should be able to check
+# without running a generator first.
+media/dataset/
