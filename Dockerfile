@@ -29,9 +29,18 @@ WORKDIR /app
 
 # Dependencies first, so edits to source do not invalidate the wheel layer.
 COPY pyproject.toml ./
+# scikit-learn is deliberately NOT installed. It fits the classifiers offline and
+# the fitted weights ship as JSON; inference is numpy only. Measured, it and
+# scipy were 188 MB of a 641 MB image — 29% of the thing, to carry a library no
+# scenario and no test imports. `scripts/train_*.py` are the only callers and
+# they already exit with "scikit-learn is a dev dependency" when it is absent.
+#
+# Installing it here would also quietly contradict the design: the argument for
+# JSON weights is that nothing heavyweight is needed to *run* the agent, and an
+# image that ships the trainer anyway is an image that has not tested that claim.
 RUN python -m pip install --upgrade pip \
  && python -m pip install "pydantic>=2.6" "numpy>=1.24" "pillow>=10.0" \
-                          "pytest>=8" "pytest-asyncio>=0.23" "scikit-learn>=1.3"
+                          "pytest>=8" "pytest-asyncio>=0.23"
 
 COPY parley/ ./parley/
 COPY harness/ ./harness/

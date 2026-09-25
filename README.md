@@ -38,10 +38,10 @@ them conflate *stop speaking* with *stop working* — see [`docs/RESEARCH.md`](d
 docker build -t parley . && docker run --rm parley
 ```
 
-Verified, not assumed: `parley:latest` is 153 MB, builds from clean, and prints
-30/30 at mean 109.2. `docker run --rm parley pytest` runs the full suite inside
-the image (21 tests skip — the optional voice and vision extras the scored engine
-does not need).
+Verified, not assumed: the image builds from clean and prints 30/30 at mean
+109.2, and `docker run --rm parley pytest` runs the full suite inside it (21
+tests skip — the optional voice and vision extras the scored engine does not
+need). `docker images` reports **375 MB**.
 
 Or locally, on Python 3.10–3.12:
 

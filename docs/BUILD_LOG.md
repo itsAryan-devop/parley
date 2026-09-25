@@ -313,6 +313,24 @@ into the image, so a traceback inside the container pointed at
 adding one removed the stale bytecode and cut the build context from 8.63 MB to
 16.7 kB. Verified afterwards that no `.pyc` in the image references a host path.
 
+**A published number that was simply wrong.** The README and SUBMISSION claimed
+the image was 153 MB. That figure was read from `docker images` while the image
+was still unpacking and never re-checked; the settled size was **641 MB**. The
+correction was worth more than the embarrassment: re-measuring showed scipy and
+scikit-learn accounted for **188 MB — 29% of the image** — to carry a library
+that no scenario and no test imports. sklearn fits the classifiers offline and
+the weights ship as JSON; `parley/agent/model.py` mentions it only as a type
+hint in `from_sklearn` and never imports it. Dropping it from the runtime install
+took the image to **375 MB** with 30/30 and the full suite unchanged.
+
+Two lessons, neither about Docker. Read a measurement *after* the thing has
+settled, not during. And an image that ships the trainer has not actually tested
+the claim that inference needs nothing but numpy — the slimming was not a
+size optimisation, it was the design finally being enforced.
+
+(`docker inspect .Size` reports 88 MB for the same image, because of BuildKit's
+attestation manifests. Quote `docker images`; the two are not comparable.)
+
 **And one test that was wrong rather than the code.** `docker run parley pytest`
 failed `test_inline_frame_still_reads_the_error_code` on a perfectly good build:
 the image installs neither `vosk` nor `rapidocr`, so there is no panel read to
@@ -380,7 +398,8 @@ judge to find.
    not work, because each crashed start orphans a fresh socket — both have to go
    before a single clean start. `docker build` then succeeded first time, and all
    three commands the Dockerfile advertises pass. See `SUBMISSION.md` §3.
-3. **Deadline discrepancy**: the deck says 25 Sep, the team reports 30 Sep. Plan
-   to the 25th.
+3. ~~**Deadline discrepancy**~~ — settled: **30 Sep**, per the team. The deck PDF
+   reads 25 Sep; kept here only so the discrepancy is not rediscovered later and
+   mistaken for new information.
 4. **Team name** is `ThaparPatiala_<TEAM>` throughout and must be substituted
    before the release tag.

@@ -302,7 +302,8 @@ of scope per §6 of the guide. Session-scoped state only.
 ## 13. Open items
 
 1. Real evaluation kit — re-check every interface assumption when it lands.
-2. Deadline: deck says 25 Sep, team reports 30 Sep. Plan to the 25th.
+2. Deadline: **30 Sep**, confirmed by the team. (The deck PDF reads 25 Sep;
+   recorded so the discrepancy is not rediscovered and mistaken for news.)
 3. Team name for `CollegeName_TeamName` — placeholder `ThaparPatiala_<TEAM>` throughout.
 
 ---

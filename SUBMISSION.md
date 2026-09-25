@@ -15,7 +15,7 @@ Everything downstream depends on them, and three are currently placeholders.
 | | Status | Notes |
 |---|---|---|
 | **Team name** `CollegeName_TeamName` | ⚠️ `ThaparPatiala_<TEAM>` throughout | Exact nomenclature. Substitute everywhere — see §2. |
-| **Deadline** | ⚠️ **unresolved** | Deck says **25 Sep 11:59 PM**; team reports 30 Sep. Get it in writing from `prism@samsung.com`. **Plan to the 25th**; treat any extension as buffer, never budget. |
+| **Deadline** | ✅ **30 Sep**, confirmed by the team | The deck PDF we were given reads 25 Sep 11:59 PM; the team has confirmed 30 Sep twice and that is what we are working to. Noted only so nobody re-derives the discrepancy from the deck and panics. |
 | **Team representative** | ⚠️ blank | Needed for the disclosure sign-off. |
 | **Demo video host** | ⚠️ not recorded | YouTube (unlisted) or Drive. Link must be inside the tagged commit. |
 
@@ -67,10 +67,21 @@ docker run --rm parley pytest                  # 348 tests, 21 skipped, 0 failed
 docker run --rm parley python scripts/fuzz.py --trials 10   # 300/300 invariants held
 ```
 
-`parley:latest` is 153 MB. The 21 skips are the optional `voice` and `vision`
-extras, which the image deliberately does not install — the scored engine needs
-neither, and `tests/test_asr.py`, `tests/test_ocr.py` and one multimodal test
-skip via `importorskip` / `ocr.available()` rather than failing.
+`docker images` reports **375 MB**. The 21 skips are the optional `voice` and
+`vision` extras, which the image deliberately does not install — the scored
+engine needs neither, and `tests/test_asr.py`, `tests/test_ocr.py` and one
+multimodal test skip via `importorskip` / `ocr.available()` rather than failing.
+
+> **A number we got wrong first.** An earlier revision of this file and the
+> README claimed 153 MB. That was read from `docker images` while the image was
+> still unpacking and never re-checked; the settled figure was 641 MB. Re-reading
+> it also exposed something worth fixing: scipy and scikit-learn were 188 MB of
+> that — 29% of the image — to carry a library no scenario and no test imports.
+> It fits the classifiers offline and the weights ship as JSON. Dropping it from
+> the runtime install took the image to 375 MB with 30/30 and the full suite
+> unchanged. Quote the `docker images` figure; `docker inspect .Size` reports 88 MB
+> for the same image because of BuildKit's attestation manifests, and the two are
+> not comparable.
 
 **Still worth re-running on a clean clone before tagging**, because the build
 above ran against a working tree rather than a fresh checkout:
@@ -205,5 +216,6 @@ One submission per team, through the Google Form, before the deadline.
 3. **Video over 5:00**, or not publicly accessible. Check in incognito.
 4. **Team name format.** `CollegeName_TeamName`, exactly, and the deck filename
    must match.
-5. **Deadline.** Planning to the 30th when it closes on the 25th loses
-   everything, and the discrepancy is still unresolved.
+5. **Deadline: 30 Sep**, per the team. Submit with a day in hand — the form,
+   the video upload and the tag all take longer than they look, and none of them
+   can be done twice.
