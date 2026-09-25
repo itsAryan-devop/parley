@@ -21,7 +21,7 @@ Companion to [`DESIGN.md`](DESIGN.md) (what we decided) and
 | 5 | Learned classifier + honest ablation | 130 total |
 | 6 | Floor manager, planner, agent loop, multimodal grounding | 170 total |
 | 7 | Scenario suite, runner, rubric scorer | 204 total · **15/15 clean** |
-| 8 | Timing fuzzer, viewer, Docker, README | 233 total · **18/18 clean** |
+| 8 | Timing fuzzer, timeline viewer, README | 233 total · **18/18 clean** |
 
 Each step was run and verified before the next began, and each was followed by a
 research pass. Research findings and the actions taken from them are in

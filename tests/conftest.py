@@ -2,7 +2,7 @@
 
 Several tests reach for `scenarios/` and `media/scenarios/` by relative path,
 which works when pytest is invoked from the repository root and fails when it
-is not. A judge running `docker run --rm parley pytest` gets the right working
+is not. Running `pytest` from the repository root gets the right working
 directory by accident; `pytest samsungprism/tests` from a parent directory does
 not, and five tests fail for reasons that have nothing to do with the agent.
 
@@ -28,9 +28,9 @@ os.chdir(ROOT)
 # because `pip install -e .` registers them, but `demo/` is deliberately not a
 # distributed package -- and `tests/test_live.py` imports `demo.live`.
 #
-# So `docker run --rm parley pytest`, a command the Dockerfile itself advertises,
-# died at *collection* with `ModuleNotFoundError: No module named 'demo'` while
-# the identical suite passed on the host. Anyone reproducing our numbers with
-# bare `pytest` would have seen the whole suite refuse to start.
+# So a clean checkout run with bare `pytest` died at *collection* with
+# `ModuleNotFoundError: No module named 'demo'`, while the identical suite passed
+# under `python -m pytest`. Anyone reproducing our numbers the first way would
+# have seen the whole suite refuse to start rather than a single test fail.
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))

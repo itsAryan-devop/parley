@@ -6,7 +6,7 @@
 > side may speak at any moment.*
 
 Status: living document. Written before code, updated as the build proceeds.
-Companion files: [`ARCHITECTURE.md`](ARCHITECTURE.md), [`BUILD_LOG.md`](BUILD_LOG.md),
+Companion files: [`CODE_MAP.md`](CODE_MAP.md), [`BUILD_LOG.md`](BUILD_LOG.md),
 [`RESEARCH.md`](RESEARCH.md), [`../DISCLOSURE.md`](../DISCLOSURE.md).
 
 ---
@@ -310,27 +310,31 @@ of scope per §6 of the guide. Session-scoped state only.
 
 ## 14. Scope creep we should own
 
-**Docker was never required.** The submission is repo URL, demo video, deck and
-AI disclosure — no container anywhere in the rules, the form, or the deliverables
-list. It was our own addition, justified as making "no runtime downloads"
-checkable rather than merely asserted, and as pinning the guide's 3.10–3.12 band.
+**Docker was built, used, and then removed.** Nothing in the rules asked for it:
+the submission is repo URL, demo video, deck and AI disclosure. It was our own
+addition, justified as making "no runtime downloads" checkable and pinning the
+3.10-3.12 band -- both real goals that a `pyproject.toml` and a README already
+achieve.
 
-Both are real but neither needed a container: a pinned `pyproject.toml` and a
-README say the same thing at a fraction of the cost. And leading the README with
-`docker build` turned an optional nicety into a dependency — if a judge's daemon
-is broken, our first command fails, which reads as untested code rather than as
-their environment. (Ours *was* broken, for most of the project, which is how we
-learned this.)
+The cost was not the build, it was the framing. Leading the README with
+`docker build` turned an optional nicety into a dependency: a judge whose daemon
+is broken fails on our first line and reads it as untested code. Ours was broken
+for most of the project, which is how the risk became visible.
 
-Kept rather than deleted, because the image now exists, passes, and costs nothing
-to leave in — and because building it did find two genuine defects: `pytest` from
-a clean checkout failed to import `demo/` under the bare console script, and the
-"inference needs nothing but numpy" claim turned out to be untested while the
-image shipped scikit-learn. Both would have bitten a judge with no container
-involved.
+Two genuine defects did surface while getting it to run, and both would bite
+someone with no container involved -- so they are kept even though the Dockerfile
+is not:
 
-But the honest accounting is that those were lucky by-products, not the reason
-it was built. Demoted to an optional collapsed section in the README.
+- `pytest` from a clean checkout could not import `demo/`, because the bare
+  console script does not put the working directory on `sys.path` the way
+  `python -m pytest` does. Fixed in `tests/conftest.py`.
+- The claim that inference needs nothing but numpy had never been tested, and
+  turned out to be true only by luck -- the image had been shipping scikit-learn
+  (188 MB of it) that no scenario and no test imports.
+
+The honest accounting is that those were by-products. A day spent on a
+deliverable nobody asked for found two bugs; the same day spent on the hidden-set
+failure modes might have found more.
 
 ---
 

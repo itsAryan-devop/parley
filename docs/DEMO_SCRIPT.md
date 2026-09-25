@@ -172,7 +172,7 @@ Show the final line.
 > what got cancelled, not by model quality. There's no language model in the
 > loop, and that's a design decision, not a shortcut.
 >
-> Everything you've seen runs from a clean clone with `docker run`, downloads
+> Everything you've seen runs from a clean clone on three dependencies, downloads
 > nothing, and writes the trace you've been watching."
 
 **Last frame:** the viewer on S02, held for three seconds in silence.

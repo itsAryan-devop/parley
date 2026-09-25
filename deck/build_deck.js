@@ -760,7 +760,7 @@ function stat(s, x, y, w, value, label, color) {
                        "numpy — all model inference", "Pillow — frame decoding",
                        "asyncio — subclassed event loop"]],
     [PURPLE, "Development only", ["scikit-learn — offline training", "pytest + pytest-asyncio — 233 tests",
-                                  "Docker — reproducible build", "Node + pptxgenjs — this deck"]],
+                                  "Node + pptxgenjs — this deck"]],
     [GREEN, "Built, not imported", ["virtual-clock harness + trace", "deterministic mock environment",
                                     "rubric scorer", "invariant timing fuzzer",
                                     "swimlane trace viewer"]],

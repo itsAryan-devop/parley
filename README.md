@@ -46,24 +46,8 @@ python scripts/view.py --trace S02_slot_correction   # the timeline viewer
 
 Nothing is downloaded at runtime. Every model weight is committed JSON.
 
-<details>
-<summary>Docker, if you prefer a sealed environment</summary>
-
-Entirely optional — the suite above is the supported path, and a container is
-not a submission requirement. It exists to make "no runtime downloads" checkable
-rather than asserted: the image installs three packages, copies committed JSON
-weights, and has no network access at scenario time.
-
-```bash
-docker build -t parley . && docker run --rm parley
-```
-
-Verified rather than assumed: builds from clean, prints 30/30 at mean 109.2, and
-`docker run --rm parley pytest` runs the full suite inside it (21 skips are the
-optional voice and vision extras the scored engine does not need).
-`docker images` reports 375 MB.
-
-</details>
+Three runtime dependencies: `pydantic`, `numpy`, `pillow`. The scored engine
+imports nothing else — no torch, no transformers, no network.
 
 ### Talk to it
 
@@ -206,9 +190,13 @@ call look consistent with the new value, and it would survive when it should die
 | `parley/agent/` | interpretation, floor management, planning, the event loop |
 | `parley/multimodal/` | frame and clip grounding, with calibrated abstention |
 | `harness/` | virtual-clock loop, mock environment, trace, scorer, timing fuzzer |
+| `demo/` | the live voice demo — real clock, real microphone, same agent |
 | `scenarios/` | the public suite as data — readable without reading any Python |
 | `viz/timeline.html` | swimlane trace viewer, self-contained |
-| `docs/` | [design note](docs/DESIGN.md) · [research log](docs/RESEARCH.md) · [build log](docs/BUILD_LOG.md) |
+| `docs/` | [design note](docs/DESIGN.md) · [code map](docs/CODE_MAP.md) · [build log](docs/BUILD_LOG.md) · [research](docs/RESEARCH.md) · [prior art](docs/PRIOR_ART.md) · [demo script](docs/DEMO_SCRIPT.md) · [state of play](docs/STATE_OF_PLAY.md) |
+
+**New here?** Start with [`HANDOFF.md`](HANDOFF.md) — current state, what is
+built, what is left, and what the voice path does and does not do.
 
 ---
 

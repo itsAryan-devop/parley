@@ -52,68 +52,45 @@ they are not mistaken for misses.
 
 ---
 
-## 3. Verify the build from clean
+## 3. Verify it runs from a clean clone
 
-**Done — this is no longer an open risk.** Docker Desktop's Linux engine would
-not start here for most of the project; the cause turned out to be orphaned
-AF_UNIX socket files Windows could not delete, not anything about the image. See
-`docs/BUILD_LOG.md` for the diagnosis. With the engine up, all three advertised
-commands were run and pass:
+No container. The submission asks for a repo, a video, a deck and a disclosure —
+nothing about Docker — and leading with `docker build` only put a daemon between
+a judge and the code. Removed; see `docs/DESIGN.md` §14.
 
-```bash
-docker build -t parley .                       # exit 0, "weights present", "warm-up OK"
-docker run --rm parley                         # 30/30 scenarios, mean 109.2
-docker run --rm parley pytest                  # 348 tests, 21 skipped, 0 failed
-docker run --rm parley python scripts/fuzz.py --trials 10   # 300/300 invariants held
-```
-
-`docker images` reports **375 MB**. The 21 skips are the optional `voice` and
-`vision` extras, which the image deliberately does not install — the scored
-engine needs neither, and `tests/test_asr.py`, `tests/test_ocr.py` and one
-multimodal test skip via `importorskip` / `ocr.available()` rather than failing.
-
-> **A number we got wrong first.** An earlier revision of this file and the
-> README claimed 153 MB. That was read from `docker images` while the image was
-> still unpacking and never re-checked; the settled figure was 641 MB. Re-reading
-> it also exposed something worth fixing: scipy and scikit-learn were 188 MB of
-> that — 29% of the image — to carry a library no scenario and no test imports.
-> It fits the classifiers offline and the weights ship as JSON. Dropping it from
-> the runtime install took the image to 375 MB with 30/30 and the full suite
-> unchanged. Quote the `docker images` figure; `docker inspect .Size` reports 88 MB
-> for the same image because of BuildKit's attestation manifests, and the two are
-> not comparable.
-
-**Still worth re-running on a clean clone before tagging**, because the build
-above ran against a working tree rather than a fresh checkout:
+What a judge will actually do is clone and run it, so do that first:
 
 ```bash
 git clone <repo> /tmp/parley-clean && cd /tmp/parley-clean
-docker build -t parley . && docker run --rm parley
+python -m venv .venv && .venv/bin/pip install -e ".[dev]"
+python scripts/run_scenarios.py     # 30/30, mean 109.2
+python -m pytest                    # 348 tests
 ```
 
-Two real defects came out of finally running this, both invisible to
-`scripts/check_dockerfile.py`:
+Three runtime dependencies — `pydantic`, `numpy`, `pillow`. Nothing downloads at
+run time; every weight is committed JSON.
 
-- `docker run --rm parley pytest` died at *collection* — `demo/` was not copied
-  into the image and `tests/test_live.py` imports it. Then, once copied, it still
-  failed: the bare `pytest` console script does not put the working directory on
-  `sys.path` the way `python -m pytest` does, so `demo` was unimportable.
-  `tests/conftest.py` now inserts the repository root explicitly.
-- Host `__pycache__` was being baked into the image, so a traceback inside a
-  Linux container pointed at `D:\samsungprism\...`. Fixed by adding
-  `.dockerignore`, which also took the build context from 8.63 MB to 16.7 kB.
+Two real defects surfaced while checking reproducibility, and both would bite a
+judge with no container involved:
 
-Local check without a daemon, still useful and still passing:
+- `pytest` from a clean checkout failed at *collection*. The bare `pytest`
+  console script does not put the working directory on `sys.path` the way
+  `python -m pytest` does, so `tests/test_live.py` could not import `demo/`.
+  `tests/conftest.py` now inserts the repository root explicitly. Worth
+  re-testing with **both** invocations before tagging:
 
-```bash
-python scripts/check_dockerfile.py
-```
+  ```bash
+  python -m pytest && .venv/bin/pytest
+  ```
 
-Local check without a daemon:
+- The claim that inference needs nothing but numpy was untested. scikit-learn
+  fits the classifiers offline and the weights ship as JSON; nothing in
+  `parley/` imports it at runtime (`model.py` names it only in a type hint).
+  Confirm that still holds:
 
-```bash
-python scripts/check_dockerfile.py
-```
+  ```bash
+  python -c "import sys; import parley.agent.model, parley.multimodal;   assert 'sklearn' not in sys.modules, 'sklearn leaked into the runtime path';   print('runtime is sklearn-free')"
+  ```
 
 ---
 
@@ -132,7 +109,7 @@ python -m pytest
 node deck/build_deck.js
 ```
 
-Expected: **18/18 clean**, mean ≈ 107.8, **233 tests**, fuzzer reports no
+Expected: **30/30 clean**, mean 109.2, **348 tests**, fuzzer reports no
 invariant broken. If a number moved, find out why before tagging — the README
 and the deck both quote these figures and they must not be fiction.
 
@@ -191,7 +168,7 @@ Verify the tag contains what you think it does:
 
 ```bash
 git show --stat PRISM_GENAI_HACKATHON_Y2026 | head -20
-git ls-tree -r --name-only PRISM_GENAI_HACKATHON_Y2026 | grep -iE "pptx|README|DISCLOSURE|Dockerfile"
+git ls-tree -r --name-only PRISM_GENAI_HACKATHON_Y2026 | grep -iE "pptx|README|DISCLOSURE"
 ```
 
 **Push nothing after tagging.** If something must change, fix it, commit, delete
@@ -211,13 +188,9 @@ One submission per team, through the Google Form, before the deadline.
 
 1. **Pushing after tagging.** The tagged commit is judged; a later fix is
    invisible. Tag last and verify.
-2. ~~**Docker never actually built**~~ — was a self-inflicted trap. Nothing in
-   the rules asks for a container; the submission is repo, video, deck,
-   disclosure. It only counted as a risk because the README led with
-   `docker build`, so a judge whose daemon was broken would have hit an error on
-   our first line. The README now leads with plain Python and keeps Docker as a
-   collapsed, optional section. The image still builds and is still verified —
-   it is just no longer standing between a judge and the code.
+2. **`pytest` vs `python -m pytest`.** The bare console script does not put the
+   working directory on `sys.path`, which once broke collection from a clean
+   checkout. Run both before tagging (§3).
 3. **Video over 5:00**, or not publicly accessible. Check in incognito.
 4. **Team name format.** `CollegeName_TeamName`, exactly, and the deck filename
    must match.
