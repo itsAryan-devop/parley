@@ -358,7 +358,7 @@ What the deeper read did buy: their measured gap (humans adapt **68.2%** of the
 time on collaborative cues, the model they evaluate **34.8%** — state of the art
 under-adapts by half), confirmation that their scope is the speaking floor only,
 and one named hole of ours from the cost-aware speculation literature. Four
-limitations are now written down in `DESIGN.md` §14, because a limitation you
+limitations are now written down in `DESIGN.md` §15, because a limitation you
 have named is a design decision and one you have not is a bug waiting for a
 judge to find.
 

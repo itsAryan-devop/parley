@@ -87,7 +87,7 @@ one would be fabrication. What can be said is narrower and still worth saying:
 three independent groups converged on the same failure list, and every item on
 it is something this kernel refuses structurally rather than by remembering to
 check. Running IHBench for real is the obvious next move and is out of scope
-before the deadline — recorded in `docs/DESIGN.md` §14 as a named limitation,
+before the deadline — recorded in `docs/DESIGN.md` §15 as a named limitation,
 not as a result.
 
 ## A.3 A limitation the speculation literature exposes
@@ -101,7 +101,7 @@ Our speculation is deliberately cruder: read-only tools only, never mutating,
 joined on confirmation. The measured hit rate is 50% against the 39% published
 for n-gram-driven speculation (`scripts/speculation_report.py`). Their framing
 exposes a real limitation of ours — **we never price a speculation, so we cannot
-decline an expensive one.** Recorded in `docs/DESIGN.md` §14 rather than
+decline an expensive one.** Recorded in `docs/DESIGN.md` §15 rather than
 pretended away; with a mock environment where every call costs nothing, any cost
 model we shipped would be untested decoration.
 

@@ -211,8 +211,13 @@ One submission per team, through the Google Form, before the deadline.
 
 1. **Pushing after tagging.** The tagged commit is judged; a later fix is
    invisible. Tag last and verify.
-2. **Docker never actually built** (§3). The README's first command is
-   `docker build`. A judge running it and hitting an error reads as untested.
+2. ~~**Docker never actually built**~~ — was a self-inflicted trap. Nothing in
+   the rules asks for a container; the submission is repo, video, deck,
+   disclosure. It only counted as a risk because the README led with
+   `docker build`, so a judge whose daemon was broken would have hit an error on
+   our first line. The README now leads with plain Python and keeps Docker as a
+   collapsed, optional section. The image still builds and is still verified —
+   it is just no longer standing between a judge and the code.
 3. **Video over 5:00**, or not publicly accessible. Check in incognito.
 4. **Team name format.** `CollegeName_TeamName`, exactly, and the deck filename
    must match.

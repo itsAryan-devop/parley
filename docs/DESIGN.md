@@ -308,7 +308,33 @@ of scope per §6 of the guide. Session-scoped state only.
 
 ---
 
-## 14. Known limitations
+## 14. Scope creep we should own
+
+**Docker was never required.** The submission is repo URL, demo video, deck and
+AI disclosure — no container anywhere in the rules, the form, or the deliverables
+list. It was our own addition, justified as making "no runtime downloads"
+checkable rather than merely asserted, and as pinning the guide's 3.10–3.12 band.
+
+Both are real but neither needed a container: a pinned `pyproject.toml` and a
+README say the same thing at a fraction of the cost. And leading the README with
+`docker build` turned an optional nicety into a dependency — if a judge's daemon
+is broken, our first command fails, which reads as untested code rather than as
+their environment. (Ours *was* broken, for most of the project, which is how we
+learned this.)
+
+Kept rather than deleted, because the image now exists, passes, and costs nothing
+to leave in — and because building it did find two genuine defects: `pytest` from
+a clean checkout failed to import `demo/` under the bare console script, and the
+"inference needs nothing but numpy" claim turned out to be untested while the
+image shipped scikit-learn. Both would have bitten a judge with no container
+involved.
+
+But the honest accounting is that those were lucky by-products, not the reason
+it was built. Demoted to an optional collapsed section in the README.
+
+---
+
+## 15. Known limitations
 
 Written down because a limitation you have named is a design decision, and one
 you have not is a bug waiting to be found by a judge.

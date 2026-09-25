@@ -34,16 +34,7 @@ them conflate *stop speaking* with *stop working* — see [`docs/RESEARCH.md`](d
 
 ## Quick start
 
-```bash
-docker build -t parley . && docker run --rm parley
-```
-
-Verified, not assumed: the image builds from clean and prints 30/30 at mean
-109.2, and `docker run --rm parley pytest` runs the full suite inside it (21
-tests skip — the optional voice and vision extras the scored engine does not
-need). `docker images` reports **375 MB**.
-
-Or locally, on Python 3.10–3.12:
+Python 3.10–3.12, three runtime dependencies, nothing else:
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
@@ -54,6 +45,25 @@ python scripts/view.py --trace S02_slot_correction   # the timeline viewer
 ```
 
 Nothing is downloaded at runtime. Every model weight is committed JSON.
+
+<details>
+<summary>Docker, if you prefer a sealed environment</summary>
+
+Entirely optional — the suite above is the supported path, and a container is
+not a submission requirement. It exists to make "no runtime downloads" checkable
+rather than asserted: the image installs three packages, copies committed JSON
+weights, and has no network access at scenario time.
+
+```bash
+docker build -t parley . && docker run --rm parley
+```
+
+Verified rather than assumed: builds from clean, prints 30/30 at mean 109.2, and
+`docker run --rm parley pytest` runs the full suite inside it (21 skips are the
+optional voice and vision extras the scored engine does not need).
+`docker images` reports 375 MB.
+
+</details>
 
 ### Talk to it
 
