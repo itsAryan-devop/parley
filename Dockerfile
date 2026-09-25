@@ -39,6 +39,12 @@ COPY scenarios/ ./scenarios/
 COPY scripts/ ./scripts/
 COPY tests/ ./tests/
 COPY viz/ ./viz/
+# demo/ is not needed to score anything, but tests/test_live.py imports
+# demo.live directly -- so without this, `docker run --rm parley pytest` (which
+# the header above advertises) fails at *collection*, before a single test runs.
+# demo/live.py itself imports only harness and parley; the websocket server is a
+# separate module and is never imported by the tests.
+COPY demo/ ./demo/
 COPY media/scenarios/ ./media/scenarios/
 COPY media/undecidable/ ./media/undecidable/
 COPY README.md DISCLOSURE.md ./

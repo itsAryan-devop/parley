@@ -43,23 +43,49 @@ there and re-run `node deck/build_deck.js` rather than editing the .pptx.
 
 ## 3. Verify the build from clean
 
-**The one thing not yet verified on this machine.** Docker Desktop's Linux
-engine would not start here, so `docker build` has never actually run.
-`scripts/check_dockerfile.py` validates COPY paths, the Python version band,
-dependency coverage, committed weights, and executes both inline build guards —
-but that is not the same as a build.
+**Done — this is no longer an open risk.** Docker Desktop's Linux engine would
+not start here for most of the project; the cause turned out to be orphaned
+AF_UNIX socket files Windows could not delete, not anything about the image. See
+`docs/BUILD_LOG.md` for the diagnosis. With the engine up, all three advertised
+commands were run and pass:
 
-**Run this on a machine with a working daemon before tagging:**
+```bash
+docker build -t parley .                       # exit 0, "weights present", "warm-up OK"
+docker run --rm parley                         # 30/30 scenarios, mean 109.2
+docker run --rm parley pytest                  # 348 tests, 21 skipped, 0 failed
+docker run --rm parley python scripts/fuzz.py --trials 10   # 300/300 invariants held
+```
+
+`parley:latest` is 153 MB. The 21 skips are the optional `voice` and `vision`
+extras, which the image deliberately does not install — the scored engine needs
+neither, and `tests/test_asr.py`, `tests/test_ocr.py` and one multimodal test
+skip via `importorskip` / `ocr.available()` rather than failing.
+
+**Still worth re-running on a clean clone before tagging**, because the build
+above ran against a working tree rather than a fresh checkout:
 
 ```bash
 git clone <repo> /tmp/parley-clean && cd /tmp/parley-clean
-docker build -t parley .            # must succeed, and print "warm-up OK"
-docker run --rm parley              # must print 18/18 scenarios, no failures
-docker run --rm parley pytest       # must print 233 passed
+docker build -t parley . && docker run --rm parley
 ```
 
-If the build fails, fix it in the Dockerfile and re-run — do not ship a README
-whose first command doesn't work.
+Two real defects came out of finally running this, both invisible to
+`scripts/check_dockerfile.py`:
+
+- `docker run --rm parley pytest` died at *collection* — `demo/` was not copied
+  into the image and `tests/test_live.py` imports it. Then, once copied, it still
+  failed: the bare `pytest` console script does not put the working directory on
+  `sys.path` the way `python -m pytest` does, so `demo` was unimportable.
+  `tests/conftest.py` now inserts the repository root explicitly.
+- Host `__pycache__` was being baked into the image, so a traceback inside a
+  Linux container pointed at `D:\samsungprism\...`. Fixed by adding
+  `.dockerignore`, which also took the build context from 8.63 MB to 16.7 kB.
+
+Local check without a daemon, still useful and still passing:
+
+```bash
+python scripts/check_dockerfile.py
+```
 
 Local check without a daemon:
 

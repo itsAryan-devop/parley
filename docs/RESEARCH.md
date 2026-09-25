@@ -320,7 +320,7 @@ Claiming them as novel in the deck would be both wrong and easy to puncture.
 | **`CANCELLED_UNCERTAIN`** | A write-ahead ledger records intent before dispatch. It does not answer "did the effect land after we cancelled?" — that needs a verifier probe, a compensator, or an admission. Most designs collapse this to a boolean. |
 | **Provable-speech gate** | Every claim carries its warrant *into the trace*. Truthfulness is a ±20% multiplier and nobody else appears to be making it mechanically checkable. |
 | **Working multimodal with calibrated abstention** | 50% of the hidden set at 1.5×. Expect most submissions to be text-only or to stub perception; abstaining correctly on undecidable input is a further step again. |
-| **Invariant fuzzing** | 4500+ perturbed schedules, invariants only. This is the only defence against a hidden set that nobody can see. |
+| **Invariant fuzzing** | 6000 perturbed schedules, invariants only. This is the only defence against a hidden set that nobody can see. |
 
 **→ Action.** Deck leads with the *matrix* and the *uncertainty outcome*, not
 with "we cancel selectively" — which is now table stakes.

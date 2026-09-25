@@ -291,6 +291,35 @@ landed, and the demo claimed the same port — while the demo script asks for bo
 running side by side during a take. Moved to 8771 before anyone found out mid-
 recording.
 
+### What the first real `docker build` found
+
+Both of these had survived `scripts/check_dockerfile.py`, which checks that COPY
+sources *exist* — not that the things importing them are in the image.
+
+**`docker run --rm parley pytest` died at collection.** ⚑ The Dockerfile's own
+header advertises that command. `demo/` was never copied in, and
+`tests/test_live.py` imports `demo.live`, so the whole suite refused to start —
+not one test failed, none ran. Copying `demo/` was not sufficient either: the
+bare `pytest` console script does not put the working directory on `sys.path`,
+which `python -m pytest` does. `parley` and `harness` resolve regardless because
+`pip install -e .` registers them; `demo/` is deliberately not a distributed
+package. `tests/conftest.py` now inserts the repository root, so both invocations
+work — and anyone reproducing our numbers with bare `pytest` no longer sees an
+import error instead of a suite.
+
+**A Linux container printed a Windows path.** Host `__pycache__` was being baked
+into the image, so a traceback inside the container pointed at
+`D:\samsungprism\tests\test_multimodal.py`. There was no `.dockerignore` at all;
+adding one removed the stale bytecode and cut the build context from 8.63 MB to
+16.7 kB. Verified afterwards that no `.pyc` in the image references a host path.
+
+**And one test that was wrong rather than the code.** `docker run parley pytest`
+failed `test_inline_frame_still_reads_the_error_code` on a perfectly good build:
+the image installs neither `vosk` nor `rapidocr`, so there is no panel read to
+assert. The frame still classified correctly at 0.99 from colour alone, which is
+the argument for keeping OCR a fusion step rather than a dependency. The test now
+skips on `ocr.available()` like the rest of the optional-extra suite.
+
 **The client could backdate its own turns.** `LiveSession.feed` overwrites `t`
 unconditionally. Without that a browser could stamp every chunk `t=0` and make
 response latency — 15% of the score — look arbitrarily good. Now asserted.
@@ -340,11 +369,17 @@ judge to find.
    delivery — with correct cancellation and exactly one booking. What that
    proves is that the *boundary* is real, not that the real kit will fit
    through it without work.
-2. **`docker build` is unverified on this machine** — Docker Desktop's engine
-   will not start here. `scripts/check_dockerfile.py` validates COPY paths, the
-   Python version band, dependency coverage, committed weights, and actually
-   executes both inline build guards. The build itself still needs one run on a
-   working daemon before submission.
+2. ~~**`docker build` is unverified on this machine**~~ — **closed.** The engine
+   would not start because two directories held orphaned AF_UNIX socket files
+   that Windows could not delete or rename (`Docker\run\sailor-ingest.sock` and
+   `docker-secrets-engine\engine.sock`, both zero-byte reparse points reporting
+   "the file cannot be accessed by the system"). Docker's own dialog offered only
+   "Quit" or "Reset to factory defaults"; renaming the two directories aside was
+   enough, and preserved the four existing images a factory reset would have
+   destroyed. One caveat learned the hard way: clearing them *one at a time* does
+   not work, because each crashed start orphans a fresh socket — both have to go
+   before a single clean start. `docker build` then succeeded first time, and all
+   three commands the Dockerfile advertises pass. See `SUBMISSION.md` §3.
 3. **Deadline discrepancy**: the deck says 25 Sep, the team reports 30 Sep. Plan
    to the 25th.
 4. **Team name** is `ThaparPatiala_<TEAM>` throughout and must be substituted

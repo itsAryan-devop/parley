@@ -38,6 +38,11 @@ them conflate *stop speaking* with *stop working* — see [`docs/RESEARCH.md`](d
 docker build -t parley . && docker run --rm parley
 ```
 
+Verified, not assumed: `parley:latest` is 153 MB, builds from clean, and prints
+30/30 at mean 109.2. `docker run --rm parley pytest` runs the full suite inside
+the image (21 tests skip — the optional voice and vision extras the scored engine
+does not need).
+
 Or locally, on Python 3.10–3.12:
 
 ```bash
@@ -89,7 +94,7 @@ Scored against our reconstruction of the published rubric
 **30/30 scenarios pass every check they declare.** Scores exceed 100 because the quality multiplier
 (0.80×–1.20×) applies on top of the 100-point rubric.
 
-**Every adversarially perturbed run holds every invariant** — thousands of runs at up to ±1400 ms
+**Every adversarially perturbed run holds every invariant** — 6000 runs at up to ±1400 ms
 jitter, with tool latency scaled 0.3×–2.5×, commit points moved, events collapsed onto identical
 timestamps, faults injected, events redelivered, end-of-turn markers dropped, spurious VAD signals
 fired, and sessions truncated mid-flight.

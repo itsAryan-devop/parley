@@ -348,7 +348,19 @@ def test_inline_frame_still_reads_the_error_code() -> None:
     Without this, a base64 frame could classify correctly off colour statistics
     while silently losing the panel read -- and the panel read is what makes the
     manual lookup possible.
+
+    Skipped when the `vision` extra is absent, which is how this test found its
+    own bug: the Docker image installs neither `vosk` nor `rapidocr` (the scored
+    engine needs neither), so in the container `perception.text` is correctly
+    `None` and the unguarded assertion failed on a working build. The label is
+    still right there -- 0.99 from colour alone -- which is the point of keeping
+    OCR a fusion step rather than a dependency.
     """
+    from parley.multimodal import ocr
+
+    if not ocr.available():
+        pytest.skip("OCR extra not installed")
+
     path = SCENARIO_MEDIA / "frames" / "washer_error_e4.png"
     inline = run_virtual(ground_frame(VideoFrame(frame_id="w", data_b64=b64_of(path))))
     assert inline.text is not None, "no OCR read survived the inline path"
