@@ -23,21 +23,32 @@ Everything downstream depends on them, and three are currently placeholders.
 
 ## 2. Substitute the team name
 
-It appears in five places. A single `ThaparPatiala_<TEAM>` left in the tagged
-commit looks careless to a jury reading the README first.
+**One command.** It appears in seven places across five files, plus the deck's
+filename and its embedded author metadata. A single `ThaparPatiala_<TEAM>` left in
+the tagged commit looks careless to a jury reading the README first, and doing
+this by hand at 11 p.m. is exactly how one gets missed.
 
 ```bash
-grep -rn "ThaparPatiala_<TEAM>\|ThaparPatiala_TEAM" --exclude-dir=.git --exclude-dir=.venv .
+python scripts/set_team_name.py --check
 ```
 
-Then rename the deck file itself:
+Reports where the placeholder still is and changes nothing. Then, with the real
+name:
 
 ```bash
-git mv deck/ThaparPatiala_TEAM_Submission_ppt.pptx deck/<CollegeName>_<TeamName>_Submission_ppt.pptx
+python scripts/set_team_name.py ThaparPatiala_Parley
+node deck/build_deck.js
+python scripts/set_team_name.py --check
 ```
 
-The deck's author/title metadata is set in `deck/build_deck.js` — change it
-there and re-run `node deck/build_deck.js` rather than editing the .pptx.
+The script validates the `CollegeName_TeamName` shape before touching anything —
+the deck calls that exact nomenclature a disqualification risk — writes UTF-8
+without a BOM, and uses `git mv` for the deck so history follows the file. It
+does not commit and does not tag; those stay manual.
+
+Two files keep the placeholder on purpose, because they are the instructions:
+this checklist and `scripts/set_team_name.py` itself. `--check` labels them so
+they are not mistaken for misses.
 
 ---
 
