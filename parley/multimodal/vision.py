@@ -24,7 +24,7 @@ from typing import Any
 
 import numpy as np
 
-from .perception import Perception, LabelModel, decide
+from .perception import Perception, LabelModel, decide, payload_of
 
 MODEL_PATH = Path(__file__).with_name("vision_model.json")
 
@@ -223,9 +223,18 @@ def _fuse(perception: Perception, text: Any) -> Perception:
         perception.candidates = [code]
         return perception
 
-    if perception.label is None and text.needs_retake:
+    if perception.label is None and text.needs_retake and perception.question is None:
         # A specific, actionable question instead of a shrug. Only reachable
         # when nothing was read AND the frame is soft; see ocr.BLUR_FLOOR.
+        #
+        # `question is None` is load-bearing. Blur is a *fallback* explanation --
+        # what to say when we have nothing better -- and this branch used to
+        # overwrite whatever was already there. Once `decide()` learned to name
+        # rival labels on a mildly out-of-distribution frame, the router photo
+        # with two LEDs lit produced "is it the power LED or the WAN LED?" and
+        # then had it replaced by "the picture is too blurry to read the panel".
+        # That is worse than vague, it is false: a photograph of indicator lights
+        # has no panel text to read, so the empty read is not evidence of blur.
         perception.question = (
             "The picture is too blurry for me to read the panel — "
             "could you hold the camera closer to the display?"
@@ -260,7 +269,7 @@ async def ground_frame(
     event: Any, *, clock: Any = None, slot: str = "label", read_text: bool = True
 ) -> Perception:
     """Classify a frame. Decoding is modelled as costing virtual time."""
-    source = getattr(event, "path", None) or getattr(event, "data_b64", None)
+    source = payload_of(event)
     ident = getattr(event, "frame_id", "frame")
 
     if clock is not None:
@@ -288,6 +297,7 @@ async def ground_frame(
         source_id=ident, modality="vision", features=features,
         phrase="the picture",
         out_of_distribution=model.is_out_of_distribution(features),
+        ood_ratio=model.ood_ratio(features),
     )
 
     text = _read_text(source, features) if read_text else None

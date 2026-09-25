@@ -12,11 +12,12 @@ from .perception import (
     LabelModel,
     Perception,
     decide,
+    payload_of,
 )
 from .vision import ground_frame
 
 __all__ = [
-    "Perception", "LabelModel", "decide",
+    "Perception", "LabelModel", "decide", "payload_of",
     "ground_frame", "ground_audio",
     "AMBIGUITY_MARGIN", "GROUNDING_FLOOR",
 ]

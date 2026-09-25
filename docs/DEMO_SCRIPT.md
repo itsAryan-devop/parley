@@ -112,19 +112,32 @@ Point at the kernel lane: `effect_probe` → `compensated`.
 
 ## 3:00 – 3:40 · Multimodal, including knowing when to shut up
 
-**Screen:** `python scripts/run_scenarios.py -v S10 S11`
+**Screen:** back to the live demo at `:8771`. Click the **washer E4** sample.
 
-> "A photo of a router. It's acknowledged immediately and decoded in the
-> background, and the recognised state drives the manual lookup."
+> "A photograph of a washing machine panel. It's acknowledged immediately and
+> decoded behind the acknowledgment, the panel is read, and the error code
+> drives the manual lookup."
 
-Show the S11 frame (two LEDs lit) full-screen, then the agent's output.
+Point at the slot chip: `label washer_error_e4 · r1 · vision` — the provenance
+says a camera bound that slot, not a sentence. Then read the remediation steps
+off the final response.
 
-> "This one has two indicators lit. The evidence is genuinely split, so the
-> agent asks which one — by name. A classifier will happily report ninety
-> percent confidence on an image like this; we measure the distance to the
-> training distribution and refuse when it's too far.
+Now click the **router · two LEDs** sample.
+
+> "This one has two indicators lit. The evidence is genuinely split, so it asks
+> which one — by name."
+
+Read the question off the screen: *"I can't tell from the picture — is it router
+wan led amber or router power led red?"*
+
+> "Nothing was dispatched and no slot was bound. A classifier will happily
+> report ninety percent confidence on an image like this; we measure the
+> distance to the training distribution and refuse when it's too far.
 >
 > A hundred percent of undecidable frames are refused rather than guessed."
+
+**Both samples are the exact files the scored scenarios use** (S10 and S11), so
+what the audience sees is what the suite measures — worth saying in one line.
 
 ---
 

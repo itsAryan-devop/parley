@@ -105,14 +105,36 @@ class StreamingTrace(Trace):
         return record
 
 
-def demo_manifest() -> Any:
-    """The travel manifest, read from the scenario that demonstrates the thesis.
+MANIFEST_SOURCES = (
+    "S02_slot_correction.json",   # travel: the flagship selective-cancellation case
+    "S10_visual_manual.json",     # device support: what a photo or a clip feeds
+)
 
-    Loaded from `S02_slot_correction.json` rather than duplicated here, so the
-    tools the demo offers are provably the tools the flagship scenario scores.
+
+def demo_manifest() -> Any:
+    """The union of the travel and device-support manifests.
+
+    Read from the scenario files rather than duplicated here, so the tools the
+    demo offers are provably the tools those scenarios score. A copy would drift,
+    and a demo running against tools the suite does not exercise is a demo of
+    something nobody tested.
+
+    Merging the two is what lets one live session show both halves: correct a
+    destination mid-search, then drop in a photo of a router and watch the
+    manual lookup come back. Nothing in the agent cares -- the planner derives
+    everything from the manifest, so a wider manifest simply means more reachable
+    goals. Names are deduplicated with the first occurrence winning; the two
+    files overlap on nothing today, and this keeps it honest if they ever do.
     """
-    data = json.loads((ROOT / "scenarios" / "S02_slot_correction.json").read_text("utf-8"))
-    return data["manifest"]
+    tools: list[Any] = []
+    seen: set[str] = set()
+    for name in MANIFEST_SOURCES:
+        data = json.loads((ROOT / "scenarios" / name).read_text("utf-8"))
+        for spec in data["manifest"]:
+            if spec["name"] not in seen:
+                seen.add(spec["name"])
+                tools.append(spec)
+    return tools
 
 
 class LiveSession:

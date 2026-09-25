@@ -61,6 +61,11 @@ Hold the mic button and say *"find me a flight to Delhi on Tuesday, and a hotel
 in Goa"* — then, while both searches are still running, cut in with *"no wait,
 Mumbai"*. The flight search dies mid-bar; the hotel search finishes untouched.
 
+Or drop a photo on the page — a washing-machine panel gets its error code read
+and looked up; a router with two LEDs lit gets *"is it the WAN LED or the power
+LED?"* and nothing is dispatched until you say. The sample chips load the exact
+frames the scored scenarios use.
+
 The same agent, kernel and mock environment the scenarios score, with exactly
 one object swapped: a real clock instead of the virtual one. The timeline is
 drawn from the same trace records the scorer reads, so if the trace is wrong the

@@ -27,7 +27,7 @@ from typing import Any
 
 import numpy as np
 
-from .perception import Perception, LabelModel, decide
+from .perception import Perception, LabelModel, decide, payload_of
 
 MODEL_PATH = Path(__file__).with_name("audio_model.json")
 
@@ -144,7 +144,7 @@ def _get_model() -> LabelModel | None:
 
 
 async def ground_audio(event: Any, *, clock: Any = None, slot: str = "sound") -> Perception:
-    source = getattr(event, "path", None) or getattr(event, "data_b64", None)
+    source = payload_of(event)
     ident = getattr(event, "clip_id", "clip")
 
     if clock is not None:
@@ -169,4 +169,5 @@ async def ground_audio(event: Any, *, clock: Any = None, slot: str = "sound") ->
         source_id=ident, modality="audio", features=features,
         phrase="the recording",
         out_of_distribution=model.is_out_of_distribution(features),
+        ood_ratio=model.ood_ratio(features),
     )

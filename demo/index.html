@@ -142,6 +142,24 @@
   }
   #text:focus{outline:none;border-color:var(--user)}
   .hint{color:var(--spec);font-size:11.5px;font-family:var(--mono)}
+  .samples{display:flex;gap:5px}
+  .chip{
+    font-family:var(--mono);font-size:10.5px;padding:4px 8px;
+    border-radius:11px;color:var(--muted);
+  }
+  .chip:hover:not(:disabled){color:var(--text);border-color:var(--user)}
+
+  /* ---- drop target ---- */
+  #drop{
+    position:fixed;inset:0;display:none;place-items:center;z-index:50;
+    background:rgba(14,17,22,.86);border:2px dashed var(--user);
+    color:var(--user);font-size:18px;font-family:var(--mono);
+  }
+  #drop.on{display:grid}
+  .thumb{
+    max-width:180px;max-height:120px;border-radius:5px;
+    border:1px solid var(--line);margin-top:6px;display:block;
+  }
 
   .empty{color:var(--spec);font-size:12.5px;font-style:italic;padding:6px 0}
   .scroll::-webkit-scrollbar{width:9px}
@@ -175,8 +193,16 @@
 <footer>
   <input id="text" placeholder="Type a turn and press Enter — e.g. find me a flight to Delhi and a hotel in Goa" autocomplete="off">
   <button id="send" class="primary">Send</button>
+  <button id="attach">📎 Photo / clip</button>
+  <input type="file" id="file" accept="image/png,image/jpeg,audio/wav" hidden>
+  <span class="samples">
+    <button class="chip" data-media="frames/washer_error_e4.png">washer E4</button>
+    <button class="chip" data-media="frames/router_led_ambiguous.png">router · two LEDs</button>
+    <button class="chip" data-media="audio/grinding.wav">grinding</button>
+  </span>
   <span class="hint" id="hint"></span>
 </footer>
+<div id="drop">Drop a photo or a WAV clip anywhere</div>
 
 <script>
 (() => {
@@ -529,7 +555,14 @@ function onTrace(r){
     if (c) c.el.classList.remove("spec");
   }
 
-  else if (r.kind === "event" && r.name === "transcript_chunk" && p.speaker !== "agent"){
+  // Anything that can bind a slot should refresh the panel. Speech is the
+  // obvious one; a perception binds slots too, and leaving it out meant a photo
+  // could drive a whole tool call while the panel still read "no slots bound".
+  else if (
+    (r.kind === "event" && r.name === "transcript_chunk" && p.speaker !== "agent") ||
+    (r.kind === "kernel" && (r.name === "perception" || r.name === "intent_inferred")) ||
+    (r.kind === "action" && r.name === "tool_call")
+  ){
     renderSlotsSoon();
   }
 }
@@ -646,6 +679,68 @@ function sendText(){
 
 $("send").addEventListener("click", sendText);
 $("text").addEventListener("keydown", e => { if (e.key === "Enter") sendText(); });
+
+// ---------------------------------------------------------------- media upload
+
+let mediaSeq = 0;
+function sendFile(file){
+  if (!file || !ready) return;
+  const isAudio = /audio|wav/i.test(file.type) || /\.wav$/i.test(file.name);
+  const reader = new FileReader();
+  reader.onload = () => {
+    const id = (isAudio ? "clip" : "frame") + (++mediaSeq);
+    // readAsDataURL gives "data:image/png;base64,…". Sent verbatim: the server
+    // strips the prefix in perception.payload_of, so the browser does not need
+    // to know how the decoder wants its bytes.
+    send({type: isAudio ? "clip" : "frame", id, data: reader.result});
+
+    const turn = say("user", (isAudio ? "🔊 sent a clip — " : "📷 sent a photo — ") + file.name);
+    if (!isAudio){
+      const img = document.createElement("img");
+      img.className = "thumb";
+      img.src = reader.result;
+      turn.querySelector(".body").appendChild(img);
+    }
+    scrollDown(convo);
+  };
+  reader.readAsDataURL(file);
+}
+
+$("attach").addEventListener("click", () => $("file").click());
+$("file").addEventListener("change", e => {
+  sendFile(e.target.files[0]);
+  e.target.value = "";
+});
+
+// Built-in samples, served from media/scenarios. A presenter should not have to
+// open a file manager on camera, and these are the exact frames and clips the
+// scored scenarios use — so what the audience sees is what the suite measures.
+document.querySelectorAll(".chip").forEach(chip => {
+  chip.addEventListener("click", async () => {
+    const rel = chip.dataset.media;
+    try {
+      const res = await fetch("/media/" + rel);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const blob = await res.blob();
+      sendFile(new File([blob], rel.split("/").pop(), {type: blob.type}));
+    } catch (err){
+      say("system", "could not load sample " + rel + ": " + err.message);
+    }
+  });
+});
+
+let dragDepth = 0;
+window.addEventListener("dragenter", e => {
+  e.preventDefault(); dragDepth++; $("drop").classList.add("on");
+});
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("dragleave", e => {
+  e.preventDefault(); if (--dragDepth <= 0){ dragDepth = 0; $("drop").classList.remove("on"); }
+});
+window.addEventListener("drop", e => {
+  e.preventDefault(); dragDepth = 0; $("drop").classList.remove("on");
+  if (e.dataTransfer.files && e.dataTransfer.files.length) sendFile(e.dataTransfer.files[0]);
+});
 
 $("reset").addEventListener("click", () => {
   stopSpeaking();

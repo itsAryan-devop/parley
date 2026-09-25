@@ -130,6 +130,27 @@ class Connection:
             if self.session is not None:
                 self.session.feed({"type": "interruption", "source": "vad"})
 
+        elif kind in ("frame", "clip"):
+            # Inline media, as a data: URI straight from the browser's
+            # FileReader. This is the `data_b64` wire path -- the one that was
+            # silently broken until `perception.payload_of` was written, because
+            # a base64 string is a valid argument to Image.open and an invalid
+            # filename. Worth knowing the demo exercises it: the alternative
+            # path (media on disk) is the one all 29 scenarios use, so this is
+            # the only place the inline encoding gets used in anger.
+            if self.session is None:
+                return
+            blob = msg.get("data") or ""
+            ident = msg.get("id") or ("frame" if kind == "frame" else "clip")
+            if kind == "frame":
+                self.session.feed({
+                    "type": "video_frame", "frame_id": ident, "data_b64": blob,
+                })
+            else:
+                self.session.feed({
+                    "type": "audio_clip", "clip_id": ident, "data_b64": blob,
+                })
+
         elif kind == "peek":
             # The browser never reconstructs slot state itself -- that would mean
             # a second implementation of the state machine, free to disagree with
@@ -238,21 +259,49 @@ async def main() -> int:
     model = InterruptionModel.load_default()
 
     index = HERE / "index.html"
+    media_root = (ROOT / "media" / "scenarios").resolve()
+
+    def _file_response(body: bytes, content_type: str) -> Any:
+        return Response(
+            200, "OK",
+            Headers([
+                ("Content-Type", content_type),
+                ("Content-Length", str(len(body))),
+                ("Cache-Control", "no-store"),
+            ]),
+            body,
+        )
+
+    def _serve_media(rel: str) -> Any:
+        """Serve one sample frame or clip, read-only, from media/scenarios.
+
+        The page offers built-in samples so a presenter does not have to go
+        hunting through a file manager on camera. That means this process serves
+        files chosen by the client, so the path is resolved and then checked to
+        be *inside* media_root -- `..` segments and absolute paths both collapse
+        to something outside it and are refused. Without that check this handler
+        would read any file the process can reach.
+        """
+        try:
+            target = (media_root / rel).resolve()
+        except (OSError, ValueError):
+            return Response(400, "Bad Request", Headers([("Content-Length", "0")]), b"")
+        if not target.is_file() or media_root not in target.parents:
+            return Response(404, "Not Found", Headers([("Content-Length", "0")]), b"")
+        kind = {".png": "image/png", ".wav": "audio/wav"}.get(target.suffix.lower())
+        if kind is None:
+            return Response(415, "Unsupported Media Type",
+                            Headers([("Content-Length", "0")]), b"")
+        return _file_response(target.read_bytes(), kind)
 
     def process_request(connection: Any, request: Any) -> Any:
         """Serve the page over the same port, so there is one thing to run."""
-        if request.path in ("/", "/index.html"):
-            body = index.read_bytes()
-            return Response(
-                200, "OK",
-                Headers([
-                    ("Content-Type", "text/html; charset=utf-8"),
-                    ("Content-Length", str(len(body))),
-                    ("Cache-Control", "no-store"),
-                ]),
-                body,
-            )
-        if request.path == "/ws":
+        path = request.path.split("?", 1)[0]
+        if path in ("/", "/index.html"):
+            return _file_response(index.read_bytes(), "text/html; charset=utf-8")
+        if path.startswith("/media/"):
+            return _serve_media(path[len("/media/"):])
+        if path == "/ws":
             return None  # upgrade to websocket
         return Response(404, "Not Found", Headers([("Content-Length", "0")]), b"")
 
