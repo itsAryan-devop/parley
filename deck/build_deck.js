@@ -537,7 +537,7 @@ function stat(s, x, y, w, value, label, color) {
   heading(s, "Results", "Scored strictly from trace logs");
 
   card(s, 0.6, 1.8, 12.1, 1.75);
-  stat(s, 0.9, 2.05, 2.6, "29/29", "public scenarios pass\nevery declared check", GREEN);
+  stat(s, 0.9, 2.05, 2.6, "30/30", "public scenarios pass\nevery declared check", GREEN);
   stat(s, 3.7, 2.05, 2.6, "109.2", "mean score\n(quality multiplier on 100)", TEXT);
   stat(s, 6.5, 2.05, 2.6, "1980", "perturbed runs holding\nevery invariant", BLUE);
   stat(s, 9.3, 2.05, 3.1, "304", "tests, including every\nscenario end-to-end", PURPLE);
@@ -604,7 +604,7 @@ function stat(s, x, y, w, value, label, color) {
       });
     }
   );
-  s.addText("29 scenarios: 55% text / 24% audio / 21% visual.", {
+  s.addText("30 scenarios: 53% text / 23% audio / 23% visual.", {
     x: 7.25, y: 6.32, w: 5.15, h: 0.3, isTextBox: true, margin: 0,
     fontFace: B, fontSize: 10.5, italic: true, color: DIM,
   });
@@ -618,7 +618,7 @@ function stat(s, x, y, w, value, label, color) {
 
   body(s,
     "The hidden set is ~60 scenarios of “edge cases and adversarial timing”. Passing the " +
-    "twenty-nine we wrote proves little — they are the cases we thought of. So the fuzzer " +
+    "thirty we wrote proves little — they are the cases we thought of. So the fuzzer " +
     "jitters timestamps, scales tool latency, moves commit points, collapses events onto " +
     "identical timestamps, injects faults and truncates sessions — then asserts only " +
     "invariants, never expectations.",

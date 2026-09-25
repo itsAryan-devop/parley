@@ -231,6 +231,90 @@ testing nothing at all. Found by reading the trace rather than the pass/fail.
 rude. Turns whose floor policy is `CONTINUE` are excluded from the latency
 measure — narrowly, and only those; barge-ins and corrections are still measured.
 
+### Building the live demo, and what it exposed
+
+The demo was built because the project had no wow: a text harness whose
+cleverness is invisible. Swapping the virtual clock for a wall clock was the
+whole change — `LiveClock` implements the two methods the agent actually uses
+(`now`, `sleep`) and everything else is imported unmodified. Three of the four
+findings below came from that exercise rather than from the demo code itself.
+
+**Inline media had never worked, in either modality.** ⚑ The protocol offers
+`path` *and* `data_b64`, and both `ground_frame` and `ground_audio` collapsed
+them:
+
+```python
+source = getattr(event, "path", None) or getattr(event, "data_b64", None)
+```
+
+Both are `str`, and the field name is the only thing that says which encoding it
+is. That `or` discarded it and handed a base64 string to `Image.open` and
+`wave.open` as a *filename*, so every inline frame reported "frame could not be
+decoded" as though the image were corrupt. Nothing caught it: all 29 scenarios
+delivered media by path, the fuzzer perturbs timing rather than wire encoding,
+and `test_adapter.py` translates schemas rather than payloads. The guide never
+promises media arrives as a path — a harness handing us bytes would have scored
+zero on every visual and audio scenario, the half of the hidden set carrying the
+1.5× multiplier. `perception.payload_of` now resolves the fields by name, and
+the equivalence is asserted rather than assumed: all 14 real media files ground
+to byte-identical payloads via both routes, OCR's `E4` read included. `S30`
+covers it at scenario level so a regression lands in the scorecard and not only
+in pytest.
+
+**The demo script promised a naming question the agent never asked.** ⚑ It said
+the two-LED router frame gets "asks which one — *by name*"; the agent said "I
+couldn't make that out". `out_of_distribution` short-circuited before the
+ambiguity check and threw away the candidate list it had just computed. The fix
+came from measuring rather than guessing: as a multiple of each modality's
+threshold, `router_led_ambiguous` sits at **2.1×**, `beeping_ambiguous` at 1.1×,
+and `washer_unreadable` at **2100×**. Just outside means "between classes" and is
+answerable with "is it A or B?"; three orders of magnitude outside means
+"resembles nothing" and is not. Gated on rival mass too, because
+`sound_ambiguous` is mildly out of distribution with a runner-up at 0.032 —
+naming that would invent a rival to make a question sound specific. Exactly one
+scenario changed behaviour, and it is the one whose own description asks for "a
+specific clarification".
+
+**Blur was a louder reason than a specific one.** Found immediately by the fix
+above: `_fuse` set the retake question unconditionally, so "is it the power LED
+or the WAN LED?" was overwritten by "the picture is too blurry to read the
+panel". Vaguer *and* false — a photograph of indicator lights has no panel text
+to read, so an empty read is not evidence of blur.
+
+**`requestAnimationFrame` is suspended while a tab is not compositing.** Every
+progress bar froze at "0 ms" the first time the demo was driven headlessly. A
+demo whose bars stop when the presenter alt-tabs to their slides is a demo that
+dies on stage; `setInterval` instead.
+
+**Two servers, one port.** `scripts/view.py` has served 8770 since the viewer
+landed, and the demo claimed the same port — while the demo script asks for both
+running side by side during a take. Moved to 8771 before anyone found out mid-
+recording.
+
+**The client could backdate its own turns.** `LiveSession.feed` overwrites `t`
+unconditionally. Without that a browser could stamp every chunk `t=0` and make
+response latency — 15% of the score — look arbitrarily good. Now asserted.
+
+### Re-reading the literature
+
+**A correction that turned out not to be needed.** The 25 Sep sweep surfaced
+*"Continue, Adapt, or Yield"* (arXiv 2609.13117) — our exact floor taxonomy, in
+someone else's title, dated two weeks before `35679c2` committed those verbs.
+The first draft of `PRIOR_ART.md` §A.1 duly announced that a novelty claim had to
+be withdrawn. Checking before rewriting showed there was none: `RESEARCH.md`
+§R1.4 had credited the paper from the day the verbs were adopted, and the README
+only ever claimed the *pairing* of the two axes. Recorded anyway, because a
+rushed "honest correction" that invents a sin to confess to is not honesty — it
+is inaccuracy with better manners.
+
+What the deeper read did buy: their measured gap (humans adapt **68.2%** of the
+time on collaborative cues, the model they evaluate **34.8%** — state of the art
+under-adapts by half), confirmation that their scope is the speaking floor only,
+and one named hole of ours from the cost-aware speculation literature. Four
+limitations are now written down in `DESIGN.md` §14, because a limitation you
+have named is a design decision and one you have not is a bug waiting for a
+judge to find.
+
 ---
 
 ## Things deliberately not done
@@ -242,8 +326,8 @@ measure — narrowly, and only those; barge-ins and corrections are still measur
 - **No tool names in the kernel.** Everything comes from the manifest, because
   "unseen tools" is named in the public suite and therefore near-certain in the
   hidden set.
-- **No tuning against the public suite.** Passing fifteen scenarios we wrote
-  proves little. The fuzzer is the real test: 4500 perturbed runs, invariants
+- **No tuning against the public suite.** Passing thirty scenarios we wrote
+  proves little. The fuzzer is the real test: 9000 perturbed runs, invariants
   only.
 
 ## Standing risks

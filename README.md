@@ -43,7 +43,7 @@ Or locally, on Python 3.10–3.12:
 ```bash
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 python scripts/run_scenarios.py          # public suite + scorecard
-python -m pytest                          # 304 tests
+python -m pytest                          # 335 tests
 python scripts/fuzz.py --trials 60        # adversarial timing
 python scripts/view.py --trace S02_slot_correction   # the timeline viewer
 ```
@@ -83,10 +83,10 @@ Scored against our reconstruction of the published rubric
 |---|---|---|
 | text | 16 | 110.1 |
 | audio | 7 | 107.1 |
-| visual | 6 | 109.2 |
-| **all** | **29** | **109.2** |
+| visual | 7 | 109.3 |
+| **all** | **30** | **109.2** |
 
-**29/29 scenarios pass every check they declare.** Scores exceed 100 because the quality multiplier
+**30/30 scenarios pass every check they declare.** Scores exceed 100 because the quality multiplier
 (0.80×–1.20×) applies on top of the 100-point rubric.
 
 **Every adversarially perturbed run holds every invariant** — thousands of runs at up to ±1400 ms
@@ -228,7 +228,7 @@ Two subtleties that took real debugging:
 
 ### Adversarial timing
 
-The hidden set is ~60 scenarios of "edge cases and adversarial timing". Passing twenty-nine scenarios
+The hidden set is ~60 scenarios of "edge cases and adversarial timing". Passing thirty scenarios
 we wrote proves little — they are the cases we thought of. `harness/fuzz.py` perturbs everything and
 asserts only **invariants**, never expectations:
 

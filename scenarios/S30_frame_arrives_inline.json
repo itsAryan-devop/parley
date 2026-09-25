@@ -1,0 +1,134 @@
+{
+  "id": "S30_frame_arrives_inline",
+  "title": "A frame delivered as bytes rather than a path",
+  "modality": "visual",
+  "description": "The guide lists video frames as an input without promising how they arrive. `VideoFrame` accepts either a `path` or `data_b64`, and every other scenario here uses a path -- which is exactly how the inline route came to be broken without anything noticing: both fields are strings, so a base64 payload was passed to the image decoder as a filename and every inline frame reported itself as corrupt. A harness that hands us bytes would have scored zero on all six visual and seven audio scenarios, the half of the hidden set carrying the 1.5x multiplier. This asserts the delivery mechanism cannot change a decision.",
+  "probes": [
+    "inline media",
+    "wire encoding",
+    "modality independence"
+  ],
+  "manifest": [
+    {
+      "name": "lookup_manual",
+      "description": "look up a device fault in the service manual",
+      "read_only": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "router_power_led_red",
+            "router_wan_led_amber",
+            "washer_error_e4",
+            "washer_drum_noise",
+            "tv_hdmi_no_signal"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "diagnose_sound",
+      "description": "identify the mechanical cause of an appliance sound",
+      "read_only": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "sound",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "beeping",
+            "continuous_tone",
+            "grinding",
+            "clicking",
+            "silence"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "create_ticket",
+      "description": "raise a service ticket for an engineer visit",
+      "mutating": true,
+      "intent": "troubleshoot",
+      "params": [
+        {
+          "name": "label",
+          "type": "string",
+          "enum": [
+            "router_power_led_red",
+            "router_wan_led_amber",
+            "washer_error_e4",
+            "washer_drum_noise",
+            "tv_hdmi_no_signal"
+          ]
+        },
+        {
+          "name": "sound",
+          "type": "string",
+          "enum": [
+            "beeping",
+            "continuous_tone",
+            "grinding",
+            "clicking",
+            "silence"
+          ]
+        }
+      ]
+    }
+  ],
+  "env": {
+    "latency_ms": {
+      "search_flights": 700,
+      "search_hotels": 650,
+      "book_flight": 900,
+      "cancel_booking": 200,
+      "get_booking_status": 120,
+      "lookup_manual": 500,
+      "diagnose_sound": 450,
+      "create_ticket": 800
+    }
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "t": 0.0,
+      "session_id": "S30"
+    },
+    {
+      "type": "tool_manifest",
+      "t": 0.0,
+      "manifest": "@manifest"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 100,
+      "text": "what does this light mean",
+      "end_of_turn": true
+    },
+    {
+      "type": "video_frame",
+      "t": 400,
+      "frame_id": "router_wan_led_amber",
+      "data_b64": "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"
+    },
+    {
+      "type": "session_end",
+      "t": 3000,
+      "reason": "complete"
+    }
+  ],
+  "expect": {
+    "intent": "troubleshoot",
+    "slots": {
+      "label": "router_wan_led_amber"
+    },
+    "tools_called": [
+      "lookup_manual"
+    ],
+    "notes": "Identical expectations to the path-delivered case. If this passes and S10 passes, the agent genuinely cannot tell how media reached it."
+  }
+}

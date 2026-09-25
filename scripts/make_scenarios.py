@@ -154,6 +154,42 @@ def clip(t: float, name: str) -> dict:
     return {"type": "audio_clip", "t": t, "clip_id": name, "path": f"{MEDIA}/audio/{name}.wav"}
 
 
+def frame_inline(t: float, name: str) -> dict:
+    """The same frame, delivered as bytes on the wire instead of a path.
+
+    The protocol allows either, and for most of this project's life only `path`
+    was ever exercised -- which is how `data_b64` came to be silently broken for
+    both modalities (a base64 string was handed to `Image.open` as a filename).
+    Unit tests now cover the decoder; this scenario covers the whole agent, so a
+    regression shows up in the scorecard and not only in pytest.
+
+    Downscaled to 64x64 first. That is not a shortcut: `vision.extract_features`
+    resizes to 64x64 before measuring anything, so nothing the classifier looks
+    at is lost, and the alternative is a 230 kB base64 blob in a directory whose
+    stated virtue is being readable as data. Measured: the label is identical and
+    confidence moves 0.994 -> 0.993.
+
+    Use a frame whose evidence is colour rather than text. At 64x64 there are no
+    glyphs left to read, so this deliberately does not exercise OCR -- S10 and
+    the unit tests cover that path on full-resolution media.
+    """
+    import base64
+    import io
+
+    from PIL import Image
+
+    src = Path(MEDIA) / "frames" / f"{name}.png"
+    small = Image.open(src).convert("RGB").resize((64, 64), Image.LANCZOS)
+    buf = io.BytesIO()
+    small.save(buf, "PNG", optimize=True)
+    return {
+        "type": "video_frame",
+        "t": t,
+        "frame_id": name,
+        "data_b64": base64.b64encode(buf.getvalue()).decode("ascii"),
+    }
+
+
 SCENARIOS: list[dict] = [
     # ---------------------------------------------------------------- text
     {
@@ -944,6 +980,40 @@ SCENARIOS: list[dict] = [
             "slots": {"sound": "beeping"},
             "tools_called": ["diagnose_sound"],
             "notes": "The barge-in must not cancel the decode or the diagnosis.",
+        },
+    },
+    {
+        "id": "S30_frame_arrives_inline",
+        "title": "A frame delivered as bytes rather than a path",
+        "modality": "visual",
+        "description": (
+            "The guide lists video frames as an input without promising how they "
+            "arrive. `VideoFrame` accepts either a `path` or `data_b64`, and every "
+            "other scenario here uses a path -- which is exactly how the inline "
+            "route came to be broken without anything noticing: both fields are "
+            "strings, so a base64 payload was passed to the image decoder as a "
+            "filename and every inline frame reported itself as corrupt. A harness "
+            "that hands us bytes would have scored zero on all six visual and seven "
+            "audio scenarios, the half of the hidden set carrying the 1.5x "
+            "multiplier. This asserts the delivery mechanism cannot change a "
+            "decision."
+        ),
+        "probes": ["inline media", "wire encoding", "modality independence"],
+        "manifest": SUPPORT,
+        "env": {"latency_ms": FAST},
+        "events": start("S30") + [
+            say(100, "what does this light mean", eot=True),
+            frame_inline(400, "router_wan_led_amber"),
+            end(3000),
+        ],
+        "expect": {
+            "intent": "troubleshoot",
+            "slots": {"label": "router_wan_led_amber"},
+            "tools_called": ["lookup_manual"],
+            "notes": (
+                "Identical expectations to the path-delivered case. If this passes "
+                "and S10 passes, the agent genuinely cannot tell how media reached it."
+            ),
         },
     },
 ]

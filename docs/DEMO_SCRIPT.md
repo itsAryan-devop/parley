@@ -146,7 +146,7 @@ what the audience sees is what the suite measures — worth saying in one line.
 **Screen:** `python scripts/fuzz.py --trials 60 --jitter 900` — let the dots run.
 
 > "The hidden set is about sixty scenarios of adversarial timing. Passing the
-> twenty-nine we wrote proves very little — those are the cases we thought of.
+> thirty we wrote proves very little — those are the cases we thought of.
 >
 > So we perturb everything: timestamps, tool latency, commit points, events
 > collapsed onto identical timestamps, injected faults, truncated sessions.
@@ -165,9 +165,9 @@ Show the final line.
 
 ## 4:25 – 5:00 · Close
 
-**Screen:** `python -m pytest` (304 passing), then the scorecard table.
+**Screen:** `python -m pytest` (335 passing), then the scorecard table.
 
-> "Twenty-nine scenarios, every declared check passing. The coordination layer is
+> "Thirty scenarios, every declared check passing. The coordination layer is
 > the product — three quarters of the score is decided by what got executed and
 > what got cancelled, not by model quality. There's no language model in the
 > loop, and that's a design decision, not a shortcut.
