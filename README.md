@@ -48,7 +48,7 @@ Or locally, on Python 3.10–3.12:
 ```bash
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 python scripts/run_scenarios.py          # public suite + scorecard
-python -m pytest                          # 335 tests
+python -m pytest                          # 348 tests
 python scripts/fuzz.py --trials 60        # adversarial timing
 python scripts/view.py --trace S02_slot_correction   # the timeline viewer
 ```

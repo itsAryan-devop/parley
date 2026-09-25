@@ -165,7 +165,7 @@ Show the final line.
 
 ## 4:25 – 5:00 · Close
 
-**Screen:** `python -m pytest` (335 passing), then the scorecard table.
+**Screen:** `python -m pytest` (348 passing), then the scorecard table.
 
 > "Thirty scenarios, every declared check passing. The coordination layer is
 > the product — three quarters of the score is decided by what got executed and

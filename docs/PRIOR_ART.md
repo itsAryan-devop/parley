@@ -182,7 +182,7 @@ Adopted in `ocr.py`, with a correction: see §3.
 | | Prototype | PARLEY |
 |---|---|---|
 | Scenarios | 10 | 29 |
-| Tests | 14 (NLU only) | 304 |
+| Tests | 14 (NLU only) | 348 |
 | Timing fuzzer | listed as future work (`RESEARCH.md` §5.7) | built; 2,030 runs clean |
 | Clock | wall-clock, 4 ms polling | virtual, deterministic, 1 ns resolution |
 | Duplicate prevention | backend idempotency (see §4) | claimed pre-dispatch in the ledger |
