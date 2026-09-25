@@ -25,6 +25,7 @@ utf8()
 
 from harness.fuzz import fuzz
 from harness.scenario import load_all
+from parley.agent.endpointer import EndpointModel
 from parley.agent.model import InterruptionModel
 
 
@@ -34,6 +35,7 @@ def main() -> int:
     ap.add_argument("--trials", type=int, default=20)
     ap.add_argument("--jitter", type=float, default=250.0, help="± milliseconds")
     ap.add_argument("--no-model", action="store_true")
+    ap.add_argument("--no-endpointer", action="store_true")
     args = ap.parse_args()
 
     scenarios = load_all()
@@ -44,6 +46,7 @@ def main() -> int:
         return 1
 
     model = None if args.no_model else InterruptionModel.load_default()
+    endpointer = None if args.no_endpointer else EndpointModel.load_default()
     total = len(scenarios) * args.trials
     print(f"fuzzing {len(scenarios)} scenarios × {args.trials} perturbations "
           f"(±{args.jitter:.0f} ms jitter) = {total} runs\n")
@@ -60,7 +63,8 @@ def main() -> int:
         sys.stdout.flush()
 
     report = fuzz(
-        scenarios, trials=args.trials, jitter_ms=args.jitter, model=model, on_run=progress
+        scenarios, trials=args.trials, jitter_ms=args.jitter, model=model,
+        endpointer=endpointer, on_run=progress,
     )
     print(f"\n\n{report.summary()}")
 

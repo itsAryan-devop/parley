@@ -1,0 +1,170 @@
+{
+  "id": "S31_eot_withheld_completes",
+  "title": "A complete request whose final end-of-turn marker was dropped",
+  "modality": "text",
+  "description": "A flaky recogniser loses the end-of-turn marker on the last chunk. The scored suite normally hands us that marker; here it never comes, so the learned endpointer has to decide the turn is over from the words and the trailing silence. A lexically complete request ('to Mumbai on Tuesday') followed by a long pause is the clearest done-signal there is. Without an endpointer the agent would only act at session end; with one it acts at the true turn boundary. The fuzzer already drops markers at random (`eot_dropped`); this pins the behaviour as a named, scored case.",
+  "probes": [
+    "learned endpointing",
+    "withheld eot marker",
+    "acts at turn boundary"
+  ],
+  "manifest": [
+    {
+      "name": "search_flights",
+      "description": "search available flights between two cities",
+      "read_only": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "origin",
+          "type": "string"
+        },
+        {
+          "name": "destination",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        },
+        {
+          "name": "time_of_day",
+          "type": "string",
+          "enum": [
+            "morning",
+            "afternoon",
+            "evening"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "book_flight",
+      "description": "reserve a seat on a specific flight",
+      "mutating": true,
+      "intent": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "cancel_booking",
+      "description": "undo a flight reservation",
+      "mutating": true,
+      "inverse_of": "book_flight",
+      "params": [
+        {
+          "name": "flight_no",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "get_booking_status",
+      "description": "list reservations currently held",
+      "read_only": true,
+      "verifies": "book_flight",
+      "params": []
+    },
+    {
+      "name": "search_hotels",
+      "description": "search available hotels in a city",
+      "read_only": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "city",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "date",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "book_hotel",
+      "description": "reserve a hotel room",
+      "mutating": true,
+      "intent": "book_hotel",
+      "params": [
+        {
+          "name": "hotel_id",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "env": {
+    "latency_ms": {
+      "search_flights": 700,
+      "search_hotels": 650,
+      "book_flight": 900,
+      "cancel_booking": 200,
+      "get_booking_status": 120,
+      "lookup_manual": 500,
+      "diagnose_sound": 450,
+      "create_ticket": 800
+    }
+  },
+  "events": [
+    {
+      "type": "session_start",
+      "t": 0.0,
+      "session_id": "S31"
+    },
+    {
+      "type": "tool_manifest",
+      "t": 0.0,
+      "manifest": "@manifest"
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 100,
+      "text": "find me a flight",
+      "end_of_turn": false,
+      "silence_ms": 250
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 950,
+      "text": "to Mumbai",
+      "end_of_turn": false,
+      "silence_ms": 300
+    },
+    {
+      "type": "transcript_chunk",
+      "t": 1950,
+      "text": "on Tuesday",
+      "end_of_turn": false,
+      "silence_ms": 1300
+    },
+    {
+      "type": "session_end",
+      "t": 5200,
+      "reason": "complete"
+    }
+  ],
+  "expect": {
+    "intent": "book_flight",
+    "slots": {
+      "destination": "BOM",
+      "date": "Tuesday"
+    },
+    "tools_called": [
+      "search_flights"
+    ],
+    "survived_tools": [
+      "search_flights"
+    ],
+    "notes": "No end_of_turn marker is ever delivered. The endpointer must end the turn on the complete request; the search must run and survive."
+  }
+}

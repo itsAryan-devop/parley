@@ -13,10 +13,12 @@ import pytest
 from harness.runner import run_scenario
 from harness.scenario import Scenario, load_all
 from harness.scoring import score
+from parley.agent.endpointer import EndpointModel
 from parley.agent.model import InterruptionModel
 
 SCENARIOS = load_all()
 MODEL = InterruptionModel.load_default()
+ENDPOINTER = EndpointModel.load_default()
 
 
 def ids(scenarios):
@@ -25,7 +27,7 @@ def ids(scenarios):
 
 @pytest.mark.parametrize("scenario", SCENARIOS, ids=ids(SCENARIOS))
 def test_scenario_passes_every_declared_check(scenario: Scenario) -> None:
-    result = run_scenario(scenario, model=MODEL)
+    result = run_scenario(scenario, model=MODEL, endpointer=ENDPOINTER)
     card = score(result)
     assert result.error is None, result.error
     assert not card.failures, "\n".join(card.failures)
@@ -38,8 +40,8 @@ def test_scenario_is_deterministic(scenario: Scenario) -> None:
     Without this an adversarial-timing regression is indistinguishable from a
     flaky test, and no amount of tuning would be trustworthy.
     """
-    a = run_scenario(scenario, model=MODEL)
-    b = run_scenario(scenario, model=MODEL)
+    a = run_scenario(scenario, model=MODEL, endpointer=ENDPOINTER)
+    b = run_scenario(scenario, model=MODEL, endpointer=ENDPOINTER)
 
     def fingerprint(result):
         return [

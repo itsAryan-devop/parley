@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from parley.agent.agent import ParleyAgent
+from parley.agent.endpointer import EndpointModel
 from parley.agent.model import InterruptionModel
 from parley.protocol.manifest import parse_manifest
 
@@ -70,6 +71,7 @@ async def run_scenario_async(
     *,
     trace_path: str | Path | None = None,
     model: InterruptionModel | None = None,
+    endpointer: EndpointModel | None = None,
 ) -> RunResult:
     clock = Clock()
     trace = Trace(trace_path, session_id=scenario.id)
@@ -102,6 +104,7 @@ async def run_scenario_async(
             else parse_manifest({"tools": scenario.manifest})
         ),
         model=model,
+        endpointer=endpointer,
         on_action=actions.append,
     )
 
@@ -138,6 +141,9 @@ def run_scenario(
     *,
     trace_path: str | Path | None = None,
     model: InterruptionModel | None = None,
+    endpointer: EndpointModel | None = None,
 ) -> RunResult:
     """Synchronous entry point. One fresh virtual loop per scenario."""
-    return run_virtual(run_scenario_async(scenario, trace_path=trace_path, model=model))
+    return run_virtual(
+        run_scenario_async(scenario, trace_path=trace_path, model=model, endpointer=endpointer)
+    )

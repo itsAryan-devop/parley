@@ -56,6 +56,12 @@ class TranscriptChunk(_Base):
     end_of_turn: bool = False
     """The end-of-turn marker named in the guide. Partial chunks arrive with
     False and may be superseded by later chunks in the same turn."""
+    silence_ms: float | None = None
+    """Trailing silence the recogniser observed after these words, if it reports
+    it. Optional and defaulted: existing scenarios carry no value and the agent
+    falls back to inter-chunk timing. The learned endpointer reads it as its
+    timing cue — a recogniser can measure this pause even on the turns where it
+    fails to set `end_of_turn`, which is exactly when endpointing has to work."""
     speaker: str = "user"
 
 

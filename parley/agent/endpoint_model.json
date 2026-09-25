@@ -1,0 +1,88 @@
+{
+  "feature_order": [
+    "word_count",
+    "very_short",
+    "trailing_dangling",
+    "trailing_conjunction",
+    "trailing_filled_pause",
+    "trailing_content",
+    "silence_ms",
+    "silence_over_400",
+    "silence_over_700",
+    "elapsed_ms",
+    "complete_request",
+    "has_intent",
+    "just_bound_value"
+  ],
+  "weights": [
+    -2.9402555810874484,
+    2.9655644577917597,
+    -2.948731523504868,
+    -3.0436247329783224,
+    0.0,
+    2.3263094436484466,
+    4.49074341987789,
+    6.873904507588814,
+    -1.3804725010749925,
+    5.511329301490952,
+    -2.0903153009204725,
+    1.2652349901501183,
+    8.77424008749957
+  ],
+  "bias": -17.7655354207422,
+  "threshold": 0.87,
+  "metadata": {
+    "trained_on": "generated prefix corpus (parley.agent.endpoint_corpus)",
+    "n_train_examples": 15475,
+    "note": "held-out split shares no openers with training; includes the mid-turn-long-pause adversarial case",
+    "false_early_budget": 0.03,
+    "threshold": 0.87,
+    "dev": {
+      "model": {
+        "acc": 0.8983,
+        "false_early": 0.0251,
+        "false_late": 0.254,
+        "recall": 0.746
+      },
+      "silence700": {
+        "acc": 0.7234,
+        "false_early": 0.2412,
+        "false_late": 0.347,
+        "recall": 0.653
+      },
+      "lexical": {
+        "acc": 0.6161,
+        "false_early": 0.4367,
+        "false_late": 0.279,
+        "recall": 0.721
+      }
+    },
+    "test": {
+      "model": {
+        "acc": 0.8935,
+        "false_early": 0.03,
+        "false_late": 0.257,
+        "recall": 0.743
+      },
+      "silence700": {
+        "acc": 0.7197,
+        "false_early": 0.253,
+        "false_late": 0.334,
+        "recall": 0.666
+      },
+      "lexical": {
+        "acc": 0.6267,
+        "false_early": 0.4289,
+        "false_late": 0.264,
+        "recall": 0.736
+      }
+    },
+    "inference_us_per_call": 10.14,
+    "verdict": "learned endpointer beats both baselines on accuracy and false-early; used to override a missing/late/wrong marker (recall 0.74, conservative by design)",
+    "seed": {
+      "train": 20260925,
+      "dev": 101,
+      "test": 202
+    }
+  }
+}

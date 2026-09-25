@@ -48,6 +48,7 @@ from ..protocol.events import (
 )
 from ..protocol.manifest import ToolManifest, parse_manifest
 from ..protocol.state import SessionState, SlotSource
+from .endpointer import EndpointModel, endpoint_features
 from .floor import FloorManager, describe_tool
 from .lexicon import Lexicon
 from .model import InterruptionModel
@@ -69,12 +70,14 @@ class ParleyAgent:
         executor: ToolExecutor,
         manifest: ToolManifest | None = None,
         model: InterruptionModel | None = None,
+        endpointer: EndpointModel | None = None,
         on_action: Callable[[Any], None] | None = None,
     ) -> None:
         self.session_id = session_id
         self.clock = clock
         self.trace = trace
         self.executor = executor
+        self.endpointer = endpointer
         self.on_action = on_action
 
         self.state = SessionState(session_id=session_id)
@@ -96,6 +99,12 @@ class ParleyAgent:
         self._turn_open = False
         """True between a chunk without an end-of-turn marker and the one that
         closes the turn. Chunks arriving while it is set are continuations."""
+        self._turn_start_t = 0.0
+        """Virtual time the current turn's first chunk arrived — for the
+        endpointer's elapsed-time feature."""
+        self._last_chunk_t = 0.0
+        """Virtual time of the previous transcript chunk — for the inter-chunk
+        silence the endpointer reads when the recogniser reports none."""
         self._agent_is_speaking = False
         self._pending_interruption = False
         self._perceptions: dict[str, Any] = {}
@@ -179,7 +188,8 @@ class ParleyAgent:
         continuing = self._turn_open
         overlapping = (self._pending_interruption or self._agent_is_speaking) and not continuing
         self._pending_interruption = False
-        self._turn_open = not event.end_of_turn
+        if not continuing:
+            self._turn_start_t = event.t
         self._turn_text.append(event.text)
 
         # Interpret the chunk, not the accumulated turn: a repair is detectable
@@ -203,19 +213,32 @@ class ParleyAgent:
         await self._apply_work(interp)
         just_bound = self._apply_state(interp, event)
 
+        # The end of the turn, as the agent will act on it: the recogniser's
+        # marker if it sent one, otherwise the learned endpointer's verdict. The
+        # marker is never *downgraded* — a positive marker is trusted outright —
+        # so on the public suite, where every marker is correct, this only fires
+        # on chunks that arrived with `end_of_turn=False`, exactly the mid-turn
+        # chunks the endpointer is trained to leave alone. Its whole value is the
+        # withheld / late / wrong-marker case. Computed after `_apply_state` so
+        # the completeness feature sees this chunk's freshly-bound slots and the
+        # inferred intent, matching how the training corpus is labelled.
+        eot = self._effective_eot(event, just_bound)
+        self._turn_open = not eot
+        self._last_chunk_t = event.t
+
         if interp.kind is InterruptionKind.REPEAT_REQUEST:
             self.floor.repeat_last()
-            if event.end_of_turn:
+            if eot:
                 self._turn_text.clear()
             return
 
         if interp.kind in (InterruptionKind.BACKCHANNEL, InterruptionKind.SELF_REPAIR):
-            if event.end_of_turn:
+            if eot:
                 self._turn_text.clear()
             return
 
         spoken_before = len(self.floor.transcript)
-        await self._replan(interp, event, just_bound)
+        await self._replan(interp, event, just_bound, eot)
 
         # The user finished a turn that produced no new plan — a barge-in, or a
         # request we already have in hand. Saying nothing here is what makes a
@@ -223,7 +246,7 @@ class ParleyAgent:
         # and true. Only after end-of-turn: interrupting a half-finished
         # sentence to narrate progress would be worse than silence.
         if (
-            event.end_of_turn
+            eot
             and len(self.floor.transcript) == spoken_before
             and interp.policy.floor is not FloorPolicy.CONTINUE
         ):
@@ -232,7 +255,7 @@ class ParleyAgent:
             elif not self._ask_for_missing():
                 self._answer_from_what_we_have(just_bound)
 
-        if event.end_of_turn:
+        if eot:
             self._turn_text.clear()
 
     def _apply_floor(self, interp: Interpretation) -> None:
@@ -305,11 +328,58 @@ class ParleyAgent:
 
         return just_bound
 
-    async def _replan(self, interp: Interpretation, event: TranscriptChunk, just_bound: set[str]) -> None:
+    def _effective_eot(self, event: TranscriptChunk, just_bound: set[str]) -> bool:
+        """Has the turn ended, as the agent will act on it?
+
+        A positive marker is trusted outright and never second-guessed. Only when
+        the marker is absent (`end_of_turn=False`) does the learned endpointer get
+        a vote, and only if one is loaded — with no weights, or none configured,
+        the behaviour is exactly the old marker-trusting agent, which is what
+        keeps the scored suite green when the model is unavailable.
+
+        The completeness feature is read from `self.state` *after* this chunk's
+        slots were patched and the intent inferred, so it means the same thing
+        here as it does in the training corpus: does the request now parse
+        complete against the manifest?
+        """
+        if event.end_of_turn:
+            return True
+        if self.endpointer is None:
+            return False
+
+        silence = (
+            event.silence_ms
+            if event.silence_ms is not None
+            else max(0.0, event.t - self._last_chunk_t)
+        )
+        elapsed = max(0.0, event.t - self._turn_start_t)
+        intent = self.state.intent
+        complete = intent is not None and not self.planner.missing_for(intent, self.state)
+
+        feats = endpoint_features(
+            " ".join(self._turn_text),
+            silence_ms=silence,
+            elapsed_ms=elapsed,
+            complete_request=complete,
+            has_intent=intent is not None,
+            just_bound_value=bool(just_bound),
+        )
+        predicted, p = self.endpointer.is_endpoint(feats)
+        self.trace.kernel(
+            event.t, "endpoint",
+            predicted=predicted, probability=round(p, 3),
+            silence_ms=round(silence, 1), complete_request=complete,
+            marker=event.end_of_turn,
+        )
+        return predicted
+
+    async def _replan(
+        self, interp: Interpretation, event: TranscriptChunk, just_bound: set[str], eot: bool
+    ) -> None:
         committed = self._is_committal(event.text)
         planned = self.planner.plan(
             self.state,
-            end_of_turn=event.end_of_turn,
+            end_of_turn=eot,
             committed=committed,
             just_bound=just_bound,
         )

@@ -336,6 +336,7 @@ def fuzz(
     trials: int = 20,
     jitter_ms: float = 250.0,
     model: Any = None,
+    endpointer: Any = None,
     on_run: Any = None,
 ) -> FuzzReport:
     from .runner import run_scenario
@@ -344,7 +345,7 @@ def fuzz(
     for scenario in scenarios:
         for seed in range(trials):
             mutated, p = perturb(scenario, seed, jitter_ms=jitter_ms)
-            result = run_scenario(mutated, model=model)
+            result = run_scenario(mutated, model=model, endpointer=endpointer)
             violations = check_invariants(result)
             report.runs += 1
             if violations:

@@ -205,6 +205,7 @@ Condensed; the detail is in [`BUILD_LOG.md`](BUILD_LOG.md).
 | 1 | Protocol layer, virtual-clock harness, trace, mock environment | 68 tests |
 | 2 | Coordination kernel, NLU, learned classifier with an honest ablation | 130 tests |
 | 3 | Floor manager, planner, agent loop, multimodal grounding, scenario suite, rubric scorer, timing fuzzer, timeline viewer, deck, docs | 275 tests · 29/29 |
+| 4 | Learned endpointer (turn-taking) + honest benchmark; then the FDB-v3 pivot | 366 tests · 32/32 · 1920/1920 fuzz |
 
 Three findings from those sessions that shape everything since:
 
@@ -222,3 +223,38 @@ Three findings from those sessions that shape everything since:
   whole suite, zero joins, zero milliseconds hidden. The mechanism was fine, the
   scenarios were not — nearly every turn was a single chunk with `end_of_turn`
   set. After streaming them properly: 50% join rate, 1100 ms hidden.
+
+## Session 4 — learned endpointing, then a benchmark pivot (25 Sep 2026)
+
+Two arcs in one session.
+
+**Built the learned endpointer** (`docs/NEXT_STEP_turn_taking.md`). Turn-taking
+is the one genuinely full-duplex ML the theme asks for, and the honest gap: the
+agent trusted the `end_of_turn` marker and never predicted it. Added an optional
+`TranscriptChunk.silence_ms`, a shared `endpoint_features` (lexical completeness,
+trailing token class, silence, elapsed), a numpy/JSON logistic endpointer
+mirroring the interruption model, a prefix-corpus generator (`endpoint_corpus.py`)
+whose `complete_request` label runs through the *real* Lexicon+Planner, and an
+honest trainer. **Result: 89.4 % accuracy, 3 % false-early, recall 0.74 vs
+silence-timeout 72 %/25 % and lexical-rule 63 %/44 %, at ~10 µs/call** — a
+genuine win on the metric that matters (acting on a half-sentence). Wired into
+the agent as `_effective_eot`: a positive marker is never downgraded, so the
+suite stays green; the endpointer only votes when the marker is absent. Added two
+withheld-marker scenarios (S31, S32); verified the endpointer never fires early
+on the original 30 even down to threshold 0.60. Reusable far beyond this harness
+(see below).
+
+**Then the pivot.** Aryan supplied an **updated** participant guide mid-session.
+It overturns the project's founding premise: the evaluation kit was *not*
+unreleased — it is the public **Full-Duplex-Bench v3** (NTU), agents run inside
+**LiveKit**, and **60 %** of Round 1 is the organisers re-running FDB-v3 on our
+submission with a gpt-4o judge. The pure-Python `parley/`/`harness/` path is no
+longer the scored artefact. Cloned and read the real repo; wrote the grounded
+plan in [`PIVOT_FDBv3.md`](PIVOT_FDBv3.md). The honest silver lining: the
+endpointer built this same session is the single highest-leverage reuse — a
+custom LiveKit **turn detector** that holds through a self-correction ("Paris —
+no, Berlin") so the LLM fires *one* tool call instead of two, which is exactly
+the extra-call failure FDB-v3's 21 self-correction scenarios punish. The
+ledger/dispatcher dedup logic and the camera-frame perception (the 20 %
+extension) also transfer. `harness/` + the 32 scenarios become an internal
+regression net, not a submission.

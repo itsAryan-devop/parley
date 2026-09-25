@@ -377,16 +377,45 @@ judge to find.
   proves little. The fuzzer is the real test: 9000 perturbed runs, invariants
   only.
 
+## Session 4 — the endpointer, and what it taught
+
+- **A learned endpointer beats its baselines where it counts, and is honest
+  about where it doesn't.** 89.4 % / 3 % false-early vs silence-timeout
+  72 % / 25 % and a lexical-completeness rule 63 % / 44 %, ~10 µs/call. The
+  metric chosen deliberately: acting on a half-sentence (false-early) is the
+  expensive error, so the threshold is the lowest that keeps false-early under a
+  budget, trading recall (0.74) down for safety. Recall parity with a reckless
+  timeout was *not* the bar, and the first verdict logic wrongly demanded it.
+- **Do not contrive a scenario where the new model must flip the score.** The
+  first S32 asserted the endpointer would change the final snapshot on a
+  multi-goal turn. It failed — and failed *identically with and without* the
+  endpointer, which was the tell: the agent already completes tasks via
+  speculation + `finalise`, so on these constructed cases the endpointer changes
+  *timing*, not the scored snapshot. Exactly the honest reality the brief
+  predicted. S32 was rewritten to assert what is true (task completes across a
+  withheld marker, selective cancel still fires) rather than a fabricated win.
+- **A compressed scenario timeline starved a feature.** The endpointer's
+  `elapsed_ms` feature read near-zero because the first scenarios bunched every
+  chunk into 100–900 ms, so a genuinely-complete request scored only 0.53 and
+  never fired. Spacing the chunks realistically (and giving the true end a long
+  trailing silence, as a dropped-marker pause really is) put it back over
+  threshold. The lesson is about test *fidelity*: a virtual clock lets you
+  compress time, and compressing it changed a timing feature's meaning.
+- **Verified, not assumed, that the endpointer is safe on the existing suite.**
+  Ran all 30 original scenarios with it active down to threshold 0.60 — zero
+  false-early. A positive marker is never downgraded, so its only vote is on
+  chunks that arrived `end_of_turn=False`, and it correctly holds on those.
+
 ## Standing risks
 
-1. **The real evaluation kit is not in hand.** Every interface assumption needs
-   re-checking when it lands. Mitigated but not eliminated: `harness/adapter.py`
-   plus `tests/test_adapter.py` demonstrate the agent running a full scenario
-   off a deliberately alien schema — seconds instead of milliseconds, different
-   type names, nested payload envelopes, heartbeat events, out-of-order
-   delivery — with correct cancellation and exactly one booking. What that
-   proves is that the *boundary* is real, not that the real kit will fit
-   through it without work.
+1. ~~**The real evaluation kit is not in hand.**~~ — **overturned, 25 Sep.** The
+   kit was never missing: the updated guide names the public **Full-Duplex-Bench
+   v3**, and 60 % of Round 1 is the organisers re-running it inside LiveKit with
+   a gpt-4o judge. The reconstructed `harness/` was a good-faith replica of the
+   wrong target. The adapter/boundary work still has value (a custom LiveKit
+   agent is another boundary), but the scored path is now FDB-v3. Full plan:
+   [`PIVOT_FDBv3.md`](PIVOT_FDBv3.md). This is the dominant risk of the whole
+   project and it is now a known, planned pivot rather than an assumption.
 2. ~~**`docker build` is unverified on this machine**~~ — **closed.** The engine
    would not start because two directories held orphaned AF_UNIX socket files
    that Windows could not delete or rename (`Docker\run\sailor-ingest.sock` and

@@ -25,6 +25,7 @@ utf8()
 from harness.runner import run_scenario
 from harness.scenario import load_all
 from harness.scoring import score
+from parley.agent.endpointer import EndpointModel
 from parley.agent.model import InterruptionModel
 
 RUNS = Path("runs")
@@ -57,11 +58,14 @@ def main() -> int:
     ap.add_argument("ids", nargs="*", help="scenario id prefixes to run")
     ap.add_argument("--verbose", "-v", action="store_true")
     ap.add_argument("--no-model", action="store_true", help="rules only, no learned classifier")
+    ap.add_argument("--no-endpointer", action="store_true",
+                    help="trust the end-of-turn marker only, no learned endpointing")
     ap.add_argument("--json", type=Path, help="write the scorecards as JSON")
     args = ap.parse_args()
 
     RUNS.mkdir(exist_ok=True)
     model = None if args.no_model else InterruptionModel.load_default()
+    endpointer = None if args.no_endpointer else EndpointModel.load_default()
 
     scenarios = load_all()
     if args.ids:
@@ -76,7 +80,8 @@ def main() -> int:
     print("─" * 92)
 
     for scenario in scenarios:
-        result = run_scenario(scenario, trace_path=RUNS / f"{scenario.id}.jsonl", model=model)
+        result = run_scenario(scenario, trace_path=RUNS / f"{scenario.id}.jsonl",
+                               model=model, endpointer=endpointer)
         card = score(result)
         cards.append(card)
 

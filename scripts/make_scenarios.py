@@ -134,8 +134,11 @@ def start(sid: str) -> list[dict]:
     ]
 
 
-def say(t: float, text: str, *, eot: bool = False) -> dict:
-    return {"type": "transcript_chunk", "t": t, "text": text, "end_of_turn": eot}
+def say(t: float, text: str, *, eot: bool = False, silence: float | None = None) -> dict:
+    chunk = {"type": "transcript_chunk", "t": t, "text": text, "end_of_turn": eot}
+    if silence is not None:
+        chunk["silence_ms"] = silence
+    return chunk
 
 
 def interrupt(t: float) -> dict:
@@ -980,6 +983,78 @@ SCENARIOS: list[dict] = [
             "slots": {"sound": "beeping"},
             "tools_called": ["diagnose_sound"],
             "notes": "The barge-in must not cancel the decode or the diagnosis.",
+        },
+    },
+    # ------------------------------------------------- withheld end-of-turn marker
+    {
+        "id": "S31_eot_withheld_completes",
+        "title": "A complete request whose final end-of-turn marker was dropped",
+        "modality": "text",
+        "description": (
+            "A flaky recogniser loses the end-of-turn marker on the last chunk. The "
+            "scored suite normally hands us that marker; here it never comes, so the "
+            "learned endpointer has to decide the turn is over from the words and the "
+            "trailing silence. A lexically complete request ('to Mumbai on Tuesday') "
+            "followed by a long pause is the clearest done-signal there is. Without "
+            "an endpointer the agent would only act at session end; with one it acts "
+            "at the true turn boundary. The fuzzer already drops markers at random "
+            "(`eot_dropped`); this pins the behaviour as a named, scored case."
+        ),
+        "probes": ["learned endpointing", "withheld eot marker", "acts at turn boundary"],
+        "manifest": TRAVEL,
+        "env": {"latency_ms": FAST},
+        "events": start("S31") + [
+            say(100, "find me a flight", silence=250),
+            say(950, "to Mumbai", silence=300),
+            say(1950, "on Tuesday", eot=False, silence=1300),  # marker DROPPED; long end pause
+            end(5200),
+        ],
+        "expect": {
+            "intent": "book_flight",
+            "slots": {"destination": "BOM", "date": "Tuesday"},
+            "tools_called": ["search_flights"],
+            "survived_tools": ["search_flights"],
+            "notes": (
+                "No end_of_turn marker is ever delivered. The endpointer must end the "
+                "turn on the complete request; the search must run and survive."
+            ),
+        },
+    },
+    {
+        "id": "S32_eot_withheld_chain",
+        "title": "A search-then-book chain whose first end-of-turn marker was dropped",
+        "modality": "text",
+        "description": (
+            "The recogniser drops the marker on the search turn but keeps it on the "
+            "booking turn. The session must not stall waiting for a turn that never "
+            "formally ends: the endpointer closes the search turn from the complete "
+            "request plus trailing silence, and the booking then commits exactly "
+            "once. A correction ('no, Kolkata') arrives inside the same marker-less "
+            "search turn, so the dataflow cancellation still has to fire without any "
+            "marker to lean on."
+        ),
+        "probes": ["withheld eot marker", "selective cancel without a marker",
+                   "chain completes", "single effect"],
+        "manifest": TRAVEL,
+        "env": {"latency_ms": {**FAST, "search_flights": 1000}},
+        "events": start("S32") + [
+            say(100, "flight to Hyderabad", silence=250),          # dest HYD, speculative search
+            interrupt(900),
+            say(950, "no wait, Kolkata", eot=False, silence=1000),  # correction, marker DROPPED
+            say(2600, "on Thursday", eot=False, silence=1050),      # still no marker; end pause
+            say(4200, "book AI303", eot=True, silence=700),         # booking WITH marker
+            end(8000),
+        ],
+        "expect": {
+            "intent": "book_flight",
+            "slots": {"destination": "CCU", "date": "Thursday", "flight_no": "AI303"},
+            "cancelled_tools": ["search_flights"],
+            "live_effects": [{"tool": "book_flight", "args": {"flight_no": "AI303"}}],
+            "no_duplicate_effects": True,
+            "notes": (
+                "The Hyderabad search reads `destination` and must be cancelled by "
+                "the Kolkata correction even though no end-of-turn marker was sent."
+            ),
         },
     },
     {
