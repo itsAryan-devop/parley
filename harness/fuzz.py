@@ -56,6 +56,34 @@ class Perturbation:
     """End-of-turn markers lost, as a flaky recogniser would lose them."""
     spurious_vad: int = 0
     """Interruption signals with no speech behind them."""
+    inlined_media: int = 0
+    """Frames or clips re-delivered as base64 bytes instead of a path.
+
+    Added after an inline-media bug shipped undetected: `ground_frame` and
+    `ground_audio` collapsed `path` and `data_b64` with `or`, so a base64 string
+    reached the image decoder as a filename and every inline frame reported
+    itself as corrupt. This fuzzer perturbed *when* events arrive and never *how
+    they are encoded*, so the branch was never executed here at all.
+
+    **What this perturbation does and does not do.** Measured, not assumed: with
+    the old collapsing behaviour restored, 0 of 17 inlined seeds on S10 and 0 of
+    14 on S13 broke a single invariant. It cannot catch that bug, and saying
+    otherwise would be the most comfortable kind of wrong.
+
+    The reason is structural. A failed decode degrades *gracefully* -- the agent
+    says it could not make the frame out and asks a question. No duplicate
+    effect, no pending call, nothing claimed without a warrant. It is a
+    capability failure, and this module asserts safety invariants by deliberate
+    design (see the module docstring on why expectations are not checked).
+
+    Encoding-invariance is a **metamorphic** property -- same bytes, different
+    encoding, same answer -- which needs two runs compared and therefore cannot
+    live in a single-run invariant check. It is asserted in
+    `tests/test_scenarios.py::test_media_scenarios_are_encoding_invariant`.
+
+    What this still buys is the combinations: an inline decode colliding with a
+    barge-in, or a redelivered inline clip, under jitter. Those reach shapes no
+    hand-written scenario does, and a crash or a hang there *would* be caught."""
 
     def describe(self) -> str:
         bits = [
@@ -76,12 +104,39 @@ class Perturbation:
             bits.append(f"eot_dropped={self.eot_dropped}")
         if self.spurious_vad:
             bits.append(f"spurious_vad={self.spurious_vad}")
+        if self.inlined_media:
+            bits.append(f"inlined={self.inlined_media}")
         return " ".join(bits)
 
 
 # Events whose timing is the agent's problem. `session_start` and
 # `tool_manifest` are setup and stay at zero; moving them tests the harness.
 _MOVABLE = {"transcript_chunk", "interruption", "audio_clip", "video_frame"}
+
+
+def _inline(event: dict[str, Any]) -> bool:
+    """Swap an event's `path` for the same bytes as base64, in place.
+
+    Returns whether it happened: a missing file is not a fuzzing failure, it is
+    a scenario referencing media nobody generated, and the scenario tests will
+    say so far more clearly than a perturbed run would.
+
+    The bytes are passed through unmodified -- this changes the *encoding*, not
+    the content, so any invariant that breaks is the agent's fault and not the
+    perturbation having quietly corrupted an image.
+    """
+    import base64
+    from pathlib import Path
+
+    source = Path(str(event["path"]))
+    try:
+        raw = source.read_bytes()
+    except OSError:
+        return False
+
+    event.pop("path", None)
+    event["data_b64"] = base64.b64encode(raw).decode("ascii")
+    return True
 
 
 def perturb(scenario: Scenario, seed: int, *, jitter_ms: float = 250.0) -> tuple[Scenario, Perturbation]:
@@ -162,6 +217,21 @@ def perturb(scenario: Scenario, seed: int, *, jitter_ms: float = 250.0) -> tuple
             "source": "vad",
         })
         p.spurious_vad = 1
+
+    # Re-encode some media inline. The protocol permits a frame or clip to
+    # arrive either as a `path` or as `data_b64`, and the agent must not care
+    # which -- the scenarios all use paths, so without this the inline branch is
+    # never executed under perturbation at all.
+    #
+    # Done here rather than as a separate scenario because the interesting cases
+    # are the *combinations*: an inline frame whose decode collides with a
+    # barge-in, or a redelivered inline clip. Those are the shapes a hand-written
+    # scenario does not reach.
+    media = [e for e in events if e.get("type") in ("video_frame", "audio_clip") and e.get("path")]
+    if media and rng.random() < 0.5:
+        for event in media:
+            if rng.random() < 0.6 and _inline(event):
+                p.inlined_media += 1
 
     # Occasionally cut the session short, mid-flight.
     if rng.random() < 0.25:
