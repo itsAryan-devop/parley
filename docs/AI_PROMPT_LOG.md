@@ -39,3 +39,43 @@ pasted here.
 tier); a teammate commits and pushes because the Claude GitHub App is not installed.
 **Not yet verified:** no end-to-end benchmark run (container had no LiveKit/Groq
 network access and no keys).
+
+## 2026-09-29 — teammate (name not given in session) — Claude Code (cloud session)
+
+**Prompts (verbatim):**
+- "Read CLAUDE.md. Test fdb/agent_parley.py end to end on this machine: run
+  SAMPLES=5 bash reproduce.sh, fix what breaks, and report the scores honestly.
+  This machine has no GPU. The benchmark runner calls model.cuda(); work around
+  that for local testing only, without changing what we submit."
+- "you there are you doing this [first prompt repeated] tou seemed stagnant thats
+  why just asking"
+- "just checking up how much more time jsut asking"
+- "Good diagnosis. Rather than only a local shim, make it robust in the submitted
+  agent too: in fdb/agent_parley.py, raise the worker's load threshold (e.g.
+  AgentServer(load_threshold=0.95) or the 1.3.12 equivalent; verify the parameter
+  exists) so a busy evaluation machine never silently refuses a clip. Keep the
+  stock agent untouched. Add one line to the report and the README noting that
+  FDB-v3's latency analysis and LLM judge need an OpenAI key, so our free runs are
+  exact-match only. Then finish the 5-clip run and report per-clip results."
+- "update?" / "how much approx time remain"
+
+**Output:**
+- `fdb/agent_parley.py`: default Groq LLM `llama-3.3-70b-versatile` → `openai/gpt-oss-120b`
+  (Groq returns model_not_found for the old id, so the agent never replied; chosen on
+  availability, not on benchmark scores). `AgentServer(load_threshold=math.inf,
+  load_fnc=job_load)`: the worker reports job-slot load instead of machine CPU.
+- `reproduce.sh`: recorded LLM default updated. `README.md`: FDB-v3 section with the
+  OpenAI-key note.
+- First end-to-end run: `SAMPLES=5`, Groq backend, exact-match (no judge), run dir
+  `runs/fdb/20260929-232747-parley` (local, gitignored). Turn-taking 5/5, tool
+  selection 93.3%, argument accuracy 100%, strict pass 4/5 (80%). One failure:
+  ecommerce_05, an unrequested extra `add_to_cart` after the correct
+  `search_products`. Not tuned against (guide rule). Mean perceived latency 10.1 s
+  (6.7–21.0 s), measured on a CPU-only sandbox.
+- Local-only test workarounds, kept out of the repo: CPU no-op for `model.cuda()`,
+  a localhost `livekit-server` (the sandbox cannot reach LiveKit Cloud media), and
+  a proxy bypass for localhost.
+
+**Human changes:** asked for the load fix in the submitted agent instead of a local
+shim only. The suggested 0.95 was replaced: this box measured 0.952, and
+livekit-server's own 0.7 `target_load` cut-off also has to be avoided.
