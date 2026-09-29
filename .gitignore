@@ -18,3 +18,10 @@ media/dataset/
 deck/node_modules/
 deck/package-lock.json
 deck/package.json
+
+# Secrets, benchmark checkout/data and local run envs -- never commit.
+.env
+.env.*
+fdb_v3_data_released/
+third_party/
+.venv-fdb/

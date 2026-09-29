@@ -1,0 +1,14 @@
+# Runtime for the FDB-v3 agent (fdb/agent_parley.py). Pinned so a re-run matches
+# our logs. livekit-agents 1.3.x is the series FDB-v3's own agents target.
+livekit-agents[openai]==1.3.12
+livekit-plugins-openai==1.3.12
+livekit-plugins-groq==1.3.12
+livekit-plugins-silero==1.3.12
+livekit[crypto]==1.0.23
+python-dotenv==1.2.3
+# FDB-v3 inference + evaluation (its README lists these unpinned).
+nemo_toolkit[asr]
+pydub
+ffmpeg-python
+openai==2.54.0
+gdown
