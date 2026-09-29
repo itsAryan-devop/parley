@@ -28,6 +28,7 @@ PARLEY_GUARD=0 to disable (ablation).
 
 import json
 import logging
+import math
 import os
 import sys
 import time
@@ -268,7 +269,14 @@ class ParleyAgent(Agent):
         super().__init__(instructions=INSTRUCTIONS)
 
 
-server = AgentServer()
+# livekit-agents' `start` mode marks the worker full once system CPU (a 2.5 s
+# average, 0..1) reaches 0.7, and LiveKit then dispatches the room to no one:
+# the clip is recorded as silence and scored zero. The benchmark streams one
+# clip at a time to this single worker, so refusing is never right. 0.95 is
+# not enough -- a saturated box measured 0.952 -- and inf is the only value
+# the load cannot reach (it is the library's dev-mode default; in `start` mode
+# it logs one "must be less than 1" warning). The stock agent is unchanged.
+server = AgentServer(load_threshold=math.inf)
 
 
 def build_models():

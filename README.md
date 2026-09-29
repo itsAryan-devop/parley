@@ -331,4 +331,16 @@ python scripts/run_scenarios.py --json runs/scores.json
 python scripts/fuzz.py --trials 300 --jitter 1400
 ```
 
+### Full-Duplex-Bench v3 (the scored benchmark)
+
+```bash
+SAMPLES=5 bash reproduce.sh           # first 5 clips; omit SAMPLES for all 100
+```
+
+Needs `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` and `GROQ_API_KEY` in the
+environment (see the header of `reproduce.sh`). Reports, logs and config land in
+`runs/fdb/<run>/`. **FDB-v3's latency analysis and its gpt-4o judge (argument and
+response accuracy) need an `OPENAI_API_KEY`, so our free Groq-only runs are exact-match
+only and have no latency report.**
+
 AI usage is disclosed per-feature, with the prompts used, in [`DISCLOSURE.md`](DISCLOSURE.md).
