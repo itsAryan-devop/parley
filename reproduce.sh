@@ -104,7 +104,7 @@ cp /tmp/agent_tool_calls.log /tmp/parley_guard.log "$RUN_DIR/" 2>/dev/null || tr
 {
   echo "date: $(date -u +%FT%TZ)"
   echo "agent: $AGENT   label: $LABEL   samples: $SAMPLES"
-  echo "backend: ${PARLEY_BACKEND:-groq}   llm: ${PARLEY_LLM:-llama-3.3-70b-versatile}"
+  echo "backend: ${PARLEY_BACKEND:-groq}   llm: ${PARLEY_LLM:-openai/gpt-oss-120b}"
   echo "grace: ${PARLEY_COMMIT_GRACE:-0.3}   max_delay: ${PARLEY_MAX_DELAY:-1.5}"
   echo "turn_detector: ${PARLEY_TURN_DETECTOR:-1}   guard: ${PARLEY_GUARD:-1}"
   echo "judge: ${JUDGE:-exact-match (no OPENAI_API_KEY)}"

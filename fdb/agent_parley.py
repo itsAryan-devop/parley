@@ -275,7 +275,7 @@ def build_models():
     """STT + LLM + TTS for the chosen backend.
 
     groq (default, free tier, one GROQ_API_KEY): Whisper-large-v3-turbo STT,
-    Llama-3.3-70B tool-calling LLM, Orpheus TTS. openai: the stock agent's
+    gpt-oss-120b tool-calling LLM, Orpheus TTS. openai: the stock agent's
     exact models, for a like-for-like comparison against the published baseline.
     Whisper is primed with a disfluent prompt so it keeps "uh, no, actually"
     in the transcript instead of silently deleting the correction markers the
@@ -288,7 +288,7 @@ def build_models():
                 openai.TTS(model="tts-1", voice="nova"))
     from livekit.plugins import groq
     return (groq.STT(model="whisper-large-v3-turbo", language="en", prompt=DISFLUENT_PROMPT),
-            groq.LLM(model=os.getenv("PARLEY_LLM", "llama-3.3-70b-versatile"),
+            groq.LLM(model=os.getenv("PARLEY_LLM", "openai/gpt-oss-120b"),
                      temperature=0.0, parallel_tool_calls=False),
             groq.TTS(model="canopylabs/orpheus-v1-english", voice="autumn"))
 
