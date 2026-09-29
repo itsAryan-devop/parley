@@ -269,14 +269,24 @@ class ParleyAgent(Agent):
         super().__init__(instructions=INSTRUCTIONS)
 
 
-# livekit-agents' `start` mode marks the worker full once system CPU (a 2.5 s
-# average, 0..1) reaches 0.7, and LiveKit then dispatches the room to no one:
-# the clip is recorded as silence and scored zero. The benchmark streams one
-# clip at a time to this single worker, so refusing is never right. 0.95 is
-# not enough -- a saturated box measured 0.952 -- and inf is the only value
-# the load cannot reach (it is the library's dev-mode default; in `start` mode
-# it logs one "must be less than 1" warning). The stock agent is unchanged.
-server = AgentServer(load_threshold=math.inf)
+# A busy machine must never make LiveKit skip a clip. By default the worker
+# reports whole-machine CPU (2.5 s average, 0..1) as its load, and two separate
+# 0.7 cut-offs act on it: livekit-agents' `start` mode marks the worker full,
+# and livekit-server's dispatcher (`agents.target_load`) stops offering it rooms.
+# Either way the room gets no agent and the clip is scored as silence -- a
+# 5-clip run on a CPU-only box lost 4 of 5 clips like this. The benchmark
+# streams one clip at a time to this single worker, so report load as the share
+# of job slots in use instead, and never self-declare full (inf is the
+# library's own dev-mode default; `start` mode logs one warning about it).
+# The stock agent is unchanged.
+JOB_SLOTS = 4
+
+
+def job_load(srv: AgentServer) -> float:
+    return min(len(srv.active_jobs) / JOB_SLOTS, 1.0)
+
+
+server = AgentServer(load_threshold=math.inf, load_fnc=job_load)
 
 
 def build_models():
