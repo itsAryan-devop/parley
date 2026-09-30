@@ -23,7 +23,8 @@ Env (in v3/.env.local): LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, and
 GROQ_API_KEY (default, free tier) or OPENAI_API_KEY with PARLEY_BACKEND=openai.
 Optional: PARLEY_LLM (Groq model id), PARLEY_COMMIT_GRACE (s, default 0.3),
 PARLEY_MAX_DELAY (s, default 1.5), PARLEY_TURN_DETECTOR=0 to disable (ablation),
-PARLEY_GUARD=0 to disable (ablation).
+PARLEY_GUARD=0 to disable (ablation), PARLEY_TTS=groq for Groq's Orpheus voice
+instead of the local Piper default, PARLEY_REASONING (gpt-oss effort, default low).
 """
 
 import json
@@ -59,6 +60,8 @@ GRACE_S = float(os.getenv("PARLEY_COMMIT_GRACE", "0.3"))
 USE_TURN = os.getenv("PARLEY_TURN_DETECTOR", "1") != "0"
 USE_GUARD = os.getenv("PARLEY_GUARD", "1") != "0"
 BACKEND = os.getenv("PARLEY_BACKEND", "groq")  # groq (free) | openai
+TTS_BACKEND = os.getenv("PARLEY_TTS", "local")  # local (Piper, no quota) | groq
+REASONING = os.getenv("PARLEY_REASONING", "low")  # gpt-oss reasoning effort
 DISFLUENT_PROMPT = "Um, I want to go to, uh, no wait, actually somewhere else."
 
 TOOL_NAMES = [
@@ -292,9 +295,11 @@ server = AgentServer(load_threshold=math.inf, load_fnc=job_load)
 def build_models():
     """STT + LLM + TTS for the chosen backend.
 
-    groq (default, free tier, one GROQ_API_KEY): Whisper-large-v3-turbo STT,
-    gpt-oss-120b tool-calling LLM, Orpheus TTS. openai: the stock agent's
-    exact models, for a like-for-like comparison against the published baseline.
+    groq (default, free tier, one GROQ_API_KEY): Whisper-large-v3-turbo STT and
+    gpt-oss-120b tool-calling LLM, with local Piper TTS (`parley.fdb.local_tts`):
+    Groq's free TTS allows only 100 requests a day, far short of a 100-clip run.
+    openai: the stock agent's exact models, for a like-for-like comparison
+    against the published baseline.
     Whisper is primed with a disfluent prompt so it keeps "uh, no, actually"
     in the transcript instead of silently deleting the correction markers the
     turn detector and the LLM rely on (finding credited in docs/PRIOR_ART.md B.1).
@@ -305,10 +310,15 @@ def build_models():
                 openai.LLM(model="gpt-4o", temperature=0.0),
                 openai.TTS(model="tts-1", voice="nova"))
     from livekit.plugins import groq
+    if TTS_BACKEND == "groq":
+        tts = groq.TTS(model="canopylabs/orpheus-v1-english", voice="autumn")
+    else:
+        from parley.fdb.local_tts import PiperTTS
+        tts = PiperTTS()
     return (groq.STT(model="whisper-large-v3-turbo", language="en", prompt=DISFLUENT_PROMPT),
             groq.LLM(model=os.getenv("PARLEY_LLM", "openai/gpt-oss-120b"),
-                     temperature=0.0, parallel_tool_calls=False),
-            groq.TTS(model="canopylabs/orpheus-v1-english", voice="autumn"))
+                     temperature=0.0, parallel_tool_calls=False, reasoning_effort=REASONING),
+            tts)
 
 
 @server.rtc_session()
@@ -352,6 +362,17 @@ async def entrypoint(ctx: agents.JobContext):
             tracker.agent_start_at = time.time()
             tracker.log_breakdown(tool_name="Search Tool", room_name=ctx.room.name)
             tracker.reset()
+
+    @session.on("metrics_collected")
+    def on_metrics(ev):
+        # Per-stage timings (EOU delay, STT, LLM TTFT/tokens, TTS TTFB) for the
+        # latency breakdown in the run logs. VAD metrics are per-frame noise.
+        m = ev.metrics
+        if getattr(m, "type", "") == "vad_metrics":
+            return
+        with open("/tmp/parley_metrics.log", "a") as f:
+            f.write(json.dumps({"room": ctx.room.name, **m.model_dump(mode="json")},
+                               default=str) + "\n")
 
     await session.start(room=ctx.room, agent=ParleyAgent())
     logging.info("PARLEY agent started (turn=%s guard=%s grace=%.2fs max_delay=%.2fs)",

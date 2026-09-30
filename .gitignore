@@ -25,3 +25,4 @@ deck/package.json
 fdb_v3_data_released/
 third_party/
 .venv-fdb/
+models/piper/
