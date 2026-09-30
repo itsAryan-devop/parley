@@ -1,0 +1,9 @@
+# Everything in one install:  pip install -r requirements.txt   (Python 3.10 or 3.11)
+#
+# - requirements-fdb.txt: the scored FDB-v3 agent (fdb/agent_parley.py) and the benchmark's own
+#   inference/evaluation tooling, pinned. reproduce.sh installs exactly this.
+# - The package itself with the vision extra (RapidOCR), used by the camera extension
+#   (fdb/agent_extension.py).
+# System dependency: ffmpeg. API keys: see README ("Run it"); never commit them.
+-r requirements-fdb.txt
+-e .[vision]

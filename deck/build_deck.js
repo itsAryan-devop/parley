@@ -14,7 +14,7 @@
 const pptxgen = require("pptxgenjs");
 const path = require("path");
 
-const OUT = path.join(__dirname, "ThaparPatiala_TEAM_Submission_ppt.pptx");
+const OUT = path.join(__dirname, "Thapar_The_T_Guys_Theme5_Kernel_ppt.pptx");
 
 const BG = "0E1116", PANEL = "161B22", LINE = "2B323C";
 const TEXT = "E6EDF3", MUTED = "8B949E", DIM = "6E7681";
@@ -25,7 +25,7 @@ const H = "Cambria", B = "Calibri";
 
 const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE";            // 13.3 x 7.5 — set BEFORE any slide
-pres.author = "ThaparPatiala_TEAM";
+pres.author = "Thapar_The_T_Guys_Theme5";
 pres.title = "PARLEY — Interruptible Real-Time Agents";
 
 // ---------------------------------------------------------------- helpers
@@ -101,7 +101,7 @@ function stat(s, x, y, w, value, label, color) {
   s.addText(
     "Samsung PRISM Y2026 GenAI Hackathon (3rd Edition)\n" +
     "Theme 05 — Interruptible Real-Time Agents\n\n" +
-    "ThaparPatiala_TEAM · Thapar Institute of Engineering & Technology, Patiala",
+    "Thapar_The_T_Guys_Theme5 · Thapar Institute of Engineering & Technology, Patiala",
     { x: 0.95, y: 4.45, w: 8.2, h: 1.5, isTextBox: true, margin: 0,
       fontFace: B, fontSize: 14, color: MUTED, lineSpacing: 21 }
   );
