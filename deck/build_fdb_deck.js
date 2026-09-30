@@ -26,6 +26,8 @@ const RESULTS = [
   ["5 clips · ablation (ours off)", 100, "5/5 · 5.0 s"],
   ["10 spread · before fixes", 30, "3/10 · 6.1 s"],
   ["10 spread · with fixes", 40, "4/10 · 6.8 s"],
+  ["10 spread · gpt-oss-20b", 60, "6/10 · 6.3 s"],
+  ["10 spread · 20b + STT-aware guard", 50, "5/10 · 5.6 s (1 clip lost to benchmark client crash)"],
 ];
 
 const pres = new pptxgen();
@@ -140,7 +142,7 @@ function card(s, x, y, w, h, fill) {
   });
   const notes = [
     ["Turn detector", "Our learned endpointer holds the turn while the words end on “no”, “I mean”, a dangling word or a trailing “…”.", GREEN],
-    ["ToolGuard", "Each call waits 0.3 s and runs only if the user is silent — otherwise “not executed, still speaking”. Identical (tool, args) runs once.", GREEN],
+    ["ToolGuard", "Each call waits 0.3 s and runs only if the user is silent and nothing they said is still in STT — else “not executed”. Identical (tool, args) runs once.", GREEN],
     ["Fork of the stock agent", "Same 12 tools, schemas and logs as FDB-v3’s cascaded agent, so the benchmark scores it like the baseline.", BLUE],
   ];
   notes.forEach(([t, d, c], i) => {
@@ -155,7 +157,7 @@ function card(s, x, y, w, h, fill) {
   const s = slide(false);
   heading(s, "What PARLEY adds, and the failure each one fixes", "What's new", false);
   const items = [
-    ["Guard waits for silence", "A call issued while the user is still talking is deferred, not only one they resume inside the window.", "Self-correction clip: two calls (checking, savings) → one call on savings"],
+    ["Guard waits for silence", "A call is deferred while the user is talking, or while their last words are still being transcribed.", "Self-correction clip: two calls (checking, savings) → one call on savings"],
     ["Turn detector reads Whisper right", "“I’m” and a pause-capitalised word are not proper nouns; a trailing “…” is not a finished value.", "Trailing-off turn: 0.986 “done” → 0.011"],
     ["Spoken IDs canonicalised", "“P-5-2” → “P52”, only in ID arguments whose pieces are ≤ 3 characters. The prompt version was ignored by the LLM.", "Spelled-ID clip now passes exact match"],
     ["Local TTS, patient retries", "Piper speaks on CPU (Groq's free TTS allows 100 requests a day). LLM retries 6 × 3 s instead of giving up after ~7 s.", "Mean latency 10.1 s → 5.7 s on the same clips"],
@@ -185,7 +187,7 @@ function card(s, x, y, w, h, fill) {
   });
   const caveats = [
     "Exact-match scoring only: no OpenAI key, so FDB-v3's gpt-4o judge did not run.",
-    "5–10 clips per run. The same clip has flipped between pass and fail on replays.",
+    "5–10 clips per run. The same clip has flipped between pass and fail on replays. The 20b rows exist because 120b's daily quota was spent.",
     "Measured without a GPU, on a local LiveKit server; latency is from that box.",
     "No 100-clip run yet: Groq's free tier caps each tool-calling model at 200K tokens/day, and a clip costs ~4K.",
   ];

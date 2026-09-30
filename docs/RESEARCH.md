@@ -427,6 +427,19 @@ demo video and headline performance numbers.
 diagram, a video). Our README now leads with `reproduce.sh` and one diagram.
 The video is on the human checklist in `docs/STATUS.md`.
 
+### R4.6 What the two applied changes did (A/B, 10 clips, gpt-oss-20b)
+
+Baseline 6/10 strict. **Stale-value resolver (R4.3): 3/10, and it never fired.** The
+difference is noise plus two benchmark-client crashes, so it is not kept and ships
+off. **Guard waits for untranscribed speech (from R4.3's Keel "not speaking" condition,
+extended to speech still in STT): 5/10**, with the one lost clip a client crash. It gives
+identical pass/fail on the 9 comparable clips, the self-correction clip passes, and it is
+0.7 s faster on average. Kept.
+
+**→ Action.** `parley/fdb/guard.py` defers on pending speech (tests in
+`tests/test_fdb.py`); `PARLEY_RESOLVER` defaults to off. Numbers in
+`docs/FDB_RESULTS.md` step 9, tested on 10 clips only; no 100-clip run exists.
+
 ---
 
 ## Standing conclusions

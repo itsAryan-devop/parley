@@ -52,7 +52,7 @@ the stock agent. What PARLEY adds, all in `parley/fdb/`:
 | Piece | What it does | Why |
 |---|---|---|
 | **Turn detector** (`turn.py`) | Our trained endpointer (`parley/agent/endpointer.py`) behind LiveKit's turn-detector interface. It keeps the turn open when the words so far end on a dangling word, a repair marker ("no", "I mean") or a trailing-off "…" | Ending the turn inside *"to checking — wait, no …"* hands the LLM the abandoned value |
-| **ToolGuard** (`guard.py`) | Every call waits a 0.3 s commit window and runs only if the user is silent. Otherwise the LLM gets *"not executed, the user is still speaking"*. An identical `(tool, args)` runs at most once per conversation | Cancel before effect. It is the only defence once the LLM has already fired |
+| **ToolGuard** (`guard.py`) | Every call waits a 0.3 s commit window and runs only if the user is silent *and* nothing they said is still being transcribed. Otherwise the LLM gets *"not executed, the user is still speaking"*. An identical `(tool, args)` runs at most once per conversation | Cancel before effect. It is the only defence once the LLM has already fired |
 | **Spoken-ID canonicaliser** (`args.py`) | `P-5-2` → `P52`, but only in ID arguments whose pieces are all ≤ 3 characters | Whisper inserts separators nobody said, and the LLM copies them |
 | **Local TTS** (`local_tts.py`) | Piper speaks in-process on CPU | Groq's free TTS allows 100 requests a day, far short of 100 clips |
 | **Instructions** | Act only on the final corrected value. Only perform state-changing actions the user asked for. Never claim an action whose tool did not succeed | Each rule addresses a failure seen in our transcripts |
@@ -135,6 +135,13 @@ Read the caveats first:
 | first 5 | **ablation**: turn detector and guard off | 5/5 | 100% | 5.0 s |
 | 10 spread, all domains | before the step-4 fixes (mixed run) | 3/10 | 91.9% | 6.1 s |
 | 10 spread | + guard/turn/retry fixes | **4/10** | 81.1% | 6.8 s |
+| 10 spread | same config, **gpt-oss-20b** (A/B baseline) | **6/10** | 100% | 6.3 s |
+| 10 spread | gpt-oss-20b + guard waits for untranscribed speech (kept) | 5/10 † | 100% | 5.6 s |
+
+† One clip was lost to FDB-v3's own client crashing at teardown; on the other nine, pass/fail
+is identical to the baseline. The gpt-oss-20b rows exist because gpt-oss-120b's free daily
+token cap was spent. They compare changes against each other, and were tested on these 10
+clips only. The submitted default is still gpt-oss-120b.
 
 **What the ablation says, honestly:** on the 5 easy clips our additions show no benefit. The
 one-clip difference is replay noise, and the guard's commit window costs latency. Those clips

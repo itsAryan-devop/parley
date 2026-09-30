@@ -40,7 +40,7 @@ and [`RESEARCH.md`](RESEARCH.md) Round 4. Everything is on branch
 | 6 README | Rewritten for the new guide. The old one is preserved as `docs/KERNEL.md`. |
 | 7 Deck | 8 slides, honest numbers, `deck/build_fdb_deck.js` rebuilds it. |
 | 8 This file | — |
-| 9 Research | 15 lookups. The FDB-v3 paper's own diagnosis; LiveKit issue #3702; other teams: Keel (48/100 strict, exact-match, Gemini Live), SentinelEdge, Interject; Smart Turn v3. Past PRISM winners aren't published. Two improvements tried (below). |
+| 9 Research | 15 lookups. The FDB-v3 paper's own diagnosis; LiveKit issue #3702; other teams: Keel (48/100 strict, exact-match, Gemini Live), SentinelEdge, Interject; Smart Turn v3. Past PRISM winners aren't published. Two improvements A/B'd: the guard waiting for untranscribed speech was kept; the stale-value resolver was dropped (it never fired). |
 
 ## Final numbers (exact-match, small samples — see caveats)
 
@@ -50,7 +50,7 @@ and [`RESEARCH.md`](RESEARCH.md) Round 4. Everything is on branch
 | 10 spread | gpt-oss-120b | 4/10 | 81.1% | 48.1% | 6.8 s |
 | 10 spread | gpt-oss-20b (A/B baseline) | **6/10** | 100% | 74.1% | 6.3 s |
 | 10 spread | gpt-oss-20b + stale-value resolver | 3/10 (2 clips lost to the benchmark client crashing) | 80.8% | 45.8% | 7.7 s |
-| 10 spread | gpt-oss-20b + pending-speech guard | STEP9_PENDING | | | |
+| 10 spread | gpt-oss-20b + guard waits for untranscribed speech (**kept**) | 5/10 (1 clip lost to a client crash; identical to baseline on the other 9) | 100% | 70.8% | **5.6 s** |
 
 Caveats: **exact-match only**, since there's no OpenAI key for FDB-v3's gpt-4o judge. The runs
 used a **local LiveKit server and CPU-only ASR** in a sandbox. Replays of the same clip flip

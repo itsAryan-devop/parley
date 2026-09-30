@@ -111,3 +111,40 @@ gpt-oss-20b and qwen3.8-27b each allow **200K tokens/day**. Orpheus TTS allows
 tokens, so **no free Groq model can finish one in a day, and the organisers'
 re-run on free keys would stop around clip 50.** The TPD counter refills at
 roughly 8K tokens/hour (~2 clips/hour).
+
+## Step 5 — the 100-clip run: not done
+
+Two attempts, both blocked by the quota above:
+1. **Wait and resume.** At the observed refill rate (~8K tokens/hour on gpt-oss-120b), 100
+   clips at ~4K each would take ~50 hours, past the 30 Sep deadline. `reproduce.sh` now supports
+   `RESUME=1 RUN_DIR=...` for when quota allows.
+2. **Another model.** gpt-oss-20b and qwen3.8-27b have the same 200K/day cap, so no free
+   model can take 100 clips in a day. A CPU-only local LLM on this 4-core sandbox would take
+   minutes per call.
+
+## Step 9 — research-driven changes (A/B on gpt-oss-20b, same 10 spread clips)
+
+gpt-oss-120b's daily cap was spent, so every run in this A/B uses **gpt-oss-20b** (its own
+200K quota) for both baseline and variants. It is a controlled comparison of the change, not a
+measurement of the submitted model. **Tested on these 10 clips only.**
+
+| Run | Change | Replied | Tool sel. | Args | Strict | Mean latency |
+|---|---|---|---|---|---|---|
+| `20260930-010534` | baseline (step-4 config) | 9/10 | 100% | 74.1% | **6/10** | 6.3 s |
+| `20260930-011713` | + stale-value resolver | 8/10 | 80.8% | 45.8% | 3/10 | 7.7 s |
+| `20260930-012934` | + guard waits for untranscribed speech (resolver off) | 8/10 | 100% | 70.8% | 5/10 | 5.6 s |
+
+- **Resolver: not kept (shipped off).** It never fired: no `stale_value` entry in any clip.
+  The drop is replay noise plus 2 clips lost to FDB-v3's client crashing (SIGABRT). In that run
+  the self-correction clip double-called again. The timeline showed why, and led to the next
+  change.
+- **Guard waits for untranscribed speech: kept.** The failed replay showed the "checking" call
+  running 0.9 s after the user fell silent, while their "wait, no … savings" was still in STT.
+  The guard now also defers while VAD has heard more speech segments than STT has delivered,
+  for at most 4 s after silence. Result: the one lost clip (housing_02) was a client crash and
+  passed in both other gpt-oss-20b runs. On the other 9 clips, pass/fail is **identical** to the
+  baseline, and the self-correction clip passes. Tool selection holds at 100%.
+
+Clips that fail in every gpt-oss-20b run: housing_13 (filter names, exact match), housing_21
+(the city never reaches the transcript), travel_07 (a spelled document number captured as one
+letter), travel_21 (a date format difference in `search_flights`).
