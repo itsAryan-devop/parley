@@ -2,16 +2,19 @@
 
 **Samsung PRISM Y2026 GenAI Hackathon (3rd Edition) · Theme 05**
 
-Running log backing the mandatory `LangAI3.0_AI_Disclosure.docx`. Section 4 of that
+Running log backing the mandatory `LangAI3.0_AI_Disclosure.docx`. **The filled form is
+[`AI_Disclosure_Thapar_The_T_Guys_Theme5.docx`](AI_Disclosure_Thapar_The_T_Guys_Theme5.docx)**;
+it also covers F7 (learned turn detector), F8 (the FDB-v3 LiveKit agent) and F9 (the camera
+extension), whose prompts are in `docs/AI_PROMPT_LOG.md`. Section 4 of that
 form asks for **the prompts used**, so they are recorded here as work happens rather
 than reconstructed at submission.
 
 | Field | Value |
 |---|---|
-| Team Name | `ThaparPatiala_<TEAM>` *(to confirm)* |
+| Team Name | `Thapar_The_T_Guys_Theme5` (team The_T_Guys) |
 | Project / Product Name | PARLEY |
 | Organization / Institution | Thapar Institute of Engineering & Technology, Patiala |
-| Submission Date | *(to confirm — deck says 25 Sep 2026)* |
+| Submission Date | 30 September 2026 |
 
 ---
 

@@ -11,7 +11,7 @@
 const pptxgen = require("pptxgenjs");
 const path = require("path");
 
-const OUT = path.join(__dirname, "ThaparPatiala_TEAM_FDBv3_ppt.pptx");
+const OUT = path.join(__dirname, "Thapar_The_T_Guys_Theme5_FDBv3_ppt.pptx");
 
 const BG = "0E1116", PANEL = "161B22", LINE = "2B323C";
 const TEXT = "E6EDF3", MUTED = "8B949E";
@@ -32,7 +32,7 @@ const RESULTS = [
 
 const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE"; // 13.33 x 7.5
-pres.author = "ThaparPatiala_TEAM";
+pres.author = "Thapar_The_T_Guys_Theme5";
 pres.title = "PARLEY — listens through self-corrections before it acts";
 
 function slide(dark) {
@@ -85,7 +85,7 @@ function card(s, x, y, w, h, fill) {
     x: 0.8, y: 4.6, w: 11.5, h: 0.6, isTextBox: true, margin: 0,
     fontFace: H, fontSize: 20, italic: true, color: MUTED,
   });
-  s.addText("Team ThaparPatiala_<TEAM> · Thapar Institute of Engineering & Technology, Patiala", {
+  s.addText("Team Thapar_The_T_Guys_Theme5 · Thapar Institute of Engineering & Technology, Patiala", {
     x: 0.8, y: 6.5, w: 11.8, h: 0.4, isTextBox: true, margin: 0,
     fontFace: B, fontSize: 13, color: MUTED,
   });

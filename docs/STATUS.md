@@ -28,7 +28,7 @@ and [`RESEARCH.md`](RESEARCH.md) Round 4. Everything is on branch
    100 requests a day, one per spoken sentence, so no 100-clip run could finish. Piper
    (MIT, public-domain voice) runs on CPU and cut mean latency from 10.1 s to 5.7 s.
    `PARLEY_TTS=groq` switches back. Review the voice quality in one clip.
-3. **Two decks exist.** The new 8-slide `deck/ThaparPatiala_TEAM_FDBv3_ppt.pptx` covers the
+3. **Two decks exist.** The new 8-slide `deck/Thapar_The_T_Guys_Theme5_FDBv3_ppt.pptx` covers the
    FDB-v3 work. The old kernel-era deck is still there. Pick one to submit.
 4. **Rotate the LiveKit and Groq keys.** They were in this cloud session's environment all
    night. They were never written to git or to any log.
@@ -82,7 +82,7 @@ exact match.
 - [ ] More real device frames for the camera extension, especially a router with LEDs lit and a
   washer display. Start `fdb/agent_extension.py` with `PARLEY_EXT_DEBUG_DIR=<dir>` so each frame
   it diagnoses is saved. Real "No Signal" TVs already work (README, Extension section).
-- [ ] Fill in the team name: `ThaparPatiala_<TEAM>` appears in the README and both decks.
+- [x] Team name set: `Thapar_The_T_Guys_Theme5` (team The_T_Guys) in the README and deck files.
 - [ ] Read and sign `DISCLOSURE.md` (AI usage); `docs/AI_PROMPT_LOG.md` has tonight's prompt.
 - [ ] Confirm the deadline and time zone with the organisers.
 - [ ] Make fresh LiveKit and Groq keys and rotate the old ones.

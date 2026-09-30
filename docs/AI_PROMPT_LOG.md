@@ -227,4 +227,13 @@ like a panel code. Held-out phone frames: 5/9 correct (all real "No Signal" TVs)
 - "is anything else left to be updated can you check" -> deck slide 7 (said "being built", and
   planned a washer/interruption demo that does not work yet) rewritten to what is built and
   measured, deck rebuilt; docs/STATUS.md extension and PR items brought up to date.
+- (deck template) "this is the ppt template make me a md file i give to claude design to make a
+  ppt add graphs and videos graphics etc" -> a slide brief (kept outside the repo).
+- "https://forms.gle/C4u1ox5aQqaJsLuy5 this is the form we have to fill" / "try again, i allowed
+  it" -> read the submission form (not filled or submitted by the assistant).
+- "file this form and make the requirment.txt and push these for now i am working the video and
+  ppt , the team name is The_T_Guys" -> filled the AI disclosure form
+  (`AI_Disclosure_Thapar_The_T_Guys_Theme5.docx`; sign-off left for the team), added
+  `requirements.txt`, set the team name `Thapar_The_T_Guys_Theme5` in README, docs and both
+  decks (files renamed, decks rebuilt).
 

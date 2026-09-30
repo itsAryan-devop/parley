@@ -8,7 +8,7 @@
 **An interruption-native coordination kernel for full-duplex voice agents.**
 
 Samsung PRISM Y2026 GenAI Hackathon (3rd Edition) · **Theme 05 — Interruptible Real-Time Agents**
-Team `ThaparPatiala_<TEAM>` · Thapar Institute of Engineering & Technology, Patiala
+Team `Thapar_The_T_Guys_Theme5` · Thapar Institute of Engineering & Technology, Patiala
 
 > *Parley (n.): a conversation between opposing parties, conducted under a truce, in which either
 > side may speak at any moment.*

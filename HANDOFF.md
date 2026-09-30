@@ -5,7 +5,7 @@ context and continue without breaking anything.
 
 **Project:** PARLEY — Samsung PRISM Y2026 GenAI Hackathon (3rd Edition),
 **Theme 05 — Interruptible Real-Time Agents**
-**Team:** `ThaparPatiala_<TEAM>` (placeholder — see §6), Thapar Institute, Patiala
+**Team:** `Thapar_The_T_Guys_Theme5` (team The_T_Guys), Thapar Institute, Patiala
 **Deadline:** **30 September 2026**, confirmed by the team. *(The deck PDF we
 were given reads 25 Sep. The team has confirmed the 30th twice. Do not re-raise
 this.)*
