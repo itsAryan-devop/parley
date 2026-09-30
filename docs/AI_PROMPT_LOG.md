@@ -222,4 +222,9 @@ like a panel code. Held-out phone frames: 5/9 correct (all real "No Signal" TVs)
 0 wrong. The phrase rule was written after seeing those frames; disclosed in the README.
 - "it works now on the tv i showed a random tv with no signal on it" -> recorded in the README as
   a first independent live check (frame not saved).
+- "there are no more pull request go through the repo and push your code" -> PR #3 had merged
+  before the last three commits; they went to master via PR #4.
+- "is anything else left to be updated can you check" -> deck slide 7 (said "being built", and
+  planned a washer/interruption demo that does not work yet) rewritten to what is built and
+  measured, deck rebuilt; docs/STATUS.md extension and PR items brought up to date.
 
