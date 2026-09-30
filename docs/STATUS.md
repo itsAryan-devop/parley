@@ -78,7 +78,7 @@ exact match.
 ## Checklist — only humans can do these
 
 - [ ] Decide the LLM/quota question above (item 1) before anything is submitted.
-- [ ] Record the 3–5 min video (a real interruption on a benchmark clip, then the camera extension).
+- [x] Demo video recorded and uploaded: https://youtu.be/-l4Yk7sETZQ
 - [ ] More real device frames for the camera extension, especially a router with LEDs lit and a
   washer display. Start `fdb/agent_extension.py` with `PARLEY_EXT_DEBUG_DIR=<dir>` so each frame
   it diagnoses is saved. Real "No Signal" TVs already work (README, Extension section).

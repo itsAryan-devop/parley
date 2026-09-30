@@ -240,4 +240,8 @@ like a panel code. Held-out phone frames: 5/9 correct (all real "No Signal" TVs)
   `LangAI3.0_AI_Disclosure_The_T_Guys.docx` (signed by Devaansh Gupta) replaces the unsigned one.
 - "it is still not pushed it is not showing for me" / "i am talking about in the .md" -> README
   gained a "Submission materials" table linking the signed form and requirements.txt; DISCLOSURE.md sign-off filled.
+- Video: slides + Piper narration generated for the non-phone parts; the team's phone demo and
+  voice recording were combined with them (4 min 58 s). Camera fixes from the live tests: a
+  second look at fresh frames before "retake"; OCR on the enlarged glowing display (real washer
+  E4 photo). Demo video link added: https://youtu.be/-l4Yk7sETZQ
 
