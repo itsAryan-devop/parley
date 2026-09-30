@@ -87,6 +87,7 @@ exact match.
 - [ ] Confirm the deadline and time zone with the organisers.
 - [ ] Make fresh LiveKit and Groq keys and rotate the old ones.
 - [x] PRs #1–#4 merged (#5: deck/STATUS follow-up).
+- [x] Final deck added: `deck/Thapar_The_T_Guys_Theme5_Submission.pptx`.
 - [ ] Cut the release tag.
 - [ ] Submit the form.
 
