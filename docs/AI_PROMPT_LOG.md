@@ -130,3 +130,77 @@ evaluation GPU), which is the unblocking path for a 100-clip run. It was smoke-t
 clip against Groq's OpenAI-compatible endpoint. `reproduce.sh`, README and STATUS updated.
 **Still not done:** the 100-clip run, because the free-tier daily token cap is unchanged; and the
 human-only checklist in `docs/STATUS.md`.
+---
+
+## 2026-09-30 — Devaansh — Claude Code (desktop app, Opus 5.5)
+
+**Prompts (verbatim, abridged; keys redacted):**
+- (pasted brief) "We're continuing PARLEY ... pivoted to Full-Duplex-Bench v3 ... Step 0: get
+  FDB-v3's stock cascaded_agent.py running ... Step 1: fork it into agent_parley.py ... Step 2:
+  write a one-command reproduce.sh ... Cost rule: develop and test against only 3–5 samples."
+- "https://github.com/itsAryan-devop/parley"
+- "can you pause for now"
+- "start from the begining of the prompt and" + (pasted from the lead) "Stop building
+  agent_parley.py, reproduce.sh, the tool guard or the turn detector. They're already done and
+  merged into master ... Run a 5-clip test: SAMPLES=5 bash reproduce.sh ... fix setup errors
+  only. Don't rebuild anything." + LiveKit keys [REDACTED] — "here is more work"
+- "ffmpeg installed" / "here is the key [GROQ key REDACTED]" / "ffmpeg installed in ubuntu now"
+- "in wsl it shows my server as zulip server how do i get out of it"
+- "you will continue working after the setup right and how much time will it take"
+- (pasted) "Task: build the extension use case (20% of the score): camera-based device
+  troubleshooting as a live LiveKit voice agent. Do NOT touch fdb/agent_parley.py, parley/fdb/ or
+  reproduce.sh ... One tool, diagnose_device_frame() ... The agent must ask, not guess ... Offline
+  tests in tests/test_extension.py ... Test with 2–3 real phone photos ... Test it live with a
+  webcam in the free LiveKit Agents Playground ... Add a short README section ... Append this
+  session to docs/AI_PROMPT_LOG.md. Then commit, push to a new branch extension-camera, and open a
+  pull request."
+- "Use LLM model openai/gpt-oss-120b on Groq (same as the new default in fdb/agent_parley.py), not
+  llama-3.3-70b-versatile, which Groq no longer serves. Pull master again first."
+
+**Output:**
+- Benchmark setup in WSL2 Ubuntu (`~/parley`, Python 3.10 via uv, `.venv-fdb` pre-installed).
+  First 5-clip run: agent did not register within reproduce.sh's 60 s on a cold start (7 s warm).
+  Second run stopped by us before inference (see "Findings"). No benchmark scores yet.
+- `parley/extension/camera.py` — latest-frame holder, RGBA→PNG, `FrameDiagnoser` (reuses
+  `parley.fdb.ToolGuard` for per-session frame dedup), `summarise` → diagnosed / ask / retake with
+  manual steps from `harness/mockenv/world.py`.
+- `fdb/agent_extension.py` — separate LiveKit agent (explicit name `parley-extension`, so it never
+  joins benchmark rooms), Groq STT + `openai/gpt-oss-120b` + Orpheus TTS, video-track subscription,
+  one raw-schema tool, `token` subcommand for the Agents Playground.
+- `tests/test_extension.py` (11 tests, offline), README "Extension" section.
+- Small refactor stashed/abandoned before the lead's instruction (endpointer manifest work);
+  kept on a local stash and branch `backup/pre-merge-gitignore`, not pushed.
+
+**Findings worth the team's attention:**
+- A no-argument tool is rejected by Groq (HTTP 400, `required` without `properties`); fixed with
+  an explicit raw schema.
+- livekit-agents 1.3.12 cuts Groq Orpheus audio after the first sentence when synthesis is slower
+  than real time ("Invalid WAV file: missing RIFF/WAVE"). The extension buffers each WAV whole;
+  **`fdb/agent_parley.py` uses the same TTS and likely has the same truncation**, which would hurt
+  FDB-v3 response accuracy.
+- Groq's free Orpheus TTS quota is ~3,600 characters / 100 requests per day per account. That is
+  far below what 100 benchmark clips need.
+
+**Human decisions:** WSL instead of Windows; keys only in gitignored `.env.local` files and
+`~/.parley_keys`; extension kept separate from the benchmark agent.
+**Not yet verified:** real phone photos (none provided yet); live webcam test in the Agents
+Playground (needs the human's webcam). Automated end-to-end with a fake camera track passed for
+washer E4, router WAN amber, ambiguous router (asked) and unreadable washer (retake).
+
+**Later in the same session (verbatim prompts):**
+- "how do i run it" / "where should i go" / "where" (screenshots of the LiveKit Cloud dashboard
+  and login page) / "it says registered worker, now what"
+- "it was talking before but it seems to have stopped talking" (screenshot: Groq TTS 429, then
+  `session closed ... tts_error recoverable=False`)
+- "can you my own claude api key which i am using right now to chat with you" (answered: no
+  access to it, the Claude API has no TTS, and it is a paid service)
+- "try the offline piper voice as a fallback"
+- "check github now there have been new pushs see them first"
+
+**Changes from those:** run instructions moved from the Agents Playground (now requires the
+project owner's LiveKit Cloud login) to LiveKit Meet's custom URL + token tab; TTS is now
+`tts.FallbackAdapter([Groq Orpheus, Piper])` so a 429 changes the voice instead of ending the
+session. After seeing PR #2, the branch was rebased onto `claude/dreamy-volta-fedkme` and reuses
+its `parley.fdb.local_tts.PiperTTS` (piper-tts 1.2.0, checksummed ljspeech voice) instead of a
+second Piper implementation; README Extension section replaces PR #2's placeholder. The 5-clip
+benchmark run was left to PR #2's results (4/5 strict) rather than repeated.

@@ -156,13 +156,63 @@ went from two calls (checking, then savings) to one call on savings. For referen
 stock cascaded agent scores 0.45 Pass@1 on all 100 clips *with* the gpt-4o judge, a different
 and more lenient measure.
 
-## Extension (20% use case) — camera frame
+## Extension (20% use case): camera device troubleshooting
 
-A teammate is building the extension, **device troubleshooting from a camera frame**, on branch
-[`extension-camera`](../../tree/extension-camera). It builds on the perception
-code already in [`parley/multimodal/`](parley/multimodal), which reads an appliance's panel or
-LED pattern from a photo and abstains when the frame is undecidable. It is kept separate from the
-benchmark agent, and the FDB-v3 scores above do not include it.
+> **This is the extension use case, not part of the FDB-v3 benchmark agent.** It is a separate
+> LiveKit agent (`fdb/agent_extension.py`) so its extra tool can never draw calls on the benchmark.
+
+**What it does.** You talk to it and point your camera at a washing machine panel, a router or a TV.
+It subscribes to your video track, keeps only the latest frame in memory, and has one tool,
+`diagnose_device_frame()`, which runs PARLEY's perception code on that frame
+(`parley.multimodal.ground_frame`: colour classifier + OCR of the panel + abstention). Then one of
+three things happens:
+
+| Tool status | What the agent does |
+|---|---|
+| `diagnosed` | names the fault (e.g. *panel reads E4*) and reads out the matching manual steps |
+| `ask` | two faults are too close to call: it asks which one (*"is it the WAN LED amber or the power LED red?"*) and names no diagnosis until you answer |
+| `retake` / `no_frame` | it asks you to move the camera closer / square-on, or to turn the camera on |
+
+The same frame is never diagnosed twice (the ported idempotency ledger, `parley.fdb.ToolGuard`), and
+all state is per session: nothing is cached across sessions. The logic lives in
+`parley/extension/camera.py` and is tested offline in `tests/test_extension.py` (no network).
+
+**Run it.** Same free Groq backend as the benchmark agent (Whisper-large-v3-turbo STT,
+`openai/gpt-oss-120b`). Extension-only models: Groq's Orpheus TTS (`canopylabs/orpheus-v1-english`,
+falling back to local Piper) and RapidOCR (`rapidocr-onnxruntime`, Apache-2.0, local CPU) for panel
+text. Put `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` and `GROQ_API_KEY` in `.env.local`
+at the repo root (gitignored), then:
+
+```bash
+pip install -e ".[vision]" piper-tts==1.2.0 python-dotenv==1.2.3     # no NeMo needed
+pip install "livekit-agents[openai]==1.3.12" livekit-plugins-groq==1.3.12 livekit-plugins-silero==1.3.12
+python fdb/agent_extension.py dev      # terminal 1: the agent worker
+python fdb/agent_extension.py token    # terminal 2: prints URL + a token that dispatches the agent
+```
+
+Open [meet.livekit.io/?tab=custom](https://meet.livekit.io/?tab=custom), paste the URL and token,
+click Connect, then Join Room with camera and microphone on. (The Agents Playground now requires
+signing in to the LiveKit Cloud account that owns the project, so a token is the simpler route.)
+The agent registers under the explicit name `parley-extension`, so it only joins rooms whose token
+asks for it.
+
+**What it does not do.**
+
+- It knows four device states: `washer_error_e4`, `router_power_led_red`, `router_wan_led_amber`,
+  `tv_hdmi_no_signal`. Anything else is an abstention (`retake`) or, for an unknown panel code, a
+  question naming the code. It does not identify appliance models or read arbitrary text.
+- The classifier was trained on **synthetic** frames only (see HANDOFF.md §7). How it does on real
+  phone photos is measured, not assumed:
+
+  **Real-photo results:** *pending: to be filled in from our own phone photos.*
+- **Groq free-tier TTS is tiny:** Orpheus allows about 3,600 characters and 100 requests per day
+  per account, and a few minutes of conversation can use it up.
+  When Groq returns 429 the agent switches to the benchmark agent's **offline Piper voice**
+  (`parley/fdb/local_tts.py`; `reproduce.sh` downloads and checksums it into `models/piper/`) and
+  switches back when Groq recovers, so the voice changes mid-conversation instead of the session
+  ending. Without the voice file it runs on Groq alone.
+- Remedies come from the bundled manual pages (`harness/mockenv/world.py`), not from a real
+  manufacturer database, and the LLM is instructed not to add steps of its own.
 
 ## Repository map
 
@@ -170,6 +220,7 @@ benchmark agent, and the FDB-v3 scores above do not include it.
 |---|---|
 | `fdb/agent_parley.py` | the scored LiveKit agent |
 | `parley/fdb/` | turn detector, ToolGuard, ID canonicaliser, Piper TTS |
+| `fdb/agent_extension.py`, `parley/extension/` | the extension: camera device troubleshooting agent (not scored on FDB-v3) |
 | `reproduce.sh`, `requirements-fdb.txt` | one-command, pinned reproduction |
 | `scripts/fdb_summary.py` | per-clip table and latency breakdown for a run |
 | `docs/FDB_RESULTS.md` | every benchmark run and what changed |
