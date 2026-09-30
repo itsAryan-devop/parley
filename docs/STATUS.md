@@ -28,8 +28,8 @@ and [`RESEARCH.md`](RESEARCH.md) Round 4. Everything is on branch
    100 requests a day, one per spoken sentence, so no 100-clip run could finish. Piper
    (MIT, public-domain voice) runs on CPU and cut mean latency from 10.1 s to 5.7 s.
    `PARLEY_TTS=groq` switches back. Review the voice quality in one clip.
-3. **Two decks exist.** The new 8-slide `deck/Thapar_The_T_Guys_Theme5_FDBv3_ppt.pptx` covers the
-   FDB-v3 work. The old kernel-era deck is still there. Pick one to submit.
+3. **One deck:** `Thapar_The_T_Guys_Theme5_Submission.pptx` at the repo root (12 slides, the
+   organisers' template). The earlier 8-slide and kernel decks were removed.
 4. **Rotate the LiveKit and Groq keys.** They were in this cloud session's environment all
    night. They were never written to git or to any log.
 
@@ -43,7 +43,7 @@ and [`RESEARCH.md`](RESEARCH.md) Round 4. Everything is on branch
 | 4 10 spread clips | Found and fixed 4 general bugs: the guard now waits for silence; Whisper capitals no longer fool the turn detector; spelled IDs are canonicalised (`P-5-2` → `P52`); LLM retries survive a 429. Strict pass went 3/10 → 4/10 on gpt-oss-120b, and **6/10 on gpt-oss-20b** in the clean A/B baseline. |
 | 5 100-clip run | **Not done**, blocked by the daily token cap (above). Two attempts, recorded in `FDB_RESULTS.md`: waiting for refill (~8K tokens/hour, so ~50 h) and other models (same cap). |
 | 6 README | Rewritten for the new guide. The old one is preserved as `docs/KERNEL.md`. |
-| 7 Deck | 8 slides, honest numbers, `deck/build_fdb_deck.js` rebuilds it. |
+| 7 Deck | superseded by the final 12-slide `Thapar_The_T_Guys_Theme5_Submission.pptx` (repo root). |
 | 8 This file | — |
 | 9 Research | 15 lookups. The FDB-v3 paper's own diagnosis; LiveKit issue #3702; other teams: Keel (48/100 strict, exact-match, Gemini Live), SentinelEdge, Interject; Smart Turn v3. Past PRISM winners aren't published. Two improvements A/B'd: the guard waiting for untranscribed speech was kept; the stale-value resolver was dropped (it never fired). |
 
@@ -87,7 +87,7 @@ exact match.
 - [ ] Confirm the deadline and time zone with the organisers.
 - [ ] Make fresh LiveKit and Groq keys and rotate the old ones.
 - [x] PRs #1–#4 merged (#5: deck/STATUS follow-up).
-- [x] Final deck added: `deck/Thapar_The_T_Guys_Theme5_Submission.pptx`.
+- [x] Final deck: `Thapar_The_T_Guys_Theme5_Submission.pptx` (repo root; older decks removed).
 - [ ] Cut the release tag.
 - [ ] Submit the form.
 
