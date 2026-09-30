@@ -234,6 +234,19 @@ async def test_retake_stands_when_no_fresh_frame_helps(monkeypatch) -> None:
     assert result["status"] == "retake"
 
 
+async def test_real_washer_photo_reads_e4() -> None:
+    """A real phone photo of a washer's red seven-segment 'E4'. The full-frame
+    OCR pass misreads it ('h3'); the enlarged display crop reads it."""
+    from parley.multimodal import ocr
+
+    if not ocr.available():
+        pytest.skip("RapidOCR not installed")
+    photo = Path(__file__).resolve().parents[1] / "media" / "real_frames" / "washer_e4_phone.png"
+    result, _ = await FrameDiagnoser().diagnose(photo.read_bytes())
+    assert result["label"] == "washer_error_e4"
+    assert result["evidence"] == "panel reads E4"
+
+
 def test_rgba_to_png_round_trips_and_caps_width() -> None:
     rgba = np.zeros((720, 1280, 4), dtype=np.uint8)
     rgba[..., 0] = 200

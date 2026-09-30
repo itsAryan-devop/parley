@@ -233,7 +233,10 @@ is saved there with its result (off by default).
   unchanged; the gains above come from reading the screen. Caveat: the "No Signal" rule was added after
   seeing these frames, so they are not an independent test of it. First independent check: a live
   test on a different TV showing "No Signal" was diagnosed correctly (observed by the tester; the
-  frame was not saved). More real photos are needed, especially of routers and washers.
+  frame was not saved). A real phone photo of a washer showing a red seven-segment "E4" was
+  first unreadable (the full-frame OCR read "h3"); OCR on the enlarged glowing display now reads it
+  and it is diagnosed (`media/real_frames/washer_e4_phone.png`, a regression test; the fix postdates
+  the photo). More real photos are needed, especially of routers and washers.
 - **Groq free-tier TTS is tiny:** Orpheus allows about 3,600 characters and 100 requests per day
   per account, and a few minutes of conversation can use it up.
   When Groq returns 429 the agent switches to the benchmark agent's **offline Piper voice**
