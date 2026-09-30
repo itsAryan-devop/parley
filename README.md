@@ -220,7 +220,9 @@ is saved there with its result (off by default).
   began answering the "two LEDs lit" frames it must ask about, and real-frame results were
   unstable (3/9 then 1/9 correct over two augmentation settings). The shipped colour model is
   unchanged; the gains above come from reading the screen. Caveat: the "No Signal" rule was added after
-  seeing these frames, so they are not an independent test of it. More real photos are needed.
+  seeing these frames, so they are not an independent test of it. First independent check: a live
+  test on a different TV showing "No Signal" was diagnosed correctly (observed by the tester; the
+  frame was not saved). More real photos are needed, especially of routers and washers.
 - **Groq free-tier TTS is tiny:** Orpheus allows about 3,600 characters and 100 requests per day
   per account, and a few minutes of conversation can use it up.
   When Groq returns 429 the agent switches to the benchmark agent's **offline Piper voice**
