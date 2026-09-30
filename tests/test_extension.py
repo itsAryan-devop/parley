@@ -136,12 +136,14 @@ def test_tts_proxy_pushes_each_wav_whole() -> None:
 
 async def test_quota_error_falls_back_to_offline_voice() -> None:
     """A Groq 429 must change the voice, not end the session. Offline: skipped
-    unless the Piper voice is already in the local cache."""
+    unless the Piper voice is already in models/piper/."""
     pytest.importorskip("livekit.agents")
     pytest.importorskip("piper")
     mod = _load_agent_module()
-    if not (mod.PIPER_DIR / f"{mod.PIPER_VOICE}.onnx").exists():
-        pytest.skip("Piper voice not downloaded; this test never touches the network")
+    from parley.fdb.local_tts import DEFAULT_VOICE, PiperTTS
+
+    if not DEFAULT_VOICE.exists():
+        pytest.skip("Piper voice not downloaded (reproduce.sh does it); no network in tests")
 
     from livekit.agents import APIStatusError, tts
 
@@ -157,7 +159,7 @@ async def test_quota_error_falls_back_to_offline_voice() -> None:
         async def _run(self, output_emitter):
             raise APIStatusError("Too Many Requests", status_code=429, retryable=False)
 
-    adapter = tts.FallbackAdapter([QuotaSpent(), mod.PiperTTS(mod._piper_voice())])
+    adapter = tts.FallbackAdapter([QuotaSpent(), PiperTTS()])
     seconds = 0.0
     async with adapter.synthesize("The router's WAN light is amber.") as stream:
         async for ev in stream:

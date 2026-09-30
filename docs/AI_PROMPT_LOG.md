@@ -186,3 +186,21 @@ human-only checklist in `docs/STATUS.md`.
 **Not yet verified:** real phone photos (none provided yet); live webcam test in the Agents
 Playground (needs the human's webcam). Automated end-to-end with a fake camera track passed for
 washer E4, router WAN amber, ambiguous router (asked) and unreadable washer (retake).
+
+**Later in the same session (verbatim prompts):**
+- "how do i run it" / "where should i go" / "where" (screenshots of the LiveKit Cloud dashboard
+  and login page) / "it says registered worker, now what"
+- "it was talking before but it seems to have stopped talking" (screenshot: Groq TTS 429, then
+  `session closed ... tts_error recoverable=False`)
+- "can you my own claude api key which i am using right now to chat with you" (answered: no
+  access to it, the Claude API has no TTS, and it is a paid service)
+- "try the offline piper voice as a fallback"
+- "check github now there have been new pushs see them first"
+
+**Changes from those:** run instructions moved from the Agents Playground (now requires the
+project owner's LiveKit Cloud login) to LiveKit Meet's custom URL + token tab; TTS is now
+`tts.FallbackAdapter([Groq Orpheus, Piper])` so a 429 changes the voice instead of ending the
+session. After seeing PR #2, the branch was rebased onto `claude/dreamy-volta-fedkme` and reuses
+its `parley.fdb.local_tts.PiperTTS` (piper-tts 1.2.0, checksummed ljspeech voice) instead of a
+second Piper implementation; README Extension section replaces PR #2's placeholder. The 5-clip
+benchmark run was left to PR #2's results (4/5 strict) rather than repeated.
