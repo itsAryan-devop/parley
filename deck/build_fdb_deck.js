@@ -218,21 +218,21 @@ function card(s, x, y, w, h, fill) {
 // 7 — extension -------------------------------------------------------------
 {
   const s = slide(false);
-  heading(s, "Extension: troubleshooting from a camera frame", "20% use case", false);
+  heading(s, "Extension: troubleshooting through the camera", "20% use case", false);
   body(s, [
-    { text: "The user shows the agent an appliance panel or a router’s LEDs; the agent reads the error code or LED pattern and looks it up.", options: { breakLine: true } },
+    { text: "A separate live LiveKit agent (fdb/agent_extension.py): the user points their phone camera at a TV, router or washer and asks what's wrong. One tool reads the latest frame: error code, LED colour, or on-screen text.", options: { breakLine: true } },
     { text: " ", options: { breakLine: true } },
-    { text: "When the frame can't be decided (blur, two plausible LEDs), it asks instead of guessing, and nothing is dispatched until the user answers.", options: { breakLine: true } },
+    { text: "Three outcomes only: a diagnosis with the manual's steps, a question naming both candidates, or a request for a better shot. It asks rather than guesses.", options: { breakLine: true } },
     { text: " ", options: { breakLine: true } },
-    { text: "Being built by a teammate on branch extension-camera, on top of the perception code in parley/multimodal/. It is not part of the FDB-v3 scores.", options: { bold: true } },
-  ], { x: 0.6, y: 2.0, w: 6.6, h: 4.3, fontSize: 17 });
+    { text: "Real phone frames, held out: 5/9 diagnosed (every real 'No Signal' TV), 4 abstained, 0 wrong. The colour model was trained on synthetic frames only; routers and washers on camera are not yet proven. Not part of the FDB-v3 scores.", options: { bold: true } },
+  ], { x: 0.6, y: 2.0, w: 6.6, h: 4.3, fontSize: 15 });
   card(s, 7.7, 2.0, 5.0, 4.3, SOFT);
   s.addText([
     { text: "Demo (video)", options: { bold: true, fontSize: 18, breakLine: true } },
     { text: " ", options: { breakLine: true } },
-    { text: "1. Photo of a washing-machine panel → error code read → fix looked up", options: { breakLine: true } },
-    { text: "2. Router with two LEDs lit → “the WAN LED or the power LED?”", options: { breakLine: true } },
-    { text: "3. The user interrupts mid-answer; the plan updates", options: {} },
+    { text: "1. Camera away from the device → it asks to see it, no guess", options: { breakLine: true } },
+    { text: "2. A real TV showing 'No Signal' → diagnosed from the screen text, fix read out", options: { breakLine: true } },
+    { text: "3. Groq's free voice quota runs out → offline Piper voice takes over, no drop", options: {} },
   ], { x: 8.0, y: 2.25, w: 4.4, h: 3.8, isTextBox: true, margin: 0, fontFace: B, fontSize: 14, color: INK, valign: "top" });
 }
 

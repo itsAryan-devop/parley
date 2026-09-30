@@ -79,17 +79,20 @@ exact match.
 
 - [ ] Decide the LLM/quota question above (item 1) before anything is submitted.
 - [ ] Record the 3–5 min video (a real interruption on a benchmark clip, then the camera extension).
-- [ ] Take the device photos for the camera extension (with the teammate on `extension-camera`).
+- [ ] More real device frames for the camera extension, especially a router with LEDs lit and a
+  washer display. Start `fdb/agent_extension.py` with `PARLEY_EXT_DEBUG_DIR=<dir>` so each frame
+  it diagnoses is saved. Real "No Signal" TVs already work (README, Extension section).
 - [ ] Fill in the team name: `ThaparPatiala_<TEAM>` appears in the README and both decks.
 - [ ] Read and sign `DISCLOSURE.md` (AI usage); `docs/AI_PROMPT_LOG.md` has tonight's prompt.
 - [ ] Confirm the deadline and time zone with the organisers.
 - [ ] Make fresh LiveKit and Groq keys and rotate the old ones.
-- [ ] Review and merge the draft PR, then cut the release tag.
+- [x] PRs #1–#4 merged (#5: deck/STATUS follow-up).
+- [ ] Cut the release tag.
 - [ ] Submit the form.
 
 ## If a teammate is taking over
 
-- **Branch:** `claude/dreamy-volta-fedkme`, draft PR #2 against `master`. Everything is pushed,
+- **Branch:** `master` (PRs #1–#4 merged). Everything is pushed,
   including every run's reports, logs and transcripts in `runs/fdb/` (index:
   `runs/fdb/README.md`). No audio, keys or benchmark data are committed.
 - **Run it on a normal machine** (with WebRTC access to LiveKit Cloud): set `LIVEKIT_URL`,
