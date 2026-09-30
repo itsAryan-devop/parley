@@ -72,6 +72,13 @@ _CODE_PATTERNS = [
     re.compile(r"\b([A-Z]{1,2}E)\b"),
 ]
 
+# English words the letter-E pattern also matches. A TV's "No Signal" screen says
+# "Check that the cable is plugged in", and reading THE as a fault code made the
+# agent ask about an appliance code that does not exist. Real letter codes (dE,
+# UE, HE, LE, OE) are not on this list.
+_NOT_CODES = frozenset({"THE", "ONE", "ARE", "USE", "SEE", "SHE", "WE", "BE", "ME",
+                        "DUE", "ICE", "AGE", "ATE", "EYE", "BYE", "TOE", "LIE", "DIE"})
+
 # A model number is a longer alphanumeric run. Kept distinct from error codes so
 # that "WW90T534DAN" is never reported to the user as a fault.
 _MODEL_PATTERN = re.compile(r"\b([A-Z]{2,4}\d{2,4}[A-Z0-9]{2,8})\b")
@@ -237,7 +244,7 @@ def _extract_codes(text: str) -> list[str]:
             # A bare two-character token that is really part of a model number
             # would be a damaging false positive, so anything appearing inside a
             # longer alphanumeric run is rejected.
-            if code and code not in found:
+            if code and code not in found and code not in _NOT_CODES:
                 found.append(code)
     return found
 

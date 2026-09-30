@@ -168,6 +168,28 @@ async def test_quota_error_falls_back_to_offline_voice() -> None:
     await adapter.aclose()
 
 
+async def test_rotation_tag_is_applied_before_diagnosis() -> None:
+    """Phones send portrait video as a landscape buffer plus a rotation tag.
+    A frame stored sideways with its tag must be diagnosed as if upright."""
+    img = Image.open(FRAMES / "tv_hdmi_no_signal.png").convert("RGBA")
+    sideways = img.transpose(Image.Transpose.ROTATE_90)  # 90° counter-clockwise
+    latest = LatestFrame()
+    latest.set(sideways.tobytes(), sideways.width, sideways.height, rotation=90)
+    png = rgba_to_png(latest.get().rgba, sideways.width, sideways.height, rotation=90)
+    assert Image.open(__import__("io").BytesIO(png)).size == img.size
+    result = await diagnose_latest(latest, FrameDiagnoser())
+    assert result["label"] == "tv_hdmi_no_signal"
+
+
+def test_english_words_are_not_error_codes() -> None:
+    from parley.multimodal.ocr import _extract_codes
+
+    text = "CHECK THAT THE CABLE IS PLUGGED IN. PRESS SOURCE TO SEE ONE INPUT"
+    assert _extract_codes(text) == []
+    assert _extract_codes("PANEL SHOWS DE") == ["DE"]
+    assert _extract_codes("ERROR E4") == ["E4"]
+
+
 def test_rgba_to_png_round_trips_and_caps_width() -> None:
     rgba = np.zeros((720, 1280, 4), dtype=np.uint8)
     rgba[..., 0] = 200

@@ -60,6 +60,10 @@ class Snapshot:
     width: int
     height: int
     seq: int
+    rotation: int = 0
+    """Clockwise degrees (0/90/180/270) to turn the buffer upright. Phones stream
+    portrait video as a landscape buffer plus this tag; ignoring it meant every
+    phone frame was diagnosed sideways, where OCR cannot read a single glyph."""
 
 
 class LatestFrame:
@@ -69,8 +73,8 @@ class LatestFrame:
         self._snap: Snapshot | None = None
         self._seq = itertools.count(1)
 
-    def set(self, rgba: bytes, width: int, height: int) -> None:
-        self._snap = Snapshot(bytes(rgba), width, height, next(self._seq))
+    def set(self, rgba: bytes, width: int, height: int, rotation: int = 0) -> None:
+        self._snap = Snapshot(bytes(rgba), width, height, next(self._seq), rotation)
 
     def get(self) -> Snapshot | None:
         return self._snap
@@ -79,12 +83,18 @@ class LatestFrame:
         self._snap = None
 
 
-def rgba_to_png(rgba: bytes, width: int, height: int, max_width: int = MAX_WIDTH) -> bytes:
+def rgba_to_png(
+    rgba: bytes, width: int, height: int, max_width: int = MAX_WIDTH, rotation: int = 0
+) -> bytes:
     from PIL import Image
 
     img = Image.frombytes("RGBA", (width, height), rgba).convert("RGB")
-    if width > max_width:
-        img = img.resize((max_width, round(height * max_width / width)))
+    turn = {90: Image.Transpose.ROTATE_270, 180: Image.Transpose.ROTATE_180,
+            270: Image.Transpose.ROTATE_90}.get(rotation % 360)  # PIL turns counter-clockwise
+    if turn is not None:
+        img = img.transpose(turn)
+    if img.width > max_width:
+        img = img.resize((max_width, round(img.height * max_width / img.width)))
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()
@@ -163,6 +173,7 @@ async def diagnose_latest(latest: LatestFrame, diagnoser: FrameDiagnoser) -> dic
     snap = latest.get()
     if snap is None:
         return dict(NO_FRAME)
-    png = await asyncio.to_thread(rgba_to_png, snap.rgba, snap.width, snap.height)
+    png = await asyncio.to_thread(
+        rgba_to_png, snap.rgba, snap.width, snap.height, MAX_WIDTH, snap.rotation)
     result, _ = await diagnoser.diagnose(png, frame_id=f"camera-{snap.seq}")
     return result
