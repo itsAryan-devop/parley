@@ -1,0 +1,9 @@
+LATENCY_TRACK_JSON: {"room": "eval-e4d34c71", "tool": "Search Tool", "reasoning": 13.342, "execution": 0.0, "synthesis": 1.02, "total": 14.363, "agent_start_at": 1790731108.4731042}
+LATENCY_TRACK_JSON: {"room": "eval-9bd2f2b8", "tool": "Search Tool", "reasoning": 19.138, "execution": 0.0, "synthesis": 2.14, "total": 21.278, "agent_start_at": 1790731170.4208562}
+LATENCY_TRACK_JSON: {"room": "eval-e622a272", "tool": "Search Tool", "reasoning": 27.148, "execution": 0.0, "synthesis": 0.753, "total": 27.901, "agent_start_at": 1790731240.3789706}
+LATENCY_TRACK_JSON: {"room": "eval-74d6ae3f", "tool": "Search Tool", "reasoning": 1.12, "execution": 0.0, "synthesis": 1.211, "total": 2.331, "agent_start_at": 1790731289.8735614}
+LATENCY_TRACK_JSON: {"room": "eval-61618f4b", "tool": "Search Tool", "reasoning": 8.348, "execution": 0.0, "synthesis": 0.901, "total": 9.249, "agent_start_at": 1790731341.0804677}
+LATENCY_TRACK_JSON: {"room": "eval-4403b417", "tool": "Search Tool", "reasoning": 10.894, "execution": 0.534, "synthesis": 0.893, "total": 12.322, "agent_start_at": 1790731398.4168346}
+LATENCY_TRACK_JSON: {"room": "eval-945e7042", "tool": "Search Tool", "reasoning": 12.487, "execution": 0.757, "synthesis": 1.321, "total": 14.566, "agent_start_at": 1790731462.073525}
+LATENCY_TRACK_JSON: {"room": "eval-50c4068c", "tool": "Search Tool", "reasoning": 15.064, "execution": 0.0, "synthesis": 1.346, "total": 16.41, "agent_start_at": 1790731580.6419098}
+LATENCY_TRACK_JSON: {"room": "eval-8cc5c76e", "tool": "Search Tool", "reasoning": 29.405, "execution": 0.0, "synthesis": 1.054, "total": 30.459, "agent_start_at": 1790731652.8105922}

@@ -1,0 +1,26 @@
+📖 Loading benchmark data from benchmark_data_v2.json...
+📁 Scanning fdb_v3_subset_5 for provider 'parley'...
+🔍 Found 5 valid result files matching benchmark scenarios.
+
+📊 EVALUATION REPORT
+========================================================
+  Scenarios evaluated : 5
+  Turn-Take Success   : 5/5 (100.0%)
+
+  By Metric (turn-taken only, N=5):
+    Tool Selection Acc : 93.3%
+    Argument Acc       : 100.0%
+    Response Qual      : (LLM judge disabled, use --use-llm)
+
+  Latency (N=5, turn-taken only):
+    Avg latency        : 10.14s ± 6.08s  (excl. interruptions)
+    Min / Max          : 6.72s / 20.96s
+    Interruptions      : 0 / 5  (0.0%)
+
+  By Domain (all samples):
+    ecommerce_support: tool_selection_acc=93.3%, argument_acc=100.0%
+
+  By Difficulty (all samples):
+    easy: tool_selection_acc=93.3%, argument_acc=100.0%
+
+  📄 Full report saved: /home/user/parley/runs/fdb/20260929-232747-parley/evaluation_report.json

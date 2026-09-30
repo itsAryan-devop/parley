@@ -1,0 +1,16 @@
+{"room": "eval-e4d34c71", "call": {"function": "add_to_cart", "args": {"product_id": "K2", "quantity": 2}, "timestamp_start": 1790731107.4528358, "timestamp_end": 1790731107.4528687}}
+{"room": "eval-9bd2f2b8", "call": {"function": "add_to_cart", "args": {"product_id": "P52", "quantity": 2}, "timestamp_start": 1790731168.2806046, "timestamp_end": 1790731168.280644}}
+{"room": "eval-e622a272", "call": {"function": "track_order", "args": {"order_id": "BOB"}, "timestamp_start": 1790731229.0708318, "timestamp_end": 1790731229.070856}}
+{"room": "eval-e622a272", "call": {"function": "search_products", "args": {"query": "watch", "max_price": 200.0}, "timestamp_start": 1790731238.6995609, "timestamp_end": 1790731238.6996064}}
+{"room": "eval-e622a272", "call": {"function": "add_to_cart", "args": {"product_id": "PROD1", "quantity": 1}, "timestamp_start": 1790731239.62618, "timestamp_end": 1790731239.6262407}}
+{"room": "eval-74d6ae3f", "call": {"function": "get_card_benefits", "args": {"card_type": "travel"}, "timestamp_start": 1790731288.6625748, "timestamp_end": 1790731288.6626048}}
+{"room": "eval-61618f4b", "call": {"function": "modify_autopay", "args": {"bill_type": "mortgage", "source_account": "checking"}, "timestamp_start": 1790731338.7589822, "timestamp_end": 1790731338.7590232}}
+{"room": "eval-61618f4b", "call": {"function": "modify_autopay", "args": {"bill_type": "mortgage", "source_account": "savings"}, "timestamp_start": 1790731340.1789463, "timestamp_end": 1790731340.1789875}}
+{"room": "eval-4403b417", "call": {"function": "calculate_commute", "args": {"origin_address": "101 Main Street", "destination_address": "downtown office", "mode": "driving"}, "timestamp_start": 1790731396.9894826, "timestamp_end": 1790731397.5237331}}
+{"room": "eval-945e7042", "call": {"function": "update_search_filter", "args": {"filter_name": "max_price", "value": "3000"}, "timestamp_start": 1790731456.3230724, "timestamp_end": 1790731456.440317}}
+{"room": "eval-945e7042", "call": {"function": "update_search_filter", "args": {"filter_name": "bedrooms", "value": "3"}, "timestamp_start": 1790731459.0465882, "timestamp_end": 1790731459.1028247}}
+{"room": "eval-945e7042", "call": {"function": "search_apartments", "args": {"city": "?", "bedrooms": 3, "max_price": 3000.0}, "timestamp_start": 1790731459.9953656, "timestamp_end": 1790731460.752547}}
+{"room": "eval-50c4068c", "call": {"function": "update_identity_doc", "args": {"doc_type": "driver_license", "doc_number": "D"}, "timestamp_start": 1790731579.296062, "timestamp_end": 1790731579.2960923}}
+{"room": "eval-8cc5c76e", "call": {"function": "search_flights", "args": {"destination": "Berlin", "date": "2026-08-08"}, "timestamp_start": 1790731644.094516, "timestamp_end": 1790731644.4388185}}
+{"room": "eval-8cc5c76e", "call": {"function": "book_flight", "args": {"passenger_name": "Quinn Davis"}, "timestamp_start": 1790731645.5178165, "timestamp_end": 1790731645.5178547}}
+{"room": "eval-8cc5c76e", "call": {"function": "update_identity_doc", "args": {"doc_type": "visa", "doc_number": "V77"}, "timestamp_start": 1790731651.7562327, "timestamp_end": 1790731651.7562702}}

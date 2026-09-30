@@ -1,0 +1,29 @@
+{"message": "starting worker", "level": "INFO", "name": "livekit.agents", "version": "1.3.12", "rtc-version": "1.0.23", "timestamp": "2026-09-29T22:59:15.202427+00:00"}
+{"message": "preloading plugins", "level": "INFO", "name": "livekit.agents", "packages": ["av"], "timestamp": "2026-09-29T22:59:15.202555+00:00"}
+{"message": "HTTP server listening on :8081", "level": "INFO", "name": "livekit.agents", "timestamp": "2026-09-29T22:59:15.205233+00:00"}
+{"message": "initializing process", "level": "INFO", "name": "livekit.agents", "pid": 4486, "timestamp": "2026-09-29T22:59:15.419087+00:00"}
+{"message": "initializing process", "level": "INFO", "name": "livekit.agents", "pid": 4488, "timestamp": "2026-09-29T22:59:15.420228+00:00"}
+{"message": "process initialized", "level": "INFO", "name": "livekit.agents", "pid": 4488, "elapsed_time": 1.11, "timestamp": "2026-09-29T22:59:16.533623+00:00"}
+{"message": "process initialized", "level": "INFO", "name": "livekit.agents", "pid": 4486, "elapsed_time": 1.13, "timestamp": "2026-09-29T22:59:16.548167+00:00"}
+{"message": "registered worker", "level": "INFO", "name": "livekit.agents", "agent_name": "", "id": "AW_Xi5jWjPKp6yX", "url": "ws://127.0.0.1:7880", "region": "", "protocol": 17, "timestamp": "2026-09-29T22:59:16.553509+00:00"}
+{"message": "worker is at full capacity, marking as unavailable", "level": "INFO", "name": "livekit.agents", "load": 0.8008566693999996, "threshold": 0.7, "timestamp": "2026-09-29T22:59:46.560991+00:00"}
+{"message": "worker is below capacity, marking as available", "level": "INFO", "name": "livekit.agents", "load": 0.6235567171999996, "threshold": 0.7, "timestamp": "2026-09-29T22:59:49.061140+00:00"}
+{"message": "worker is at full capacity, marking as unavailable", "level": "INFO", "name": "livekit.agents", "load": 0.9537249253999999, "threshold": 0.7, "timestamp": "2026-09-29T22:59:54.062412+00:00"}
+{"message": "worker is below capacity, marking as available", "level": "INFO", "name": "livekit.agents", "load": 0.6664952497999996, "threshold": 0.7, "timestamp": "2026-09-29T23:00:04.069179+00:00"}
+{"message": "worker is at full capacity, marking as unavailable", "level": "INFO", "name": "livekit.agents", "load": 0.9999999999999994, "threshold": 0.7, "timestamp": "2026-09-29T23:00:56.589596+00:00"}
+{"message": "worker is below capacity, marking as available", "level": "INFO", "name": "livekit.agents", "load": 0.4218582241999996, "threshold": 0.7, "timestamp": "2026-09-29T23:00:59.090442+00:00"}
+{"message": "worker is at full capacity, marking as unavailable", "level": "INFO", "name": "livekit.agents", "load": 0.8009887811999995, "threshold": 0.7, "timestamp": "2026-09-29T23:01:54.105767+00:00"}
+{"message": "worker is below capacity, marking as available", "level": "INFO", "name": "livekit.agents", "load": 0.25233298919999947, "threshold": 0.7, "timestamp": "2026-09-29T23:01:59.106919+00:00"}
+{"message": "received job request", "level": "INFO", "name": "livekit.agents", "job_id": "AJ_Zpobt9ooLjne", "dispatch_id": "AD_AzCqDdbXaQLT", "room": "eval-c71aa251", "room_id": "RM_oWYMML8kaBZv", "agent_name": "", "resuming": false, "enable_recording": false, "timestamp": "2026-09-29T23:02:49.116310+00:00"}
+{"message": "worker is at full capacity, marking as unavailable", "level": "INFO", "name": "livekit.agents", "load": 0.9999999999999997, "threshold": 0.7, "timestamp": "2026-09-29T23:02:49.121578+00:00"}
+{"message": "initializing process", "level": "INFO", "name": "livekit.agents", "pid": 5194, "timestamp": "2026-09-29T23:02:49.134014+00:00"}
+{"message": "PARLEY agent started (turn=True guard=True grace=0.30s max_delay=1.50s)", "level": "INFO", "name": "root", "pid": 4488, "job_id": "AJ_Zpobt9ooLjne", "room_id": "RM_oWYMML8kaBZv", "timestamp": "2026-09-29T23:02:49.594224+00:00"}
+{"message": "process initialized", "level": "INFO", "name": "livekit.agents", "pid": 5194, "elapsed_time": 1.16, "timestamp": "2026-09-29T23:02:50.290493+00:00"}
+{"message": "worker is below capacity, marking as available", "level": "INFO", "name": "livekit.agents", "load": 0.5814655791999996, "threshold": 0.7, "timestamp": "2026-09-29T23:02:51.621825+00:00"}
+{"message": "closing agent session due to participant disconnect (disable via `RoomInputOptions.close_on_disconnect=False`)", "level": "INFO", "name": "livekit.agents", "room": "eval-c71aa251", "participant": "wav-file-user", "reason": "CLIENT_INITIATED", "pid": 4488, "job_id": "AJ_Zpobt9ooLjne", "room_id": "RM_oWYMML8kaBZv", "timestamp": "2026-09-29T23:03:35.576910+00:00"}
+{"message": "worker is at full capacity, marking as unavailable", "level": "INFO", "name": "livekit.agents", "load": 0.9999999999999997, "threshold": 0.7, "timestamp": "2026-09-29T23:03:39.140531+00:00"}
+{"message": "worker is below capacity, marking as available", "level": "INFO", "name": "livekit.agents", "load": 0.44583759219999974, "threshold": 0.7, "timestamp": "2026-09-29T23:03:41.641022+00:00"}
+{"message": "process exiting", "level": "INFO", "name": "livekit.agents", "reason": "", "pid": 4488, "job_id": "AJ_Zpobt9ooLjne", "room_id": "RM_oWYMML8kaBZv", "timestamp": "2026-09-29T23:03:55.673950+00:00"}
+{"message": "worker is at full capacity, marking as unavailable", "level": "INFO", "name": "livekit.agents", "load": 0.9999999999999997, "threshold": 0.7, "timestamp": "2026-09-29T23:04:41.656652+00:00"}
+{"message": "draining worker", "level": "INFO", "name": "livekit.agents", "id": "AW_Xi5jWjPKp6yX", "timeout": 1800, "timestamp": "2026-09-29T23:04:42.599846+00:00"}
+{"message": "shutting down worker", "level": "INFO", "name": "livekit.agents", "id": "AW_Xi5jWjPKp6yX", "timestamp": "2026-09-29T23:04:42.600217+00:00"}

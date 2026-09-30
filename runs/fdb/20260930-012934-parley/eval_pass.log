@@ -1,0 +1,41 @@
+📖 Loading benchmark data from benchmark_data_v2.json...
+📁 Scanning fdb_v3_subset_10_5_10 for provider 'parley'...
+🔍 Found 10 valid result files matching benchmark scenarios.
+
+📊 PASS RATE REPORT — PARLEY
+========================================================
+  Total Scenarios : 10
+  ✅ Passed       : 5
+  ❌ Failed       : 5
+  📈 Pass Rate    : 50.0%
+
+  Failure Breakdown:
+    Wrong Tools     : 2
+    Wrong Arguments : 3
+
+  By Domain:
+    ecommerce_support: 100.0%
+    travel_identity: 0.0%
+    finance_billing: 100.0%
+    housing_location: 0.0%
+
+  By Difficulty:
+    easy: 50.0%
+    medium: 66.7%
+    hard: 33.3%
+
+  By Num Tool Calls:
+    1 tools: 66.7%
+    2 tools: 0.0%
+    3 tools: 50.0%
+
+  By Disfluency Feature:
+    SELF_CORRECTION: 50.0%
+    PAUSE: 50.0%
+    FILLER: 75.0%
+
+  State Rollback:
+    With rollback:    50.0%
+    Without rollback: 50.0%
+
+  📄 Report saved: /home/user/parley/runs/fdb/20260930-012934-parley/pass_rate_report.json

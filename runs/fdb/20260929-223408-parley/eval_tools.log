@@ -1,0 +1,18 @@
+📖 Loading benchmark data from benchmark_data_v2.json...
+📁 Scanning fdb_v3_subset_5 for provider 'parley'...
+🔍 Found 5 valid result files matching benchmark scenarios.
+
+📊 EVALUATION REPORT
+========================================================
+  Scenarios evaluated : 5
+  Turn-Take Success   : 0/5 (0.0%)
+  No Response (silent): 5
+
+  By Metric (turn-taken only, N=0):
+Traceback (most recent call last):
+  File "/home/user/parley/third_party/Full-Duplex-Bench/v3/evaluate_tool_calls.py", line 702, in <module>
+    main()
+  File "/home/user/parley/third_party/Full-Duplex-Bench/v3/evaluate_tool_calls.py", line 676, in main
+    print(f"    Tool Selection Acc : {bm['tool_selection_acc']:.1%}")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: unsupported format string passed to NoneType.__format__

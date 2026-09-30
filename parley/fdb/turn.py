@@ -48,6 +48,10 @@ _NUMBER_WORDS = {"one", "two", "three", "four", "five", "six", "seven", "eight",
                  "hundred", "thousand", "million"}
 _TOKEN = re.compile(r"[A-Za-z0-9$€£¥'.\-]+")
 _STOP = {"i", "me", "my", "a", "an", "the", "to", "for", "and", "get", "please"}
+# Capitalised but never a slot value.
+_PRONOUN_I = {"i", "i'm", "i'll", "i've", "i'd"}
+# Whisper writes a trailing-off utterance with an ellipsis ("for a new...").
+_TRAILING_OFF = re.compile(r"(\.\.\.|\u2026)\s*$")
 
 
 def manifest_vocabulary(tool_names: Iterable[str]) -> frozenset[str]:
@@ -71,13 +75,14 @@ def _is_value(raw: str, *, sentence_initial: bool) -> bool:
     core = raw.strip(".,!?;:'\"")
     if core.isupper() and 2 <= len(core) <= 4 and core.isalpha():  # USD, LHR
         return True
-    return core[:1].isupper() and not sentence_initial and core.lower() != "i"
+    return core[:1].isupper() and not sentence_initial and core.lower() not in _PRONOUN_I
 
 
 def turn_features(
     text: str, vocab: frozenset[str], *, silence_ms: float
 ) -> dict[str, float]:
-    tokens = _TOKEN.findall(text)
+    matches = list(_TOKEN.finditer(text))
+    tokens = [m.group() for m in matches]
     lowered = [t.strip(".,!?;:'\"").lower() for t in tokens]
     has_intent = any(t in vocab for t in lowered)
 
@@ -88,9 +93,15 @@ def turn_features(
         if tok in _REPAIR or pair in _REPAIR:
             repair_end = i + 1
     last = lowered[-1] if lowered else ""
+    # Sentence starts: after . ? ! and after a pause. LiveKit joins STT segments
+    # with a double space, and Whisper capitalises each segment's first word, so
+    # a capital there is not a proper noun.
     initial = {0} | {i + 1 for i, t in enumerate(tokens) if t.endswith((".", "?", "!"))}
+    initial |= {i for i, m in enumerate(matches)
+                if i and text[matches[i - 1].end():m.start()].count(" ") >= 2}
     just_bound_value = (
         bool(tokens)
+        and not _TRAILING_OFF.search(text)     # the speaker trailed off mid-thought
         and repair_end < len(tokens)          # did not end on "no" / "actually" / ...
         and last not in FILLED_PAUSES
         and last not in _DANGLING

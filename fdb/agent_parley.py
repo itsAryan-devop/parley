@@ -23,11 +23,15 @@ Env (in v3/.env.local): LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, and
 GROQ_API_KEY (default, free tier) or OPENAI_API_KEY with PARLEY_BACKEND=openai.
 Optional: PARLEY_LLM (Groq model id), PARLEY_COMMIT_GRACE (s, default 0.3),
 PARLEY_MAX_DELAY (s, default 1.5), PARLEY_TURN_DETECTOR=0 to disable (ablation),
-PARLEY_GUARD=0 to disable (ablation).
+PARLEY_GUARD=0 / PARLEY_RESOLVER=0 to disable (ablation), PARLEY_TTS=groq for Groq's Orpheus voice
+instead of the local Piper default, PARLEY_REASONING (gpt-oss effort, default low),
+PARLEY_LLM_BASE_URL (+ PARLEY_LLM_API_KEY) to use any OpenAI-compatible LLM server
+such as vLLM or Ollama instead of Groq's.
 """
 
 import json
 import logging
+import math
 import os
 import sys
 import time
@@ -35,8 +39,13 @@ import time
 from dotenv import load_dotenv
 from livekit import agents
 from livekit.agents import Agent, AgentServer, AgentSession, llm
+from livekit.agents.types import APIConnectOptions
+from livekit.agents.voice.agent_session import SessionConnectOptions
 
 from parley.fdb import ParleyTurnDetector, ToolGuard
+from parley.fdb.args import clean_args
+from parley.fdb.guard import action_key
+from parley.fdb.resolver import StaleValueCheck
 
 ai_callable = llm.function_tool if hasattr(llm, "function_tool") else llm.ai_callable
 
@@ -57,7 +66,10 @@ MAX_DELAY_S = float(os.getenv("PARLEY_MAX_DELAY", "1.5"))
 GRACE_S = float(os.getenv("PARLEY_COMMIT_GRACE", "0.3"))
 USE_TURN = os.getenv("PARLEY_TURN_DETECTOR", "1") != "0"
 USE_GUARD = os.getenv("PARLEY_GUARD", "1") != "0"
+USE_RESOLVER = os.getenv("PARLEY_RESOLVER", "0") == "1"  # off: did not help (FDB_RESULTS step 9)
 BACKEND = os.getenv("PARLEY_BACKEND", "groq")  # groq (free) | openai
+TTS_BACKEND = os.getenv("PARLEY_TTS", "local")  # local (Piper, no quota) | groq
+REASONING = os.getenv("PARLEY_REASONING", "low")  # gpt-oss reasoning effort
 DISFLUENT_PROMPT = "Um, I want to go to, uh, no wait, actually somewhere else."
 
 TOOL_NAMES = [
@@ -102,12 +114,23 @@ class AssistantFnc:
     """The 12 FDB-v3 tools, same names/signatures/descriptions as the stock agent,
     each routed through the guard."""
 
-    def __init__(self, tracker: LatencyTracker, room_name: str, guard: ToolGuard | None):
+    def __init__(self, tracker: LatencyTracker, room_name: str, guard: ToolGuard | None,
+                 resolver: StaleValueCheck | None = None):
         self.tracker = tracker
         self.room_name = room_name
         self.guard = guard
+        self.resolver = resolver
 
     async def _call(self, name: str, **args):
+        args = clean_args(args)  # "P-5-2" as transcribed -> "P52" as spoken
+        if self.resolver is not None:
+            refused = self.resolver.check(name, args, action_key(name, args))
+            if refused is not None:
+                with open("/tmp/parley_guard.log", "a") as f:
+                    f.write(json.dumps({"room": self.room_name, "suppressed": name,
+                                        "args": args, "t": time.time(),
+                                        "why": "stale_value"}) + "\n")
+                return json.dumps(refused)
         def execute():
             self.tracker.tool_start_at = time.time()
             result = registry.call(name, **args)
@@ -253,6 +276,10 @@ INSTRUCTIONS = (
     "Do not ask clarifying questions and do not wait for confirmation: when the user gives an "
     "instruction, call the correct tool immediately and answer from the tool's result. Never "
     "answer from memory or invent data. "
+    "Only perform a state-changing action (booking, adding to a cart, updating a document, "
+    "changing a payment or a saved filter) when the user explicitly asked for that action. "
+    "Searching is not buying: after a lookup, report what you found and let the user decide. "
+    "Never say an action is done unless you called its tool and it succeeded. "
     "The user speaks naturally, with fillers, pauses, false starts and self-corrections. "
     "When they correct themselves ('Paris -- no, actually Berlin'), use ONLY the final value "
     "and never call a tool with the abandoned one. Call each tool once per distinct request; "
@@ -268,15 +295,34 @@ class ParleyAgent(Agent):
         super().__init__(instructions=INSTRUCTIONS)
 
 
-server = AgentServer()
+# A busy machine must never make LiveKit skip a clip. By default the worker
+# reports whole-machine CPU (2.5 s average, 0..1) as its load, and two separate
+# 0.7 cut-offs act on it: livekit-agents' `start` mode marks the worker full,
+# and livekit-server's dispatcher (`agents.target_load`) stops offering it rooms.
+# Either way the room gets no agent and the clip is scored as silence -- a
+# 5-clip run on a CPU-only box lost 4 of 5 clips like this. The benchmark
+# streams one clip at a time to this single worker, so report load as the share
+# of job slots in use instead, and never self-declare full (inf is the
+# library's own dev-mode default; `start` mode logs one warning about it).
+# The stock agent is unchanged.
+JOB_SLOTS = 4
+
+
+def job_load(srv: AgentServer) -> float:
+    return min(len(srv.active_jobs) / JOB_SLOTS, 1.0)
+
+
+server = AgentServer(load_threshold=math.inf, load_fnc=job_load)
 
 
 def build_models():
     """STT + LLM + TTS for the chosen backend.
 
-    groq (default, free tier, one GROQ_API_KEY): Whisper-large-v3-turbo STT,
-    Llama-3.3-70B tool-calling LLM, Orpheus TTS. openai: the stock agent's
-    exact models, for a like-for-like comparison against the published baseline.
+    groq (default, free tier, one GROQ_API_KEY): Whisper-large-v3-turbo STT and
+    gpt-oss-120b tool-calling LLM, with local Piper TTS (`parley.fdb.local_tts`):
+    Groq's free TTS allows only 100 requests a day, far short of a 100-clip run.
+    openai: the stock agent's exact models, for a like-for-like comparison
+    against the published baseline.
     Whisper is primed with a disfluent prompt so it keeps "uh, no, actually"
     in the transcript instead of silently deleting the correction markers the
     turn detector and the LLM rely on (finding credited in docs/PRIOR_ART.md B.1).
@@ -287,10 +333,28 @@ def build_models():
                 openai.LLM(model="gpt-4o", temperature=0.0),
                 openai.TTS(model="tts-1", voice="nova"))
     from livekit.plugins import groq
+    if TTS_BACKEND == "groq":
+        tts = groq.TTS(model="canopylabs/orpheus-v1-english", voice="autumn")
+    else:
+        from parley.fdb.local_tts import PiperTTS
+        tts = PiperTTS()
+    base_url = os.getenv("PARLEY_LLM_BASE_URL")
+    if base_url:
+        # Any OpenAI-compatible server, e.g. `vllm serve openai/gpt-oss-20b` on the
+        # evaluation GPU: no daily token cap. Groq's free tier caps every
+        # tool-calling model at 200K tokens/day (~50 clips).
+        from livekit.plugins import openai
+        llm_model = openai.LLM(model=os.getenv("PARLEY_LLM", "openai/gpt-oss-20b"),
+                               base_url=base_url,
+                               api_key=os.getenv("PARLEY_LLM_API_KEY", "not-needed"),
+                               temperature=0.0, parallel_tool_calls=False,
+                               reasoning_effort=REASONING)
+    else:
+        llm_model = groq.LLM(model=os.getenv("PARLEY_LLM", "openai/gpt-oss-120b"),
+                             temperature=0.0, parallel_tool_calls=False,
+                             reasoning_effort=REASONING)
     return (groq.STT(model="whisper-large-v3-turbo", language="en", prompt=DISFLUENT_PROMPT),
-            groq.LLM(model=os.getenv("PARLEY_LLM", "llama-3.3-70b-versatile"),
-                     temperature=0.0, parallel_tool_calls=False),
-            groq.TTS(model="canopylabs/orpheus-v1-english", voice="autumn"))
+            llm_model, tts)
 
 
 @server.rtc_session()
@@ -299,7 +363,8 @@ async def entrypoint(ctx: agents.JobContext):
 
     tracker = LatencyTracker()
     guard = ToolGuard(grace_s=GRACE_S) if USE_GUARD else None  # fresh per conversation
-    tools = llm.find_function_tools(AssistantFnc(tracker, ctx.room.name, guard))
+    resolver = StaleValueCheck() if USE_RESOLVER else None      # fresh per conversation
+    tools = llm.find_function_tools(AssistantFnc(tracker, ctx.room.name, guard, resolver))
 
     extra = {}
     if USE_TURN:
@@ -312,6 +377,10 @@ async def entrypoint(ctx: agents.JobContext):
         llm=llm_model,
         tts=tts,
         tools=tools,
+        # A dropped connection or a free-tier 429 must not silence a whole clip:
+        # LiveKit's default gives up after 3 retries 2 s apart (~7 s).
+        conn_options=SessionConnectOptions(
+            llm_conn_options=APIConnectOptions(max_retry=6, retry_interval=3.0, timeout=20.0)),
         min_endpointing_delay=MIN_DELAY_S,
         max_endpointing_delay=MAX_DELAY_S,
         **extra,
@@ -319,11 +388,17 @@ async def entrypoint(ctx: agents.JobContext):
 
     @session.on("user_state_changed")
     def on_user_state(ev):
-        if ev.new_state == "speaking" and guard is not None:
+        if guard is None:
+            return
+        if ev.new_state == "speaking":
             guard.user_started_speaking()
+        else:
+            guard.user_stopped_speaking()
 
     @session.on("user_input_transcribed")
     def on_user_input(msg):
+        if msg.is_final and guard is not None:
+            guard.transcript_final()
         if msg.is_final and not tracker.query_received:
             tracker.user_done_at = time.time()
             tracker.query_received = True
@@ -334,6 +409,32 @@ async def entrypoint(ctx: agents.JobContext):
             tracker.agent_start_at = time.time()
             tracker.log_breakdown(tool_name="Search Tool", room_name=ctx.room.name)
             tracker.reset()
+
+    @session.on("conversation_item_added")
+    def on_item(ev):
+        # What the agent heard (its own STT) and said, per room, for the run logs.
+        item = ev.item
+        text = getattr(item, "text_content", None)
+        if text and resolver is not None:
+            if item.role == "user":
+                resolver.user_said(text)
+            elif item.role == "assistant":
+                resolver.agent_replied()
+        if text:
+            with open("/tmp/parley_transcript.log", "a") as f:
+                f.write(json.dumps({"room": ctx.room.name, "t": time.time(),
+                                    "role": item.role, "text": text}) + "\n")
+
+    @session.on("metrics_collected")
+    def on_metrics(ev):
+        # Per-stage timings (EOU delay, STT, LLM TTFT/tokens, TTS TTFB) for the
+        # latency breakdown in the run logs. VAD metrics are per-frame noise.
+        m = ev.metrics
+        if getattr(m, "type", "") == "vad_metrics":
+            return
+        with open("/tmp/parley_metrics.log", "a") as f:
+            f.write(json.dumps({"room": ctx.room.name, **m.model_dump(mode="json")},
+                               default=str) + "\n")
 
     await session.start(room=ctx.room, agent=ParleyAgent())
     logging.info("PARLEY agent started (turn=%s guard=%s grace=%.2fs max_delay=%.2fs)",

@@ -1,0 +1,35 @@
+{"room": "eval-9138d8e7", "t": 1790728023.2951248, "role": "user", "text": "Uh, so I like...  Could you add two items, two of the items K2 to my cart? I need one for me and one as a gift for my friend."}
+{"room": "eval-9138d8e7", "t": 1790728031.9853158, "role": "assistant", "text": "Added two\u202fK2 items to your cart\u2014one for you and one as a gift. Let me know if you\u2019d like anything else!"}
+{"room": "eval-5a1a3fc9", "t": 1790728074.8826594, "role": "user", "text": "Hmm.  Well, yeah.  Um,  So, uh, yeah."}
+{"room": "eval-5a1a3fc9", "t": 1790728081.288317, "role": "user", "text": "So, um, I already found what I want.  Can you add like two of them?"}
+{"room": "eval-5a1a3fc9", "t": 1790728085.0821085, "role": "user", "text": "P-5-2 to my cart."}
+{"room": "eval-5a1a3fc9", "t": 1790728086.531685, "role": "user", "text": "I want to get one for myself and one as a gift."}
+{"room": "eval-5a1a3fc9", "t": 1790728093.4314637, "role": "assistant", "text": "Added two of that item to your cart. Let me know if you need anything else!"}
+{"room": "eval-16b3885c", "t": 1790728131.5007315, "role": "user", "text": "Um,  Um, so, hmm."}
+{"room": "eval-16b3885c", "t": 1790728142.087671, "role": "user", "text": "Well, could you track order BOP for me first? Then, um...  Hmm."}
+{"room": "eval-16b3885c", "t": 1790728153.8442054, "role": "user", "text": "I also want to search for a nice watch under $200."}
+{"room": "eval-16b3885c", "t": 1790728155.9966464, "role": "user", "text": "And, um, once you can find something good, uh, go ahead and add it to my cart."}
+{"room": "eval-16b3885c", "t": 1790728169.143849, "role": "assistant", "text": "Your order **BOP** is out for delivery. I found a watch under $200\u2014**watch Premium** for $190. I\u2019ve added it to your cart."}
+{"room": "eval-90eaff15", "t": 1790728211.1863232, "role": "user", "text": "Um, so, uh, I was wondering what the benefits are for the travel card. I think that's..."}
+{"room": "eval-90eaff15", "t": 1790728211.873639, "role": "user", "text": "The one my coworker recommended for me."}
+{"room": "eval-90eaff15", "t": 1790728219.1692932, "role": "assistant", "text": "Your travel card offers 2\u202f% cashback and no foreign\u2011transaction fees."}
+{"room": "eval-4dd8bb9a", "t": 1790728267.0345113, "role": "user", "text": "I want, um, to switch my mortgage auto-pay to Poe from the checking."}
+{"room": "eval-4dd8bb9a", "t": 1790728268.6679013, "role": "user", "text": "Wait, wait, no, that's wrong too. Make it savings instead. Yeah, savings is, savings is the right one."}
+{"room": "eval-4dd8bb9a", "t": 1790728277.081069, "role": "assistant", "text": "Your mortgage autopay is now set to pull from your savings account. Let me know if you need anything else!"}
+{"room": "eval-7b98dd5b", "t": 1790728319.9726105, "role": "user", "text": "Tell me how long it would take to drive.  From 101 Main Street to downtown office."}
+{"room": "eval-7b98dd5b", "t": 1790728324.5632071, "role": "user", "text": "During a normal day,"}
+{"room": "eval-7b98dd5b", "t": 1790728327.6678255, "role": "assistant", "text": "It\u2019ll"}
+{"room": "eval-7b98dd5b", "t": 1790728327.702699, "role": "user", "text": "Um, I want to make sure it's reasonable."}
+{"room": "eval-7b98dd5b", "t": 1790728332.200706, "role": "assistant", "text": "The drive should take about 25\u202fminutes under normal conditions."}
+{"room": "eval-74fd5dae", "t": 1790728379.6995323, "role": "user", "text": "You know, like, you know, let's raise the max price to 3000 per month."}
+{"room": "eval-74fd5dae", "t": 1790728384.4025803, "role": "user", "text": "And also bump up the minimum bedrooms to three."}
+{"room": "eval-74fd5dae", "t": 1790728386.3760595, "role": "user", "text": "Mmm, yeah, I think I need more space than I originally thought."}
+{"room": "eval-74fd5dae", "t": 1790728401.69566, "role": "assistant", "text": "Got it\u2014your search filter now requires apartments with at least three bedrooms and a maximum rent of\u202f$3,000 per month. Let me know if you\u2019d like me to look up listings or anything else!"}
+{"room": "eval-7a8d3eaa", "t": 1790728449.2874587, "role": "user", "text": "So, uh, well, so you know, uh, I want to search for a place with two bedrooms. Wait, actually, uh, I mean, I meant three bedrooms. We decided we need a home office. Also, check the transit time to the train station. Actually, I'd rather walk, so make that...  Walking time."}
+{"room": "eval-35e97ae8", "t": 1790728501.7854056, "role": "user", "text": "Uh,  Um, the new driver's license number is D-L-5."}
+{"room": "eval-35e97ae8", "t": 1790728505.9379988, "role": "user", "text": "Dash five, dash five."}
+{"room": "eval-35e97ae8", "t": 1790728506.985182, "role": "user", "text": "Could you swap out the old one and put this new one in there?"}
+{"room": "eval-35e97ae8", "t": 1790728514.6361184, "role": "assistant", "text": "Your driver\u2019s license has been updated with the new number. Let me know if you need anything else!"}
+{"room": "eval-a1c2b0c2", "t": 1790728569.9359517, "role": "user", "text": "You know,  Okay, so...  Um, I need to find flights to..."}
+{"room": "eval-a1c2b0c2", "t": 1790728571.030483, "role": "user", "text": "I was thinking around August 8th. And then, um, once you find something, book it under the name Quinn Davis. Oh, and while you're at it, could you also update my visa number to the V77?"}
+{"room": "eval-a1c2b0c2", "t": 1790728587.225294, "role": "assistant", "text": "I\u2019m ready to book a flight for August\u202f8,\u202f2026 under the name Quinn\u202fDavis, but I need the destination city to complete the search and reservation. Could you let me know where you\u2019d like to fly?"}
