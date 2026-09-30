@@ -86,13 +86,13 @@ exact match.
 - [ ] Read and sign `DISCLOSURE.md` (AI usage); `docs/AI_PROMPT_LOG.md` has tonight's prompt.
 - [ ] Confirm the deadline and time zone with the organisers.
 - [ ] Make fresh LiveKit and Groq keys and rotate the old ones.
-- [x] PRs #1–#3 merged. PR #4 (extension fixes and real-camera results) open.
-- [ ] Merge #4, then cut the release tag.
+- [x] PRs #1–#4 merged (#5: deck/STATUS follow-up).
+- [ ] Cut the release tag.
 - [ ] Submit the form.
 
 ## If a teammate is taking over
 
-- **Branch:** `master` (PRs #1–#3 merged; #4 open for the extension fixes). Everything is pushed,
+- **Branch:** `master` (PRs #1–#4 merged). Everything is pushed,
   including every run's reports, logs and transcripts in `runs/fdb/` (index:
   `runs/fdb/README.md`). No audio, keys or benchmark data are committed.
 - **Run it on a normal machine** (with WebRTC access to LiveKit Cloud): set `LIVEKIT_URL`,
