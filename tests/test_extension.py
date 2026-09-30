@@ -97,15 +97,20 @@ async def test_diagnose_latest_uses_the_newest_frame_only() -> None:
     assert (await diagnose_latest(latest, diagnoser))["status"] == "no_frame"
 
 
-def test_tts_proxy_pushes_each_wav_whole() -> None:
-    """The workaround for livekit-agents 1.3.12 cutting Groq audio mid-file."""
-    pytest.importorskip("livekit.agents")
+def _load_agent_module():
     import importlib.util
 
     spec = importlib.util.spec_from_file_location(
         "agent_extension", Path(__file__).resolve().parents[1] / "fdb" / "agent_extension.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
+    return mod
+
+
+def test_tts_proxy_pushes_each_wav_whole() -> None:
+    """The workaround for livekit-agents 1.3.12 cutting Groq audio mid-file."""
+    pytest.importorskip("livekit.agents")
+    mod = _load_agent_module()
 
     class Emitter:
         def __init__(self):
@@ -127,6 +132,38 @@ def test_tts_proxy_pushes_each_wav_whole() -> None:
         proxy.push(chunk)
     proxy.flush()
     assert inner.events == [("init", "audio/wav"), ("push", b"RIFF....WAVEpcm"), ("flush",)]
+
+
+async def test_quota_error_falls_back_to_offline_voice() -> None:
+    """A Groq 429 must change the voice, not end the session. Offline: skipped
+    unless the Piper voice is already in the local cache."""
+    pytest.importorskip("livekit.agents")
+    pytest.importorskip("piper")
+    mod = _load_agent_module()
+    if not (mod.PIPER_DIR / f"{mod.PIPER_VOICE}.onnx").exists():
+        pytest.skip("Piper voice not downloaded; this test never touches the network")
+
+    from livekit.agents import APIStatusError, tts
+
+    class QuotaSpent(tts.TTS):
+        def __init__(self):
+            super().__init__(capabilities=tts.TTSCapabilities(streaming=False),
+                             sample_rate=24000, num_channels=1)
+
+        def synthesize(self, text, *, conn_options=mod.agents.DEFAULT_API_CONNECT_OPTIONS):
+            return Stream(tts=self, input_text=text, conn_options=conn_options)
+
+    class Stream(tts.ChunkedStream):
+        async def _run(self, output_emitter):
+            raise APIStatusError("Too Many Requests", status_code=429, retryable=False)
+
+    adapter = tts.FallbackAdapter([QuotaSpent(), mod.PiperTTS(mod._piper_voice())])
+    seconds = 0.0
+    async with adapter.synthesize("The router's WAN light is amber.") as stream:
+        async for ev in stream:
+            seconds += ev.frame.duration
+    assert seconds > 0.5, "the offline voice should have spoken the sentence"
+    await adapter.aclose()
 
 
 def test_rgba_to_png_round_trips_and_caps_width() -> None:

@@ -73,9 +73,11 @@ if __name__ == "__main__" and sys.argv[1:2] == ["token"]:
     sys.exit(0)
 
 import asyncio  # noqa: E402
+import functools  # noqa: E402
+from pathlib import Path  # noqa: E402
 
 from livekit import agents, rtc  # noqa: E402
-from livekit.agents import Agent, AgentServer, AgentSession, llm  # noqa: E402
+from livekit.agents import Agent, AgentServer, AgentSession, llm, tts, utils  # noqa: E402
 
 from parley.extension import FrameDiagnoser, LatestFrame, diagnose_latest  # noqa: E402
 
@@ -145,6 +147,70 @@ def buffered_groq_tts(**kwargs):
     return BufferedTTS(**kwargs)
 
 
+PIPER_VOICE = os.getenv("PARLEY_PIPER_VOICE", "en_US-lessac-medium")
+PIPER_DIR = Path(os.getenv("PARLEY_PIPER_DIR", Path.home() / ".cache" / "parley" / "piper"))
+
+
+@functools.lru_cache(maxsize=1)
+def _piper_voice():
+    """Load (downloading once, ~60 MB) the offline Piper voice, or None."""
+    try:
+        from piper import PiperVoice
+        from piper.download_voices import download_voice
+
+        model = PIPER_DIR / f"{PIPER_VOICE}.onnx"
+        if not model.exists():
+            PIPER_DIR.mkdir(parents=True, exist_ok=True)
+            download_voice(PIPER_VOICE, PIPER_DIR)
+        return PiperVoice.load(model)
+    except Exception:
+        logging.exception("offline Piper voice unavailable; Groq TTS only")
+        return None
+
+
+class PiperTTS(tts.TTS):
+    """Offline speech (Piper, ONNX on CPU): no key, no quota. The fallback for
+    Groq's free Orpheus tier, which allows only a few thousand characters a day."""
+
+    def __init__(self, voice) -> None:
+        super().__init__(capabilities=tts.TTSCapabilities(streaming=False),
+                         sample_rate=voice.config.sample_rate, num_channels=1)
+        self._voice = voice
+
+    @property
+    def model(self) -> str:
+        return PIPER_VOICE
+
+    @property
+    def provider(self) -> str:
+        return "piper"
+
+    def synthesize(self, text, *, conn_options=agents.DEFAULT_API_CONNECT_OPTIONS):
+        return _PiperStream(tts=self, input_text=text, conn_options=conn_options)
+
+
+class _PiperStream(tts.ChunkedStream):
+    async def _run(self, output_emitter) -> None:
+        voice = self._tts._voice
+        output_emitter.initialize(request_id=utils.shortuuid(), sample_rate=self._tts.sample_rate,
+                                  num_channels=1, mime_type="audio/pcm")
+        pcm = await asyncio.to_thread(
+            lambda: b"".join(c.audio_int16_bytes for c in voice.synthesize(self.input_text)))
+        output_emitter.push(pcm)
+        output_emitter.flush()
+
+
+def build_tts():
+    """Groq Orpheus first; on any failure (typically its daily 429) fall back to
+    offline Piper, so a spent quota changes the voice instead of ending the
+    session. FallbackAdapter retries Groq in the background and switches back."""
+    groq_tts = buffered_groq_tts(model="canopylabs/orpheus-v1-english", voice="autumn")
+    voice = _piper_voice()
+    if voice is None:
+        return groq_tts
+    return tts.FallbackAdapter([groq_tts, PiperTTS(voice)])
+
+
 class ExtensionAgent(Agent):
     def __init__(self) -> None:
         super().__init__(instructions=INSTRUCTIONS)
@@ -205,7 +271,7 @@ async def entrypoint(ctx: agents.JobContext):
         vad=silero.VAD.load(),
         stt=groq.STT(model="whisper-large-v3-turbo", language="en"),
         llm=groq.LLM(model=os.getenv("PARLEY_LLM", "openai/gpt-oss-120b"), temperature=0.0),
-        tts=buffered_groq_tts(model="canopylabs/orpheus-v1-english", voice="autumn"),
+        tts=build_tts(),
         tools=llm.find_function_tools(CameraTools(latest, diagnoser)),
     )
     @session.on("conversation_item_added")
