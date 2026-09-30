@@ -244,4 +244,5 @@ like a panel code. Held-out phone frames: 5/9 correct (all real "No Signal" TVs)
   voice recording were combined with them (4 min 58 s). Camera fixes from the live tests: a
   second look at fresh frames before "retake"; OCR on the enlarged glowing display (real washer
   E4 photo). Demo video link added: https://youtu.be/-l4Yk7sETZQ
-
+- "check this ppt and rename it as you want and push it" -> final deck checked (12 slides, no
+  placeholders, numbers match the repo) and added as `deck/Thapar_The_T_Guys_Theme5_Submission.pptx`.
