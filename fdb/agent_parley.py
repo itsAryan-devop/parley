@@ -257,6 +257,9 @@ INSTRUCTIONS = (
     "Do not ask clarifying questions and do not wait for confirmation: when the user gives an "
     "instruction, call the correct tool immediately and answer from the tool's result. Never "
     "answer from memory or invent data. "
+    "Only perform a state-changing action (booking, adding to a cart, updating a document, "
+    "changing a payment or a saved filter) when the user explicitly asked for that action. "
+    "Searching is not buying: after a lookup, report what you found and let the user decide. "
     "The user speaks naturally, with fillers, pauses, false starts and self-corrections. "
     "When they correct themselves ('Paris -- no, actually Berlin'), use ONLY the final value "
     "and never call a tool with the abandoned one. Call each tool once per distinct request; "
@@ -362,6 +365,16 @@ async def entrypoint(ctx: agents.JobContext):
             tracker.agent_start_at = time.time()
             tracker.log_breakdown(tool_name="Search Tool", room_name=ctx.room.name)
             tracker.reset()
+
+    @session.on("conversation_item_added")
+    def on_item(ev):
+        # What the agent heard (its own STT) and said, per room, for the run logs.
+        item = ev.item
+        text = getattr(item, "text_content", None)
+        if text:
+            with open("/tmp/parley_transcript.log", "a") as f:
+                f.write(json.dumps({"room": ctx.room.name, "t": time.time(),
+                                    "role": item.role, "text": text}) + "\n")
 
     @session.on("metrics_collected")
     def on_metrics(ev):

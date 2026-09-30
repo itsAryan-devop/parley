@@ -94,7 +94,7 @@ fi
 
 say "5/6 Agent ($AGENT) + inference over $ROOT_DIR"
 mkdir -p "$RUN_DIR"
-LOGS="/tmp/agent_tool_calls.log /tmp/agent_heartbeat.log /tmp/parley_guard.log /tmp/parley_metrics.log"
+LOGS="/tmp/agent_tool_calls.log /tmp/agent_heartbeat.log /tmp/parley_guard.log /tmp/parley_metrics.log /tmp/parley_transcript.log"
 if [ "${RESUME:-0}" = 1 ]; then FORCE=""; else FORCE="--force"; rm -f $LOGS; fi
 cd "$V3"
 if [ "$AGENT" = "stock" ]; then
