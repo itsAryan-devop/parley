@@ -119,3 +119,14 @@ Orpheus TTS with local Piper, because the free TTS quota is 100 requests/day. St
 run: Groq's free tier caps every tool-calling model at 200K tokens/day, and 100 clips need
 ~400K. The step-9 A/B used gpt-oss-20b, because gpt-oss-120b's daily cap was spent.
 
+
+## 2026-09-30 (morning) — Aryan (lead) — Claude Code (cloud session): follow-up
+
+**Prompt (verbatim):** "finish of the remainign tasks"
+
+**Output:** `PARLEY_LLM_BASE_URL` (+ `PARLEY_LLM_API_KEY`, `PARLEY_LLM`) in
+`fdb/agent_parley.py` sends LLM calls to any OpenAI-compatible server (vLLM or Ollama on the
+evaluation GPU), which is the unblocking path for a 100-clip run. It was smoke-tested on one
+clip against Groq's OpenAI-compatible endpoint. `reproduce.sh`, README and STATUS updated.
+**Still not done:** the 100-clip run, because the free-tier daily token cap is unchanged; and the
+human-only checklist in `docs/STATUS.md`.
