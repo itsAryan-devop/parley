@@ -238,4 +238,6 @@ like a panel code. Held-out phone frames: 5/9 correct (all real "No Signal" TVs)
   decks (files renamed, decks rebuilt).
 - "push this one and remove the one already pushed" -> the team's signed copy
   `LangAI3.0_AI_Disclosure_The_T_Guys.docx` (signed by Devaansh Gupta) replaces the unsigned one.
+- "it is still not pushed it is not showing for me" / "i am talking about in the .md" -> README
+  gained a "Submission materials" table linking the signed form and requirements.txt; DISCLOSURE.md sign-off filled.
 

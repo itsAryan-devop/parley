@@ -59,6 +59,17 @@ the stock agent. What PARLEY adds, all in `parley/fdb/`:
 
 Each conversation gets a fresh `ToolGuard`; nothing is cached across scenarios.
 
+## Submission materials
+
+| Item | Where |
+|---|---|
+| Source code | this repository (tag `PRISM_GENAI_HACKATHON_Y2026`) |
+| Setup / reproduction | [`requirements.txt`](requirements.txt) (`pip install -r requirements.txt`) and one command, `bash reproduce.sh` (below) |
+| AI disclosure (signed form) | [`LangAI3.0_AI_Disclosure_The_T_Guys.docx`](LangAI3.0_AI_Disclosure_The_T_Guys.docx), backed by [`DISCLOSURE.md`](DISCLOSURE.md) and every prompt in [`docs/AI_PROMPT_LOG.md`](docs/AI_PROMPT_LOG.md) |
+| Presentation | [`deck/`](deck) |
+| Demo video | *link to be added* |
+| Results and run logs | [`docs/FDB_RESULTS.md`](docs/FDB_RESULTS.md), [`runs/fdb/`](runs/fdb) |
+
 ## Run it
 
 **Requirements:** Linux or macOS, Python **3.10 or 3.11**, `ffmpeg`, `git`, `curl`, internet.
@@ -239,12 +250,12 @@ is saved there with its result (off by default).
 | `fdb/agent_parley.py` | the scored LiveKit agent |
 | `parley/fdb/` | turn detector, ToolGuard, ID canonicaliser, Piper TTS |
 | `fdb/agent_extension.py`, `parley/extension/` | the extension: camera device troubleshooting agent (not scored on FDB-v3) |
-| `reproduce.sh`, `requirements-fdb.txt` | one-command, pinned reproduction |
+| `reproduce.sh`, `requirements.txt`, `requirements-fdb.txt` | one-command, pinned reproduction |
 | `scripts/fdb_summary.py` | per-clip table and latency breakdown for a run |
 | `docs/FDB_RESULTS.md` | every benchmark run and what changed |
 | `docs/KERNEL.md` | the original PARLEY kernel and the harness it was built on (now our internal regression net) |
 | `docs/RESEARCH.md`, `docs/PRIOR_ART.md` | prior art and what we took from it, with credits |
-| `DISCLOSURE.md`, `docs/AI_PROMPT_LOG.md` | AI usage disclosure and prompts |
+| `LangAI3.0_AI_Disclosure_The_T_Guys.docx`, `DISCLOSURE.md`, `docs/AI_PROMPT_LOG.md` | signed AI disclosure form, its backing notes, and every prompt |
 
 `python -m pytest` runs the whole suite. The `tests/test_asr.py` failures without the optional
 `voice` extra (Vosk) are expected.
