@@ -86,3 +86,25 @@ exact match.
 - [ ] Make fresh LiveKit and Groq keys and rotate the old ones.
 - [ ] Review and merge the draft PR, then cut the release tag.
 - [ ] Submit the form.
+
+## If a teammate is taking over
+
+- **Branch:** `claude/dreamy-volta-fedkme`, draft PR #2 against `master`. Everything is pushed,
+  including every run's reports, logs and transcripts in `runs/fdb/` (index:
+  `runs/fdb/README.md`). No audio, keys or benchmark data are committed.
+- **Run it on a normal machine** (with WebRTC access to LiveKit Cloud): set `LIVEKIT_URL`,
+  `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` and `GROQ_API_KEY`, then `SAMPLES=5 bash reproduce.sh`.
+  Use Python 3.10 or 3.11, and have `ffmpeg` installed. A GPU is optional; FDB-v3's ASR scorer
+  uses it if present.
+- **How the logs here were made:** in a cloud sandbox that has no GPU and cannot reach LiveKit
+  Cloud's media. Three local-only workarounds were used and are deliberately not in the repo:
+  1. `model.cuda()` made a no-op in FDB-v3's runner, so its ASR runs on CPU;
+  2. a local `livekit-server` (`LIVEKIT_URL=ws://127.0.0.1:7880`);
+  3. the sandbox's HTTPS proxy bypassed for localhost only, because livekit-agents passes
+     `HTTPS_PROXY` explicitly and ignores `NO_PROXY`.
+
+  You do not need any of these on a laptop with a normal network.
+- **Quota:** each Groq account gets 200K LLM tokens a day, ~50 clips. The unblocking path is
+  `PARLEY_LLM_BASE_URL` (see item 1 above), or `RESUME=1 RUN_DIR=runs/fdb/<run>` across days.
+- **Before pushing:** run `python -m pytest` (the 10 `tests/test_asr.py` failures without `vosk`
+  are expected) and `bash -n reproduce.sh`. Append your prompts to `docs/AI_PROMPT_LOG.md`.

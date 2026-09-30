@@ -1,0 +1,645 @@
+{
+  "benchmark_name": "In-the-Wild Speech & Multi-Step Tool Calling",
+  "evaluated_at": "2026-09-30T00:36:52.124812",
+  "total_scenarios": 10,
+  "turn_taking": {
+    "total": 10,
+    "turn_taken": 9,
+    "no_response": 1,
+    "turn_take_rate": 0.9
+  },
+  "by_metric": {
+    "tool_selection_acc": 0.919,
+    "argument_acc": 0.407,
+    "response_qual": null,
+    "tool_selection_acc_all": 0.827,
+    "argument_acc_all": 0.367,
+    "note": "*_all includes no-response samples (scored 0); default metrics are turn-taken only"
+  },
+  "latency": {
+    "total_samples": 9,
+    "interruption_count": 0,
+    "interruption_rate": 0.0,
+    "avg_response_latency_s": 6.062,
+    "std_response_latency_s": 1.392,
+    "min_latency_s": 4.4,
+    "max_latency_s": 8.4,
+    "note": "avg/std/min/max exclude interruption samples; computed on turn-taken samples only"
+  },
+  "by_domain": {
+    "ecommerce_support": {
+      "tool_selection_acc": 0.933,
+      "argument_acc": 0.444
+    },
+    "travel_identity": {
+      "tool_selection_acc": 0.9,
+      "argument_acc": 0.167
+    },
+    "finance_billing": {
+      "tool_selection_acc": 0.834,
+      "argument_acc": 0.5
+    },
+    "housing_location": {
+      "tool_selection_acc": 0.667,
+      "argument_acc": 0.333
+    }
+  },
+  "by_difficulty": {
+    "easy": {
+      "tool_selection_acc": 1.0,
+      "argument_acc": 0.75
+    },
+    "medium": {
+      "tool_selection_acc": 0.889,
+      "argument_acc": 0.0
+    },
+    "hard": {
+      "tool_selection_acc": 0.533,
+      "argument_acc": 0.222
+    }
+  },
+  "by_domain_turn_taken": {
+    "ecommerce_support": {
+      "tool_selection_acc": 0.933,
+      "argument_acc": 0.444
+    },
+    "travel_identity": {
+      "tool_selection_acc": 0.9,
+      "argument_acc": 0.167
+    },
+    "finance_billing": {
+      "tool_selection_acc": 0.834,
+      "argument_acc": 0.5
+    },
+    "housing_location": {
+      "tool_selection_acc": 1.0,
+      "argument_acc": 0.5
+    }
+  },
+  "by_difficulty_turn_taken": {
+    "easy": {
+      "tool_selection_acc": 1.0,
+      "argument_acc": 0.75
+    },
+    "medium": {
+      "tool_selection_acc": 0.889,
+      "argument_acc": 0.0
+    },
+    "hard": {
+      "tool_selection_acc": 0.8,
+      "argument_acc": 0.333
+    }
+  },
+  "scenario_results": [
+    {
+      "scenario_id": "ecommerce_06",
+      "domain": "ecommerce_support",
+      "difficulty": "easy",
+      "title": "Simple Cart Addition",
+      "turn_take_success": true,
+      "metrics": {
+        "tool_selection_acc": {
+          "score": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "matched": 1,
+          "total_expected": 1,
+          "total_actual": 1,
+          "unmatched_expected": [],
+          "unexpected_calls": []
+        },
+        "argument_acc": {
+          "score": 1.0,
+          "details": [
+            {
+              "function": "add_to_cart",
+              "score": 1.0,
+              "expected_args": {
+                "product_id": "K2",
+                "quantity": 2
+              },
+              "actual_args": {
+                "product_id": "K2",
+                "quantity": 2
+              },
+              "explanation": "All arguments match"
+            }
+          ]
+        },
+        "response_qual": {
+          "score": null,
+          "explanation": "LLM judge disabled; response accuracy skipped."
+        }
+      },
+      "latency": {
+        "available": true,
+        "user_speech_end_rel": 14.16,
+        "audio_agent_speech_start": 18.56,
+        "agent_response_latency_s": 4.4,
+        "is_interruption": false
+      },
+      "expected_calls_count": 1,
+      "actual_calls_count": 1
+    },
+    {
+      "scenario_id": "travel_07",
+      "domain": "travel_identity",
+      "difficulty": "easy",
+      "title": "Driver License Update",
+      "turn_take_success": true,
+      "metrics": {
+        "tool_selection_acc": {
+          "score": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "matched": 1,
+          "total_expected": 1,
+          "total_actual": 1,
+          "unmatched_expected": [],
+          "unexpected_calls": []
+        },
+        "argument_acc": {
+          "score": 0.0,
+          "details": [
+            {
+              "function": "update_identity_doc",
+              "score": 0.0,
+              "expected_args": {
+                "doc_type": "driver_license",
+                "doc_number": "DL555"
+              },
+              "actual_args": {
+                "doc_type": "driver_license",
+                "doc_number": "D-5-5"
+              },
+              "explanation": "Mismatch 'doc_number': expected=DL555, got=D-5-5"
+            }
+          ]
+        },
+        "response_qual": {
+          "score": null,
+          "explanation": "LLM judge disabled; response accuracy skipped."
+        }
+      },
+      "latency": {
+        "available": true,
+        "user_speech_end_rel": 14.48,
+        "audio_agent_speech_start": 19.2,
+        "agent_response_latency_s": 4.72,
+        "is_interruption": false
+      },
+      "expected_calls_count": 1,
+      "actual_calls_count": 1
+    },
+    {
+      "scenario_id": "finance_15",
+      "domain": "finance_billing",
+      "difficulty": "medium",
+      "title": "Autopay Correction",
+      "turn_take_success": true,
+      "metrics": {
+        "tool_selection_acc": {
+          "score": 0.667,
+          "recall": 1.0,
+          "precision": 0.5,
+          "matched": 1,
+          "total_expected": 1,
+          "total_actual": 2,
+          "unmatched_expected": [],
+          "unexpected_calls": [
+            "modify_autopay"
+          ]
+        },
+        "argument_acc": {
+          "score": 0.0,
+          "details": [
+            {
+              "function": "modify_autopay",
+              "score": 0.0,
+              "expected_args": {
+                "bill_type": "mortgage",
+                "source_account": "savings"
+              },
+              "actual_args": {
+                "bill_type": "mortgage",
+                "source_account": "checking"
+              },
+              "explanation": "Mismatch 'source_account': expected=savings, got=checking"
+            }
+          ]
+        },
+        "response_qual": {
+          "score": null,
+          "explanation": "LLM judge disabled; response accuracy skipped."
+        }
+      },
+      "latency": {
+        "available": true,
+        "user_speech_end_rel": 12.56,
+        "audio_agent_speech_start": 17.52,
+        "agent_response_latency_s": 4.96,
+        "is_interruption": false
+      },
+      "expected_calls_count": 1,
+      "actual_calls_count": 2
+    },
+    {
+      "scenario_id": "travel_21",
+      "domain": "travel_identity",
+      "difficulty": "hard",
+      "title": "Hesitant Booking Chain",
+      "turn_take_success": true,
+      "metrics": {
+        "tool_selection_acc": {
+          "score": 0.8,
+          "recall": 0.667,
+          "precision": 1.0,
+          "matched": 2,
+          "total_expected": 3,
+          "total_actual": 2,
+          "unmatched_expected": [
+            "book_flight"
+          ],
+          "unexpected_calls": []
+        },
+        "argument_acc": {
+          "score": 0.333,
+          "details": [
+            {
+              "function": "search_flights",
+              "score": 0.0,
+              "expected_args": {
+                "destination": "Las Vegas",
+                "date": "August 8"
+              },
+              "actual_args": {
+                "destination": "",
+                "date": "2026-08-08"
+              },
+              "explanation": "Mismatch 'destination': expected=Las Vegas, got="
+            },
+            {
+              "function": "book_flight",
+              "score": 0.0,
+              "reason": "Function not called"
+            },
+            {
+              "function": "update_identity_doc",
+              "score": 1.0,
+              "expected_args": {
+                "doc_type": "visa",
+                "doc_number": "V77"
+              },
+              "actual_args": {
+                "doc_type": "visa",
+                "doc_number": "V77"
+              },
+              "explanation": "All arguments match"
+            }
+          ]
+        },
+        "response_qual": {
+          "score": null,
+          "explanation": "LLM judge disabled; response accuracy skipped."
+        }
+      },
+      "latency": {
+        "available": true,
+        "user_speech_end_rel": 19.6,
+        "audio_agent_speech_start": 28.0,
+        "agent_response_latency_s": 8.4,
+        "is_interruption": false
+      },
+      "expected_calls_count": 3,
+      "actual_calls_count": 2
+    },
+    {
+      "scenario_id": "housing_13",
+      "domain": "housing_location",
+      "difficulty": "medium",
+      "title": "Dual Filter Update",
+      "turn_take_success": true,
+      "metrics": {
+        "tool_selection_acc": {
+          "score": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "matched": 2,
+          "total_expected": 2,
+          "total_actual": 2,
+          "unmatched_expected": [],
+          "unexpected_calls": []
+        },
+        "argument_acc": {
+          "score": 0.0,
+          "details": [
+            {
+              "function": "update_search_filter",
+              "score": 0.0,
+              "expected_args": {
+                "filter_name": "max_price",
+                "value": 3000
+              },
+              "actual_args": {
+                "filter_name": "max_price",
+                "value": "3000"
+              },
+              "explanation": "Mismatch 'value': expected=3000, got=3000"
+            },
+            {
+              "function": "update_search_filter",
+              "score": 0.0,
+              "expected_args": {
+                "filter_name": "min_bedrooms",
+                "value": 3
+              },
+              "actual_args": {
+                "filter_name": "bedrooms_min",
+                "value": "3"
+              },
+              "explanation": "Mismatch 'filter_name': expected=min_bedrooms, got=bedrooms_min"
+            }
+          ]
+        },
+        "response_qual": {
+          "score": null,
+          "explanation": "LLM judge disabled; response accuracy skipped."
+        }
+      },
+      "latency": {
+        "available": true,
+        "user_speech_end_rel": 17.28,
+        "audio_agent_speech_start": 25.12,
+        "agent_response_latency_s": 7.84,
+        "is_interruption": false
+      },
+      "expected_calls_count": 2,
+      "actual_calls_count": 2
+    },
+    {
+      "scenario_id": "ecommerce_21",
+      "domain": "ecommerce_support",
+      "difficulty": "hard",
+      "title": "Hesitant Tracking Chain",
+      "turn_take_success": true,
+      "metrics": {
+        "tool_selection_acc": {
+          "score": 0.8,
+          "recall": 0.667,
+          "precision": 1.0,
+          "matched": 2,
+          "total_expected": 3,
+          "total_actual": 2,
+          "unmatched_expected": [
+            "add_to_cart"
+          ],
+          "unexpected_calls": []
+        },
+        "argument_acc": {
+          "score": 0.333,
+          "details": [
+            {
+              "function": "track_order",
+              "score": 0.0,
+              "expected_args": {
+                "order_id": "BOB"
+              },
+              "actual_args": {
+                "order_id": "BOP"
+              },
+              "explanation": "Mismatch 'order_id': expected=BOB, got=BOP"
+            },
+            {
+              "function": "search_products",
+              "score": 1.0,
+              "expected_args": {
+                "query": "watch",
+                "max_price": 200
+              },
+              "actual_args": {
+                "query": "watch",
+                "max_price": 200.0
+              },
+              "explanation": "All arguments match"
+            },
+            {
+              "function": "add_to_cart",
+              "score": 0.0,
+              "reason": "Function not called"
+            }
+          ]
+        },
+        "response_qual": {
+          "score": null,
+          "explanation": "LLM judge disabled; response accuracy skipped."
+        }
+      },
+      "latency": {
+        "available": true,
+        "user_speech_end_rel": 25.28,
+        "audio_agent_speech_start": 31.92,
+        "agent_response_latency_s": 6.64,
+        "is_interruption": false
+      },
+      "expected_calls_count": 3,
+      "actual_calls_count": 2
+    },
+    {
+      "scenario_id": "ecommerce_14",
+      "domain": "ecommerce_support",
+      "difficulty": "medium",
+      "title": "Filler-Heavy Cart Addition",
+      "turn_take_success": true,
+      "metrics": {
+        "tool_selection_acc": {
+          "score": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "matched": 1,
+          "total_expected": 1,
+          "total_actual": 1,
+          "unmatched_expected": [],
+          "unexpected_calls": []
+        },
+        "argument_acc": {
+          "score": 0.0,
+          "details": [
+            {
+              "function": "add_to_cart",
+              "score": 0.0,
+              "expected_args": {
+                "product_id": "P52",
+                "quantity": 2
+              },
+              "actual_args": {
+                "product_id": "P-5-2",
+                "quantity": 2
+              },
+              "explanation": "Mismatch 'product_id': expected=P52, got=P-5-2"
+            }
+          ]
+        },
+        "response_qual": {
+          "score": null,
+          "explanation": "LLM judge disabled; response accuracy skipped."
+        }
+      },
+      "latency": {
+        "available": true,
+        "user_speech_end_rel": 19.44,
+        "audio_agent_speech_start": 25.2,
+        "agent_response_latency_s": 5.76,
+        "is_interruption": false
+      },
+      "expected_calls_count": 1,
+      "actual_calls_count": 1
+    },
+    {
+      "scenario_id": "finance_06",
+      "domain": "finance_billing",
+      "difficulty": "easy",
+      "title": "Card Benefits with Hesitation",
+      "turn_take_success": true,
+      "metrics": {
+        "tool_selection_acc": {
+          "score": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "matched": 1,
+          "total_expected": 1,
+          "total_actual": 1,
+          "unmatched_expected": [],
+          "unexpected_calls": []
+        },
+        "argument_acc": {
+          "score": 1.0,
+          "details": [
+            {
+              "function": "get_card_benefits",
+              "score": 1.0,
+              "expected_args": {
+                "card_type": "travel"
+              },
+              "actual_args": {
+                "card_type": "travel"
+              },
+              "explanation": "All arguments match"
+            }
+          ]
+        },
+        "response_qual": {
+          "score": null,
+          "explanation": "LLM judge disabled; response accuracy skipped."
+        }
+      },
+      "latency": {
+        "available": true,
+        "user_speech_end_rel": 11.76,
+        "audio_agent_speech_start": 17.12,
+        "agent_response_latency_s": 5.36,
+        "is_interruption": false
+      },
+      "expected_calls_count": 1,
+      "actual_calls_count": 1
+    },
+    {
+      "scenario_id": "housing_21",
+      "domain": "housing_location",
+      "difficulty": "hard",
+      "title": "Multi-Correction Across Statements",
+      "turn_take_success": false,
+      "metrics": {
+        "tool_selection_acc": {
+          "score": 0.0,
+          "recall": 0.0,
+          "precision": 1.0,
+          "matched": 0,
+          "total_expected": 2,
+          "total_actual": 0,
+          "unmatched_expected": [
+            "search_apartments",
+            "calculate_commute"
+          ],
+          "unexpected_calls": []
+        },
+        "argument_acc": {
+          "score": 0.0,
+          "details": [
+            {
+              "function": "search_apartments",
+              "score": 0.0,
+              "reason": "Function not called"
+            },
+            {
+              "function": "calculate_commute",
+              "score": 0.0,
+              "reason": "Function not called"
+            }
+          ]
+        },
+        "response_qual": {
+          "score": null,
+          "explanation": "LLM judge disabled; response accuracy skipped."
+        }
+      },
+      "latency": {
+        "available": false,
+        "reason": "Missing timing fields"
+      },
+      "expected_calls_count": 2,
+      "actual_calls_count": 0
+    },
+    {
+      "scenario_id": "housing_02",
+      "domain": "housing_location",
+      "difficulty": "easy",
+      "title": "Simple Commute Check",
+      "turn_take_success": true,
+      "metrics": {
+        "tool_selection_acc": {
+          "score": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "matched": 1,
+          "total_expected": 1,
+          "total_actual": 1,
+          "unmatched_expected": [],
+          "unexpected_calls": []
+        },
+        "argument_acc": {
+          "score": 1.0,
+          "details": [
+            {
+              "function": "calculate_commute",
+              "score": 1.0,
+              "expected_args": {
+                "origin_address": "101 Main Street",
+                "destination_address": "Downtown Office",
+                "mode": "driving"
+              },
+              "actual_args": {
+                "origin_address": "101 Main Street",
+                "destination_address": "downtown office",
+                "mode": "driving"
+              },
+              "explanation": "All arguments match"
+            }
+          ]
+        },
+        "response_qual": {
+          "score": null,
+          "explanation": "LLM judge disabled; response accuracy skipped."
+        }
+      },
+      "latency": {
+        "available": true,
+        "user_speech_end_rel": 14.32,
+        "audio_agent_speech_start": 20.8,
+        "agent_response_latency_s": 6.48,
+        "is_interruption": false
+      },
+      "expected_calls_count": 1,
+      "actual_calls_count": 1
+    }
+  ]
+}

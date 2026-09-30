@@ -1,0 +1,11 @@
+{"room": "eval-ff8f335e", "call": {"function": "add_to_cart", "args": {"product_id": "K2", "quantity": 2}, "timestamp_start": 1790728806.7699683, "timestamp_end": 1790728806.7700071}}
+{"room": "eval-087b903d", "call": {"function": "add_to_cart", "args": {"product_id": "P-5-2", "quantity": 2}, "timestamp_start": 1790728867.320571, "timestamp_end": 1790728867.32061}}
+{"room": "eval-f414c246", "call": {"function": "track_order", "args": {"order_id": "BOP"}, "timestamp_start": 1790728935.2990315, "timestamp_end": 1790728935.2990665}}
+{"room": "eval-f414c246", "call": {"function": "search_products", "args": {"query": "watch", "max_price": 200.0}, "timestamp_start": 1790728937.7043583, "timestamp_end": 1790728937.7043958}}
+{"room": "eval-4a59d852", "call": {"function": "get_card_benefits", "args": {"card_type": "travel"}, "timestamp_start": 1790728995.7817981, "timestamp_end": 1790728995.781831}}
+{"room": "eval-1bf03469", "call": {"function": "modify_autopay", "args": {"bill_type": "mortgage", "source_account": "savings"}, "timestamp_start": 1790729051.8172019, "timestamp_end": 1790729051.8172352}}
+{"room": "eval-3c332a98", "call": {"function": "calculate_commute", "args": {"origin_address": "101 Main Street", "destination_address": "downtown office", "mode": "driving"}, "timestamp_start": 1790729106.7136543, "timestamp_end": 1790729107.1772277}}
+{"room": "eval-5f229b0d", "call": {"function": "update_search_filter", "args": {"filter_name": "max_price", "value": "3000"}, "timestamp_start": 1790729168.6147616, "timestamp_end": 1790729168.789}}
+{"room": "eval-5f229b0d", "call": {"function": "update_search_filter", "args": {"filter_name": "bedrooms", "value": "3"}, "timestamp_start": 1790729169.8124719, "timestamp_end": 1790729169.9676514}}
+{"room": "eval-d5fa9d00", "call": {"function": "update_identity_doc", "args": {"doc_type": "driver_license", "doc_number": "DL-5-55"}, "timestamp_start": 1790729284.4278562, "timestamp_end": 1790729284.4278982}}
+{"room": "eval-0c9d3047", "call": {"function": "search_flights", "args": {"destination": "", "date": "2026-08-08"}, "timestamp_start": 1790729347.4183142, "timestamp_end": 1790729347.708521}}

@@ -1,0 +1,32 @@
+📖 Loading benchmark data from benchmark_data_v2.json...
+📁 Scanning fdb_v3_subset_10_5_10 for provider 'parley'...
+🔍 Found 10 valid result files matching benchmark scenarios.
+
+📊 EVALUATION REPORT
+========================================================
+  Scenarios evaluated : 10
+  Turn-Take Success   : 9/10 (90.0%)
+  No Response (silent): 1
+
+  By Metric (turn-taken only, N=9):
+    Tool Selection Acc : 91.9%
+    Argument Acc       : 40.7%
+    Response Qual      : (LLM judge disabled, use --use-llm)
+
+  Latency (N=9, turn-taken only):
+    Avg latency        : 6.06s ± 1.39s  (excl. interruptions)
+    Min / Max          : 4.40s / 8.40s
+    Interruptions      : 0 / 9  (0.0%)
+
+  By Domain (all samples):
+    ecommerce_support: tool_selection_acc=93.3%, argument_acc=44.4%
+    travel_identity: tool_selection_acc=90.0%, argument_acc=16.7%
+    finance_billing: tool_selection_acc=83.4%, argument_acc=50.0%
+    housing_location: tool_selection_acc=66.7%, argument_acc=33.3%
+
+  By Difficulty (all samples):
+    easy: tool_selection_acc=100.0%, argument_acc=75.0%
+    medium: tool_selection_acc=88.9%, argument_acc=0.0%
+    hard: tool_selection_acc=53.3%, argument_acc=22.2%
+
+  📄 Full report saved: /home/user/parley/runs/fdb/20260930-002544-parley/evaluation_report.json

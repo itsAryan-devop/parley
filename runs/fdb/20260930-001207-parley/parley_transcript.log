@@ -1,0 +1,18 @@
+{"room": "eval-d462f557", "t": 1790727197.2686768, "role": "user", "text": "Like,  Uh, you know, well, I ordered something last week and..."}
+{"room": "eval-d462f557", "t": 1790727198.1315484, "role": "user", "text": "Um, I haven't received it yet. Could you track it for me? The order ID is A, B, C, 1, 2, 3."}
+{"room": "eval-d462f557", "t": 1790727207.1687853, "role": "assistant", "text": "Your order **ABC123** is currently **out for delivery**."}
+{"room": "eval-00cf24c7", "t": 1790727248.607033, "role": "user", "text": "Like, uh, you know,  Well, I ordered something last week and...  Um, I haven't received it yet."}
+{"room": "eval-00cf24c7", "t": 1790727251.4396334, "role": "user", "text": "Could you track it for me?"}
+{"room": "eval-00cf24c7", "t": 1790727258.597453, "role": "user", "text": "The order ID is ABC123."}
+{"room": "eval-00cf24c7", "t": 1790727265.6682217, "role": "assistant", "text": "Your order ABC123 is currently out for delivery."}
+{"room": "eval-62216b63", "t": 1790727314.9221869, "role": "user", "text": "I'm looking for a pair of wireless headphones, and I'd like, um, to track it under $100 if possible."}
+{"room": "eval-62216b63", "t": 1790727316.8897448, "role": "user", "text": "What do you have?"}
+{"room": "eval-62216b63", "t": 1790727327.2957563, "role": "assistant", "text": "Here\u2019s a wireless\u2011headphone option under $100:\n\n- **Wireless headphones Premium** \u2013 $90 (product ID:\u202fPROD1)"}
+{"room": "eval-90f30c5b", "t": 1790727371.1473222, "role": "user", "text": "You know, um, where is my package? Let me find the order number here. The order number is XYZ88. Could you check what's going on with it?"}
+{"room": "eval-90f30c5b", "t": 1790727376.4808862, "role": "assistant", "text": "Your package XYZ88 is currently out for delivery."}
+{"room": "eval-e9c37553", "t": 1790727417.4440174, "role": "user", "text": "Um, so like, uh,  I'm looking for, um,  For a new..."}
+{"room": "eval-e9c37553", "t": 1790727420.5934532, "role": "assistant", "text": "Sure, just let me know"}
+{"room": "eval-e9c37553", "t": 1790727427.667077, "role": "user", "text": "Let me think.  A desk.  Yes.  Something under $300."}
+{"room": "eval-e9c37553", "t": 1790727432.0724146, "role": "assistant", "text": "I"}
+{"room": "eval-e9c37553", "t": 1790727432.4058626, "role": "user", "text": "If you have an option like that, that would be great."}
+{"room": "eval-e9c37553", "t": 1790727436.561414, "role": "assistant", "text": "Added the desk to your cart."}

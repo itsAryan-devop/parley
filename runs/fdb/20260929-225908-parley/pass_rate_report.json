@@ -1,0 +1,173 @@
+{
+  "benchmark_name": "In-the-Wild Speech & Multi-Step Tool Calling",
+  "evaluated_at": "2026-09-29T23:04:42.962313",
+  "total_scenarios": 5,
+  "overall_pass_rate": 0.0,
+  "passed": 0,
+  "failed": 5,
+  "failure_breakdown": {
+    "wrong_tools": 4,
+    "wrong_arguments": 1
+  },
+  "by_domain": {
+    "ecommerce_support": 0.0
+  },
+  "by_difficulty": {
+    "easy": 0.0
+  },
+  "by_num_tools": {
+    "1": 0.0
+  },
+  "by_disfluency_feature": {
+    "FILLER": 0.0,
+    "HESITATION": 0.0,
+    "PAUSE": 0.0
+  },
+  "by_state_rollback": {
+    "with_rollback": null,
+    "without_rollback": 0.0
+  },
+  "scenario_results": [
+    {
+      "scenario_id": "ecommerce_05",
+      "domain": "ecommerce_support",
+      "difficulty": "easy",
+      "title": "Product Search with Hesitation",
+      "num_tools": 1,
+      "disfluency": [
+        "FILLER",
+        "HESITATION"
+      ],
+      "state_rollback": false,
+      "passed": false,
+      "checks": {
+        "tool_selection": {
+          "passed": false,
+          "expected": [
+            "search_products"
+          ],
+          "actual": [],
+          "missing": [
+            "search_products"
+          ],
+          "unexpected": []
+        }
+      },
+      "failure_reason": "Missing tools: ['search_products']"
+    },
+    {
+      "scenario_id": "ecommerce_01",
+      "domain": "ecommerce_support",
+      "difficulty": "easy",
+      "title": "Simple Order Tracking",
+      "num_tools": 1,
+      "disfluency": [],
+      "state_rollback": false,
+      "passed": false,
+      "checks": {
+        "tool_selection": {
+          "passed": false,
+          "expected": [
+            "track_order"
+          ],
+          "actual": [],
+          "missing": [
+            "track_order"
+          ],
+          "unexpected": []
+        }
+      },
+      "failure_reason": "Missing tools: ['track_order']"
+    },
+    {
+      "scenario_id": "ecommerce_01",
+      "domain": "ecommerce_support",
+      "difficulty": "easy",
+      "title": "Simple Order Tracking",
+      "num_tools": 1,
+      "disfluency": [],
+      "state_rollback": false,
+      "passed": false,
+      "checks": {
+        "tool_selection": {
+          "passed": false,
+          "expected": [
+            "track_order"
+          ],
+          "actual": [],
+          "missing": [
+            "track_order"
+          ],
+          "unexpected": []
+        }
+      },
+      "failure_reason": "Missing tools: ['track_order']"
+    },
+    {
+      "scenario_id": "ecommerce_04",
+      "domain": "ecommerce_support",
+      "difficulty": "easy",
+      "title": "Order Tracking with Pause",
+      "num_tools": 1,
+      "disfluency": [
+        "PAUSE"
+      ],
+      "state_rollback": false,
+      "passed": false,
+      "checks": {
+        "tool_selection": {
+          "passed": true,
+          "expected": [
+            "track_order"
+          ],
+          "actual": [
+            "track_order"
+          ],
+          "missing": [],
+          "unexpected": []
+        },
+        "argument_accuracy": {
+          "passed": false,
+          "details": [
+            {
+              "function": "track_order",
+              "passed": false,
+              "expected_args": {
+                "order_id": "XYZ88"
+              },
+              "actual_args": {
+                "order_id": "XYZ 88"
+              },
+              "explanation": "Mismatch 'order_id': expected=XYZ88, got=XYZ 88"
+            }
+          ]
+        }
+      },
+      "failure_reason": "Wrong arguments for: ['track_order']"
+    },
+    {
+      "scenario_id": "ecommerce_02",
+      "domain": "ecommerce_support",
+      "difficulty": "easy",
+      "title": "Simple Product Search",
+      "num_tools": 1,
+      "disfluency": [],
+      "state_rollback": false,
+      "passed": false,
+      "checks": {
+        "tool_selection": {
+          "passed": false,
+          "expected": [
+            "search_products"
+          ],
+          "actual": [],
+          "missing": [
+            "search_products"
+          ],
+          "unexpected": []
+        }
+      },
+      "failure_reason": "Missing tools: ['search_products']"
+    }
+  ]
+}

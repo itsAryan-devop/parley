@@ -1,0 +1,13 @@
+{"room": "eval-9138d8e7", "call": {"function": "add_to_cart", "args": {"product_id": "K2", "quantity": 2}, "timestamp_start": 1790728024.267591, "timestamp_end": 1790728024.2676282}}
+{"room": "eval-5a1a3fc9", "call": {"function": "add_to_cart", "args": {"product_id": "P-5-2", "quantity": 2}, "timestamp_start": 1790728087.769553, "timestamp_end": 1790728087.7695923}}
+{"room": "eval-16b3885c", "call": {"function": "track_order", "args": {"order_id": "BOP"}, "timestamp_start": 1790728143.0984309, "timestamp_end": 1790728143.0984774}}
+{"room": "eval-16b3885c", "call": {"function": "search_products", "args": {"query": "watch", "max_price": 200.0}, "timestamp_start": 1790728157.410038, "timestamp_end": 1790728157.410079}}
+{"room": "eval-90eaff15", "call": {"function": "get_card_benefits", "args": {"card_type": "travel"}, "timestamp_start": 1790728213.1041942, "timestamp_end": 1790728213.1042314}}
+{"room": "eval-4dd8bb9a", "call": {"function": "modify_autopay", "args": {"bill_type": "mortgage", "source_account": "checking"}, "timestamp_start": 1790728268.1779737, "timestamp_end": 1790728268.178014}}
+{"room": "eval-4dd8bb9a", "call": {"function": "modify_autopay", "args": {"bill_type": "mortgage", "source_account": "savings"}, "timestamp_start": 1790728269.6942992, "timestamp_end": 1790728269.6943328}}
+{"room": "eval-7b98dd5b", "call": {"function": "calculate_commute", "args": {"origin_address": "101 Main Street", "destination_address": "downtown office", "mode": "driving"}, "timestamp_start": 1790728325.6675644, "timestamp_end": 1790728326.1629403}}
+{"room": "eval-74fd5dae", "call": {"function": "update_search_filter", "args": {"filter_name": "max_price", "value": "3000"}, "timestamp_start": 1790728387.5939016, "timestamp_end": 1790728387.7640953}}
+{"room": "eval-74fd5dae", "call": {"function": "update_search_filter", "args": {"filter_name": "bedrooms_min", "value": "3"}, "timestamp_start": 1790728388.829334, "timestamp_end": 1790728388.960506}}
+{"room": "eval-35e97ae8", "call": {"function": "update_identity_doc", "args": {"doc_type": "driver_license", "doc_number": "D-5-5"}, "timestamp_start": 1790728508.2229407, "timestamp_end": 1790728508.2229853}}
+{"room": "eval-a1c2b0c2", "call": {"function": "update_identity_doc", "args": {"doc_type": "visa", "doc_number": "V77"}, "timestamp_start": 1790728572.550521, "timestamp_end": 1790728572.5505621}}
+{"room": "eval-a1c2b0c2", "call": {"function": "search_flights", "args": {"destination": "", "date": "2026-08-08"}, "timestamp_start": 1790728573.4521856, "timestamp_end": 1790728573.860508}}

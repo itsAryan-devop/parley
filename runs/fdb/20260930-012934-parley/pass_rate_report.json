@@ -1,0 +1,508 @@
+{
+  "benchmark_name": "In-the-Wild Speech & Multi-Step Tool Calling",
+  "evaluated_at": "2026-09-30T01:40:29.440456",
+  "total_scenarios": 10,
+  "overall_pass_rate": 0.5,
+  "passed": 5,
+  "failed": 5,
+  "failure_breakdown": {
+    "wrong_tools": 2,
+    "wrong_arguments": 3
+  },
+  "by_domain": {
+    "ecommerce_support": 1.0,
+    "travel_identity": 0.0,
+    "finance_billing": 1.0,
+    "housing_location": 0.0
+  },
+  "by_difficulty": {
+    "easy": 0.5,
+    "medium": 0.667,
+    "hard": 0.333
+  },
+  "by_num_tools": {
+    "1": 0.667,
+    "2": 0.0,
+    "3": 0.5
+  },
+  "by_disfluency_feature": {
+    "SELF_CORRECTION": 0.5,
+    "PAUSE": 0.5,
+    "FILLER": 0.75
+  },
+  "by_state_rollback": {
+    "with_rollback": 0.5,
+    "without_rollback": 0.5
+  },
+  "scenario_results": [
+    {
+      "scenario_id": "ecommerce_06",
+      "domain": "ecommerce_support",
+      "difficulty": "easy",
+      "title": "Simple Cart Addition",
+      "num_tools": 1,
+      "disfluency": [],
+      "state_rollback": false,
+      "passed": true,
+      "checks": {
+        "tool_selection": {
+          "passed": true,
+          "expected": [
+            "add_to_cart"
+          ],
+          "actual": [
+            "add_to_cart"
+          ],
+          "missing": [],
+          "unexpected": []
+        },
+        "argument_accuracy": {
+          "passed": true,
+          "details": [
+            {
+              "function": "add_to_cart",
+              "passed": true,
+              "expected_args": {
+                "product_id": "K2",
+                "quantity": 2
+              },
+              "actual_args": {
+                "product_id": "K2",
+                "quantity": 2
+              },
+              "explanation": "All arguments match"
+            }
+          ]
+        }
+      },
+      "failure_reason": ""
+    },
+    {
+      "scenario_id": "travel_07",
+      "domain": "travel_identity",
+      "difficulty": "easy",
+      "title": "Driver License Update",
+      "num_tools": 1,
+      "disfluency": [],
+      "state_rollback": false,
+      "passed": false,
+      "checks": {
+        "tool_selection": {
+          "passed": true,
+          "expected": [
+            "update_identity_doc"
+          ],
+          "actual": [
+            "update_identity_doc"
+          ],
+          "missing": [],
+          "unexpected": []
+        },
+        "argument_accuracy": {
+          "passed": false,
+          "details": [
+            {
+              "function": "update_identity_doc",
+              "passed": false,
+              "expected_args": {
+                "doc_type": "driver_license",
+                "doc_number": "DL555"
+              },
+              "actual_args": {
+                "doc_type": "driver_license",
+                "doc_number": "D"
+              },
+              "explanation": "Mismatch 'doc_number': expected=DL555, got=D"
+            }
+          ]
+        }
+      },
+      "failure_reason": "Wrong arguments for: ['update_identity_doc']"
+    },
+    {
+      "scenario_id": "finance_15",
+      "domain": "finance_billing",
+      "difficulty": "medium",
+      "title": "Autopay Correction",
+      "num_tools": 1,
+      "disfluency": [
+        "SELF_CORRECTION"
+      ],
+      "state_rollback": true,
+      "passed": true,
+      "checks": {
+        "tool_selection": {
+          "passed": true,
+          "expected": [
+            "modify_autopay"
+          ],
+          "actual": [
+            "modify_autopay"
+          ],
+          "missing": [],
+          "unexpected": []
+        },
+        "argument_accuracy": {
+          "passed": true,
+          "details": [
+            {
+              "function": "modify_autopay",
+              "passed": true,
+              "expected_args": {
+                "bill_type": "mortgage",
+                "source_account": "savings"
+              },
+              "actual_args": {
+                "bill_type": "mortgage",
+                "source_account": "savings"
+              },
+              "explanation": "All arguments match"
+            }
+          ]
+        }
+      },
+      "failure_reason": ""
+    },
+    {
+      "scenario_id": "travel_21",
+      "domain": "travel_identity",
+      "difficulty": "hard",
+      "title": "Hesitant Booking Chain",
+      "num_tools": 3,
+      "disfluency": [
+        "PAUSE",
+        "FILLER"
+      ],
+      "state_rollback": false,
+      "passed": false,
+      "checks": {
+        "tool_selection": {
+          "passed": true,
+          "expected": [
+            "search_flights",
+            "book_flight",
+            "update_identity_doc"
+          ],
+          "actual": [
+            "search_flights",
+            "book_flight",
+            "update_identity_doc"
+          ],
+          "missing": [],
+          "unexpected": []
+        },
+        "argument_accuracy": {
+          "passed": false,
+          "details": [
+            {
+              "function": "search_flights",
+              "passed": false,
+              "expected_args": {
+                "destination": "Las Vegas",
+                "date": "August 8"
+              },
+              "actual_args": {
+                "destination": "Berlin",
+                "date": "2026-08-08"
+              },
+              "explanation": "Mismatch 'destination': expected=Las Vegas, got=Berlin"
+            },
+            {
+              "function": "book_flight",
+              "passed": true,
+              "expected_args": {
+                "passenger_name": "Quinn Davis"
+              },
+              "actual_args": {
+                "passenger_name": "Quinn Davis"
+              },
+              "explanation": "All arguments match"
+            },
+            {
+              "function": "update_identity_doc",
+              "passed": true,
+              "expected_args": {
+                "doc_type": "visa",
+                "doc_number": "V77"
+              },
+              "actual_args": {
+                "doc_type": "visa",
+                "doc_number": "V77"
+              },
+              "explanation": "All arguments match"
+            }
+          ]
+        }
+      },
+      "failure_reason": "Wrong arguments for: ['search_flights']"
+    },
+    {
+      "scenario_id": "housing_13",
+      "domain": "housing_location",
+      "difficulty": "medium",
+      "title": "Dual Filter Update",
+      "num_tools": 2,
+      "disfluency": [],
+      "state_rollback": false,
+      "passed": false,
+      "checks": {
+        "tool_selection": {
+          "passed": true,
+          "expected": [
+            "update_search_filter",
+            "update_search_filter"
+          ],
+          "actual": [
+            "update_search_filter",
+            "update_search_filter"
+          ],
+          "missing": [],
+          "unexpected": []
+        },
+        "argument_accuracy": {
+          "passed": false,
+          "details": [
+            {
+              "function": "update_search_filter",
+              "passed": false,
+              "expected_args": {
+                "filter_name": "max_price",
+                "value": 3000
+              },
+              "actual_args": {
+                "filter_name": "max_price",
+                "value": "3000"
+              },
+              "explanation": "Mismatch 'value': expected=3000, got=3000"
+            },
+            {
+              "function": "update_search_filter",
+              "passed": false,
+              "expected_args": {
+                "filter_name": "min_bedrooms",
+                "value": 3
+              },
+              "actual_args": {
+                "filter_name": "bedrooms",
+                "value": "3"
+              },
+              "explanation": "Mismatch 'filter_name': expected=min_bedrooms, got=bedrooms"
+            }
+          ]
+        }
+      },
+      "failure_reason": "Wrong arguments for: ['update_search_filter', 'update_search_filter']"
+    },
+    {
+      "scenario_id": "ecommerce_21",
+      "domain": "ecommerce_support",
+      "difficulty": "hard",
+      "title": "Hesitant Tracking Chain",
+      "num_tools": 3,
+      "disfluency": [
+        "FILLER"
+      ],
+      "state_rollback": false,
+      "passed": true,
+      "checks": {
+        "tool_selection": {
+          "passed": true,
+          "expected": [
+            "track_order",
+            "search_products",
+            "add_to_cart"
+          ],
+          "actual": [
+            "track_order",
+            "search_products",
+            "add_to_cart"
+          ],
+          "missing": [],
+          "unexpected": []
+        },
+        "argument_accuracy": {
+          "passed": true,
+          "details": [
+            {
+              "function": "track_order",
+              "passed": true,
+              "expected_args": {
+                "order_id": "BOB"
+              },
+              "actual_args": {
+                "order_id": "BOB"
+              },
+              "explanation": "All arguments match"
+            },
+            {
+              "function": "search_products",
+              "passed": true,
+              "expected_args": {
+                "query": "watch",
+                "max_price": 200
+              },
+              "actual_args": {
+                "query": "watch",
+                "max_price": 200.0
+              },
+              "explanation": "All arguments match"
+            },
+            {
+              "function": "add_to_cart",
+              "passed": true,
+              "expected_args": {
+                "product_id": "$RESULT_1.products[0].product_id",
+                "quantity": 1
+              },
+              "actual_args": {
+                "product_id": "PROD1",
+                "quantity": 1
+              },
+              "explanation": "All arguments match"
+            }
+          ]
+        }
+      },
+      "failure_reason": ""
+    },
+    {
+      "scenario_id": "ecommerce_14",
+      "domain": "ecommerce_support",
+      "difficulty": "medium",
+      "title": "Filler-Heavy Cart Addition",
+      "num_tools": 1,
+      "disfluency": [
+        "FILLER"
+      ],
+      "state_rollback": false,
+      "passed": true,
+      "checks": {
+        "tool_selection": {
+          "passed": true,
+          "expected": [
+            "add_to_cart"
+          ],
+          "actual": [
+            "add_to_cart"
+          ],
+          "missing": [],
+          "unexpected": []
+        },
+        "argument_accuracy": {
+          "passed": true,
+          "details": [
+            {
+              "function": "add_to_cart",
+              "passed": true,
+              "expected_args": {
+                "product_id": "P52",
+                "quantity": 2
+              },
+              "actual_args": {
+                "product_id": "P52",
+                "quantity": 2
+              },
+              "explanation": "All arguments match"
+            }
+          ]
+        }
+      },
+      "failure_reason": ""
+    },
+    {
+      "scenario_id": "finance_06",
+      "domain": "finance_billing",
+      "difficulty": "easy",
+      "title": "Card Benefits with Hesitation",
+      "num_tools": 1,
+      "disfluency": [
+        "FILLER",
+        "PAUSE"
+      ],
+      "state_rollback": false,
+      "passed": true,
+      "checks": {
+        "tool_selection": {
+          "passed": true,
+          "expected": [
+            "get_card_benefits"
+          ],
+          "actual": [
+            "get_card_benefits"
+          ],
+          "missing": [],
+          "unexpected": []
+        },
+        "argument_accuracy": {
+          "passed": true,
+          "details": [
+            {
+              "function": "get_card_benefits",
+              "passed": true,
+              "expected_args": {
+                "card_type": "travel"
+              },
+              "actual_args": {
+                "card_type": "travel"
+              },
+              "explanation": "All arguments match"
+            }
+          ]
+        }
+      },
+      "failure_reason": ""
+    },
+    {
+      "scenario_id": "housing_21",
+      "domain": "housing_location",
+      "difficulty": "hard",
+      "title": "Multi-Correction Across Statements",
+      "num_tools": 2,
+      "disfluency": [
+        "SELF_CORRECTION"
+      ],
+      "state_rollback": true,
+      "passed": false,
+      "checks": {
+        "tool_selection": {
+          "passed": false,
+          "expected": [
+            "search_apartments",
+            "calculate_commute"
+          ],
+          "actual": [],
+          "missing": [
+            "search_apartments",
+            "calculate_commute"
+          ],
+          "unexpected": []
+        }
+      },
+      "failure_reason": "Missing tools: ['search_apartments', 'calculate_commute']"
+    },
+    {
+      "scenario_id": "housing_02",
+      "domain": "housing_location",
+      "difficulty": "easy",
+      "title": "Simple Commute Check",
+      "num_tools": 1,
+      "disfluency": [],
+      "state_rollback": false,
+      "passed": false,
+      "checks": {
+        "tool_selection": {
+          "passed": false,
+          "expected": [
+            "calculate_commute"
+          ],
+          "actual": [],
+          "missing": [
+            "calculate_commute"
+          ],
+          "unexpected": []
+        }
+      },
+      "failure_reason": "Missing tools: ['calculate_commute']"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{"room": "eval-d8a42fe8", "call": {"function": "add_to_cart", "args": {"product_id": "K2", "quantity": 2}, "timestamp_start": 1790729556.052347, "timestamp_end": 1790729556.05239}}
+{"room": "eval-1593b7ed", "call": {"function": "add_to_cart", "args": {"product_id": "P52", "quantity": 2}, "timestamp_start": 1790729619.0083346, "timestamp_end": 1790729619.008372}}
+{"room": "eval-f48b9d5d", "call": {"function": "track_order", "args": {"order_id": "BOP"}, "timestamp_start": 1790729685.9830728, "timestamp_end": 1790729685.9831064}}
+{"room": "eval-f48b9d5d", "call": {"function": "search_products", "args": {"query": "watch", "max_price": 200.0}, "timestamp_start": 1790729687.9568484, "timestamp_end": 1790729687.9568806}}
+{"room": "eval-f48b9d5d", "call": {"function": "add_to_cart", "args": {"product_id": "PROD1", "quantity": 1}, "timestamp_start": 1790729689.0910656, "timestamp_end": 1790729689.0911002}}
+{"room": "eval-d65fcfa1", "call": {"function": "get_card_benefits", "args": {"card_type": "travel"}, "timestamp_start": 1790729744.1125944, "timestamp_end": 1790729744.112625}}

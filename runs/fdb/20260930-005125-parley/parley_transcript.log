@@ -1,0 +1,26 @@
+{"room": "eval-d8a42fe8", "t": 1790729554.6512291, "role": "user", "text": "So I like...  Could you add two items...  I have two of the items K2 to my cart. I need one for me and one as a gift for my friend."}
+{"room": "eval-d8a42fe8", "t": 1790729563.8684, "role": "assistant", "text": "Added two\u202fK2 items to your cart\u2014one for you and one as a gift. Let me know if you\u2019d like anything else!"}
+{"room": "eval-1593b7ed", "t": 1790729613.0012054, "role": "user", "text": "Hmm.  Well...  Um,  So, uh, yeah.  So, um, I already found what I want.  Can you add, like, two of them?"}
+{"room": "eval-1593b7ed", "t": 1790729616.601161, "role": "user", "text": "P-5-2 to my cart."}
+{"room": "eval-1593b7ed", "t": 1790729617.7043185, "role": "user", "text": "I want to get one for myself and one as a gift."}
+{"room": "eval-1593b7ed", "t": 1790729625.2144122, "role": "assistant", "text": "Added two of\u202fP\u20115\u20112 to your cart. Let me know if you need anything else!"}
+{"room": "eval-f48b9d5d", "t": 1790729679.1983235, "role": "user", "text": "Um,  Um, so...  Well, could you track order BOP for me first? Then, um...  Hmm.  I also want to search for a nice watch under $200."}
+{"room": "eval-f48b9d5d", "t": 1790729686.9884338, "role": "user", "text": "And, um, once you can find something good, uh, go ahead and add it to my cart."}
+{"room": "eval-f48b9d5d", "t": 1790729696.396477, "role": "assistant", "text": "I\u2019ve added the watch (Premium, $190) to your cart. Let me know if you\u2019d like anything else!"}
+{"room": "eval-d65fcfa1", "t": 1790729742.8445187, "role": "user", "text": "Um, so, uh, I was wondering what the benefits are for the travel card. I think that's...  The one my coworker recommended for me?"}
+{"room": "eval-f8367e2a", "t": 1790729798.596313, "role": "user", "text": "I want, um, to switch my mortgage. I don't pay Depo from the checking."}
+{"room": "eval-f8367e2a", "t": 1790729800.8998897, "role": "user", "text": "Wait, wait, no, that's wrong too. Make it savings instead. Yeah, savings is, savings is the right one."}
+{"room": "eval-e7489059", "t": 1790729851.1686196, "role": "user", "text": "Tell me how long it would take to drive.  From 101 Main Street to downtown office."}
+{"room": "eval-e7489059", "t": 1790729855.816004, "role": "user", "text": "During a normal day,  Um, I want to make sure it's reasonable."}
+{"room": "eval-f850f9b3", "t": 1790729910.9814386, "role": "user", "text": "You know, like, you know, let's raise the max price to 3000 per month."}
+{"room": "eval-f850f9b3", "t": 1790729915.6337411, "role": "user", "text": "And also bump up the minimum bedrooms to three."}
+{"room": "eval-f850f9b3", "t": 1790729917.7460198, "role": "user", "text": "Mmm, yeah, I think I need more space than I originally thought."}
+{"room": "eval-4326904f", "t": 1790729980.8957784, "role": "user", "text": "So, uh, well, so, you know, uh, I, I want to search for a place with two bedrooms. Wait, actually, uh, I mean, I meant three bedrooms. We decided we need a home office. Also, check the transit time to the train station. Actually, I'd rather walk, so make that..."}
+{"room": "eval-4326904f", "t": 1790729982.9777598, "role": "user", "text": "Walking time."}
+{"room": "eval-8bafbd5b", "t": 1790730030.1794713, "role": "user", "text": "Uh,  Um, the new driver's license number is D."}
+{"room": "eval-8bafbd5b", "t": 1790730033.129596, "role": "user", "text": "Dash L dash five."}
+{"room": "eval-8bafbd5b", "t": 1790730037.2825184, "role": "user", "text": "Dash five, dash five."}
+{"room": "eval-8bafbd5b", "t": 1790730038.602839, "role": "user", "text": "Could you swap out the old one and put this new one in there?"}
+{"room": "eval-be9ab38a", "t": 1790730101.632224, "role": "user", "text": "You know,  Okay, so...  Um, I need to find flights to, um,"}
+{"room": "eval-be9ab38a", "t": 1790730102.7668726, "role": "user", "text": "I was thinking around August 8th. And then, um, once you find something, book it under the name Quinn Davis. Oh, and while you're at it, could you also update my visa number to V77? Okay."}
+{"room": "eval-be9ab38a", "t": 1790730104.7283175, "role": "user", "text": "Um,"}

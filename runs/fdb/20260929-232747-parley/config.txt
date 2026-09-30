@@ -1,0 +1,16 @@
+date: 2026-09-29T23:33:27Z
+agent: parley   label: parley   samples: 5
+backend: groq   llm: openai/gpt-oss-120b
+grace: 0.3   max_delay: 1.5
+turn_detector: 1   guard: 1
+judge: exact-match (no OPENAI_API_KEY)
+fdb_commit: 3e799c45a045256f47d5f1c9cda90157e2d2ec9e   parley_commit: eda142ef0de2c5401fba617c5599b48b1cf8da2c
+livekit==1.0.23
+livekit-agents==1.3.12
+livekit-api==1.2.1
+livekit-blingfire==1.1.0
+livekit-plugins-groq==1.3.12
+livekit-plugins-openai==1.3.12
+livekit-plugins-silero==1.3.12
+livekit-protocol==1.1.27
+openai==2.54.0
