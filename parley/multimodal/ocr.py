@@ -236,6 +236,38 @@ def _normalise(source: Any, width: int = 960) -> tuple[np.ndarray, np.ndarray] |
         return None
 
 
+def _display_crop(rgb: np.ndarray, target_height: int = 220) -> np.ndarray | None:
+    """The glowing digital display, cropped and enlarged, or None.
+
+    Seven-segment digits (a washer's red "E4") are tiny in a phone frame and the
+    recogniser misreads them at full-frame scale ("h3"). They are also the most
+    saturated bright pixels in shot, so they are easy to find: take the box
+    around them, drop stray pixels by percentile, and upscale before reading.
+    Measured on a real washer photo: full frame read "h3"; this crop read E, 4.
+    """
+    a = rgb.astype(np.float32) / 255.0
+    mx, mn = a.max(axis=2), a.min(axis=2)
+    glow = ((mx - mn) / (mx + 1e-6) > 0.5) & (mx > 0.55)
+    if glow.sum() < 40:
+        return None
+    ys, xs = np.nonzero(glow)
+    y0, y1 = (int(v) for v in np.percentile(ys, [2, 98]))
+    x0, x1 = (int(v) for v in np.percentile(xs, [2, 98]))
+    pad = max(8, (y1 - y0) // 3)
+    y0, y1 = max(0, y0 - pad), min(rgb.shape[0], y1 + pad)
+    x0, x1 = max(0, x0 - pad), min(rgb.shape[1], x1 + pad)
+    if y1 - y0 < 8 or x1 - x0 < 8:
+        return None
+    from PIL import Image
+
+    crop = Image.fromarray(rgb[y0:y1, x0:x1])
+    scale = target_height / crop.height
+    if scale <= 1.0:
+        return None  # already large enough; the full-frame pass saw it
+    crop = crop.resize((round(crop.width * scale), target_height), Image.LANCZOS)
+    return np.asarray(crop, dtype=np.uint8)
+
+
 def _extract_codes(text: str) -> list[str]:
     """Pull error codes out of joined OCR text, normalised and deduplicated."""
     found: list[str] = []
@@ -278,6 +310,20 @@ def read_frame(source: Any) -> FrameText:
             continue
         out.lines.append(str(text).strip())
         out.confidences.append(confidence)
+
+    # Second pass, only when the frame has no code yet: read the glowing display
+    # on its own, enlarged. Costs one more OCR call on frames that have a lit panel.
+    if not _extract_codes(" ".join(out.lines).upper()):
+        display = _display_crop(rgb)
+        if display is not None:
+            try:
+                extra, _ = reader(display)
+            except Exception:  # noqa: BLE001 - the first pass already stands
+                extra = None
+            for _box, text, conf in (extra or []):
+                if float(conf) >= MIN_TEXT_CONFIDENCE:
+                    out.lines.append(str(text).strip())
+                    out.confidences.append(float(conf))
 
     joined = " ".join(out.lines)
     upper = joined.upper()
