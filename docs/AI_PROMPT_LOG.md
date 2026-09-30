@@ -236,4 +236,6 @@ like a panel code. Held-out phone frames: 5/9 correct (all real "No Signal" TVs)
   (`AI_Disclosure_Thapar_The_T_Guys_Theme5.docx`; sign-off left for the team), added
   `requirements.txt`, set the team name `Thapar_The_T_Guys_Theme5` in README, docs and both
   decks (files renamed, decks rebuilt).
+- "push this one and remove the one already pushed" -> the team's signed copy
+  `LangAI3.0_AI_Disclosure_The_T_Guys.docx` (signed by Devaansh Gupta) replaces the unsigned one.
 
