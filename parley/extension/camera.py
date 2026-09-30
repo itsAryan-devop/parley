@@ -168,12 +168,34 @@ class FrameDiagnoser:
         return result, executed
 
 
-async def diagnose_latest(latest: LatestFrame, diagnoser: FrameDiagnoser) -> dict[str, Any]:
-    """What the agent's tool does: grab the latest frame and diagnose it."""
-    snap = latest.get()
-    if snap is None:
-        return dict(NO_FRAME)
-    png = await asyncio.to_thread(
-        rgba_to_png, snap.rgba, snap.width, snap.height, MAX_WIDTH, snap.rotation)
-    result, _ = await diagnoser.diagnose(png, frame_id=f"camera-{snap.seq}")
+RETRY_FRAMES = 3
+RETRY_WAIT_S = 0.5
+
+
+async def diagnose_latest(
+    latest: LatestFrame, diagnoser: FrameDiagnoser, *, attempts: int = RETRY_FRAMES,
+    wait_s: float = RETRY_WAIT_S,
+) -> dict[str, Any]:
+    """What the agent's tool does: grab the latest frame and diagnose it.
+
+    A handheld phone often catches a frame mid-movement. If the verdict is
+    "retake", look again at the next fresh frames (still one frame in memory at
+    a time) before asking the user to hold still -- motion blur usually clears
+    within a second.
+    """
+    result: dict[str, Any] = dict(NO_FRAME)
+    seen = None
+    for i in range(attempts):
+        snap = latest.get()
+        if snap is None:
+            return result
+        if snap.seq != seen:
+            seen = snap.seq
+            png = await asyncio.to_thread(
+                rgba_to_png, snap.rgba, snap.width, snap.height, MAX_WIDTH, snap.rotation)
+            result, _ = await diagnoser.diagnose(png, frame_id=f"camera-{snap.seq}")
+            if result.get("status") != "retake":
+                return result
+        if i < attempts - 1:
+            await asyncio.sleep(wait_s)
     return result
