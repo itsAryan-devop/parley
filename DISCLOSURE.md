@@ -22,7 +22,7 @@ than reconstructed at submission.
 
 **Did your team use any AI in developing this project?** — **Yes.**
 
-**Tool used:** Anthropic Claude (Claude Code, model `claude-opus-5`), run as an
+**Tool used:** Anthropic Claude (Claude Code: cloud sessions and the desktop app; Claude Opus 5 / Opus 5.5), run as an
 interactive coding agent with filesystem, shell, and web-search access.
 
 ---
@@ -197,7 +197,7 @@ reproduced.
 
 | Field | Value |
 |---|---|
-| Name of Team Representative | *(to fill)* |
-| Role | *(to fill)* |
-| Signature | *(to fill)* |
-| Date | *(to fill)* |
+| Name of Team Representative | Devaansh Gupta |
+| Role | Member |
+| Signature | signed in [`LangAI3.0_AI_Disclosure_The_T_Guys.docx`](LangAI3.0_AI_Disclosure_The_T_Guys.docx) |
+| Date | 30 September 2026 |
