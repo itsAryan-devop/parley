@@ -20,8 +20,8 @@ it and never picks up a benchmark room in the same LiveKit project.
 Run (from the repo root; keys in .env.local, never in git):
     python fdb/agent_extension.py dev          # start the worker
     python fdb/agent_extension.py token        # print a Playground token
-Then open https://agents-playground.livekit.io, choose manual connection, paste
-LIVEKIT_URL and the token, and turn on camera + microphone.
+Then open https://meet.livekit.io/?tab=custom, paste LIVEKIT_URL and the token,
+connect, and join with camera + microphone on.
 """
 
 import logging
