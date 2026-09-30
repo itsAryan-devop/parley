@@ -186,8 +186,27 @@ def test_english_words_are_not_error_codes() -> None:
 
     text = "CHECK THAT THE CABLE IS PLUGGED IN. PRESS SOURCE TO SEE ONE INPUT"
     assert _extract_codes(text) == []
+    assert _extract_codes("CHE CK THAT") == []
     assert _extract_codes("PANEL SHOWS DE") == ["DE"]
     assert _extract_codes("ERROR E4") == ["E4"]
+
+
+def test_no_signal_on_screen_is_direct_evidence() -> None:
+    """A real TV's 'No Signal' screen may be light grey, which the colour model
+    abstains on; the words it reads outrank the colours, as a panel code does."""
+    from parley.multimodal.ocr import FrameText
+    from parley.multimodal.perception import Perception
+    from parley.multimodal.vision import _fuse
+
+    abstained = Perception(slot="label", label=None, confidence=0.4, error="out of distribution")
+    read = FrameText(lines=["PCHDMI1", "NoSignal", "(1) Check the cable connection"])
+    fused = _fuse(abstained, read)
+    assert fused.label == "tv_hdmi_no_signal"
+    assert fused.evidence == "screen reads 'no signal'"
+
+    other = _fuse(Perception(slot="label", label=None, confidence=0.4),
+                  FrameText(lines=["No Cable Connected"]))
+    assert other.label is None, "only the phrase that names the state counts"
 
 
 def test_rgba_to_png_round_trips_and_caps_width() -> None:

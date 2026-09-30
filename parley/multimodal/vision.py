@@ -177,6 +177,22 @@ _CODE_LABELS: dict[str, str] = {
     "4E": "washer_error_e4",   # the same inlet fault, printed in the other order
 }
 
+#: On-screen messages that name a device state outright, like a code does. A
+#: real TV's "No Signal" screen can be light grey rather than the dark blue the
+#: colour classifier was fitted on; the words are the stronger witness.
+_PHRASE_LABELS: dict[str, str] = {
+    "no signal": "tv_hdmi_no_signal",
+}
+
+
+def _phrase_label(text: Any) -> tuple[str, str] | None:
+    # Spaces ignored: the recogniser often merges words ("NoSignal").
+    joined = "".join(" ".join(getattr(text, "lines", [])).lower().split())
+    for phrase, label in _PHRASE_LABELS.items():
+        if phrase.replace(" ", "") in joined:
+            return phrase, label
+    return None
+
 
 def _fuse(perception: Perception, text: Any) -> Perception:
     """Reconcile the colour classifier with what the panel actually says.
@@ -195,6 +211,10 @@ def _fuse(perception: Perception, text: Any) -> Perception:
 
     code = text.code
     label = _CODE_LABELS.get(code) if code else None
+    evidence = f"panel reads {code}"
+    if not label and (hit := _phrase_label(text)):
+        phrase, label = hit
+        evidence = f"screen reads '{phrase}'"
 
     if label:
         if perception.label != label:
@@ -207,7 +227,7 @@ def _fuse(perception: Perception, text: Any) -> Perception:
         # the recogniser can still misread, and a claim of certainty would be
         # the one thing the provable-speech gate cannot warrant.
         perception.confidence = 0.95
-        perception.evidence = f"panel reads {code}"
+        perception.evidence = evidence
         return perception
 
     if code and perception.label is None:
