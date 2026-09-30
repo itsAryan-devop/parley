@@ -220,4 +220,6 @@ accuracy fell to ~0.89, "two LEDs lit" frames were answered instead of asked, an
 were unstable (3/9, then 1/9). Reverted. Added instead: on-screen "No Signal" as direct evidence,
 like a panel code. Held-out phone frames: 5/9 correct (all real "No Signal" TVs), 4 abstained,
 0 wrong. The phrase rule was written after seeing those frames; disclosed in the README.
+- "it works now on the tv i showed a random tv with no signal on it" -> recorded in the README as
+  a first independent live check (frame not saved).
 
