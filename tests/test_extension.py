@@ -209,6 +209,31 @@ def test_no_signal_on_screen_is_direct_evidence() -> None:
     assert other.label is None, "only the phrase that names the state counts"
 
 
+async def test_a_blurred_frame_gets_a_second_look(monkeypatch) -> None:
+    """If the first frame needs a retake, a fresh frame is tried before asking."""
+    latest = LatestFrame()
+    latest.set(*_rgba("washer_unreadable.png"))
+
+    async def next_frame_arrives(_s):
+        latest.set(*_rgba("tv_hdmi_no_signal.png"))
+
+    monkeypatch.setattr(camera.asyncio, "sleep", next_frame_arrives)
+    result = await diagnose_latest(latest, FrameDiagnoser(), wait_s=0)
+    assert result["label"] == "tv_hdmi_no_signal"
+
+
+async def test_retake_stands_when_no_fresh_frame_helps(monkeypatch) -> None:
+    latest = LatestFrame()
+    latest.set(*_rgba("washer_unreadable.png"))
+
+    async def nothing_new(_s):
+        return None
+
+    monkeypatch.setattr(camera.asyncio, "sleep", nothing_new)
+    result = await diagnose_latest(latest, FrameDiagnoser(), wait_s=0)
+    assert result["status"] == "retake"
+
+
 def test_rgba_to_png_round_trips_and_caps_width() -> None:
     rgba = np.zeros((720, 1280, 4), dtype=np.uint8)
     rgba[..., 0] = 200
