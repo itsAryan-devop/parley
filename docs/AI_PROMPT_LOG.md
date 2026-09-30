@@ -246,3 +246,5 @@ like a panel code. Held-out phone frames: 5/9 correct (all real "No Signal" TVs)
   E4 photo). Demo video link added: https://youtu.be/-l4Yk7sETZQ
 - "check this ppt and rename it as you want and push it" -> final deck checked (12 slides, no
   placeholders, numbers match the repo) and added as `deck/Thapar_The_T_Guys_Theme5_Submission.pptx`.
+- "only keep the latest on delete all the others and also push it outside the deck folder so it is
+  easily visible" -> final deck moved to the repo root; older decks and their build scripts removed.

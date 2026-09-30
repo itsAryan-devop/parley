@@ -66,7 +66,7 @@ Each conversation gets a fresh `ToolGuard`; nothing is cached across scenarios.
 | Source code | this repository (tag `PRISM_GENAI_HACKATHON_Y2026`) |
 | Setup / reproduction | [`requirements.txt`](requirements.txt) (`pip install -r requirements.txt`) and one command, `bash reproduce.sh` (below) |
 | AI disclosure (signed form) | [`LangAI3.0_AI_Disclosure_The_T_Guys.docx`](LangAI3.0_AI_Disclosure_The_T_Guys.docx), backed by [`DISCLOSURE.md`](DISCLOSURE.md) and every prompt in [`docs/AI_PROMPT_LOG.md`](docs/AI_PROMPT_LOG.md) |
-| Presentation | [`deck/Thapar_The_T_Guys_Theme5_Submission.pptx`](deck/Thapar_The_T_Guys_Theme5_Submission.pptx) (12 slides, submission template) |
+| Presentation | [`Thapar_The_T_Guys_Theme5_Submission.pptx`](Thapar_The_T_Guys_Theme5_Submission.pptx) (12 slides, submission template) |
 | Demo video (4 min 58 s) | **https://youtu.be/-l4Yk7sETZQ** |
 | Results and run logs | [`docs/FDB_RESULTS.md`](docs/FDB_RESULTS.md), [`runs/fdb/`](runs/fdb) |
 
