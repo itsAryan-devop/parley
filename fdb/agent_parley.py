@@ -37,8 +37,11 @@ import time
 from dotenv import load_dotenv
 from livekit import agents
 from livekit.agents import Agent, AgentServer, AgentSession, llm
+from livekit.agents.types import APIConnectOptions
+from livekit.agents.voice.agent_session import SessionConnectOptions
 
 from parley.fdb import ParleyTurnDetector, ToolGuard
+from parley.fdb.args import clean_args
 
 ai_callable = llm.function_tool if hasattr(llm, "function_tool") else llm.ai_callable
 
@@ -112,6 +115,7 @@ class AssistantFnc:
         self.guard = guard
 
     async def _call(self, name: str, **args):
+        args = clean_args(args)  # "P-5-2" as transcribed -> "P52" as spoken
         def execute():
             self.tracker.tool_start_at = time.time()
             result = registry.call(name, **args)
@@ -260,6 +264,7 @@ INSTRUCTIONS = (
     "Only perform a state-changing action (booking, adding to a cart, updating a document, "
     "changing a payment or a saved filter) when the user explicitly asked for that action. "
     "Searching is not buying: after a lookup, report what you found and let the user decide. "
+    "Never say an action is done unless you called its tool and it succeeded. "
     "The user speaks naturally, with fillers, pauses, false starts and self-corrections. "
     "When they correct themselves ('Paris -- no, actually Berlin'), use ONLY the final value "
     "and never call a tool with the abandoned one. Call each tool once per distinct request; "
@@ -343,6 +348,10 @@ async def entrypoint(ctx: agents.JobContext):
         llm=llm_model,
         tts=tts,
         tools=tools,
+        # A dropped connection or a free-tier 429 must not silence a whole clip:
+        # LiveKit's default gives up after 3 retries 2 s apart (~7 s).
+        conn_options=SessionConnectOptions(
+            llm_conn_options=APIConnectOptions(max_retry=6, retry_interval=3.0, timeout=20.0)),
         min_endpointing_delay=MIN_DELAY_S,
         max_endpointing_delay=MAX_DELAY_S,
         **extra,
@@ -350,8 +359,12 @@ async def entrypoint(ctx: agents.JobContext):
 
     @session.on("user_state_changed")
     def on_user_state(ev):
-        if ev.new_state == "speaking" and guard is not None:
+        if guard is None:
+            return
+        if ev.new_state == "speaking":
             guard.user_started_speaking()
+        else:
+            guard.user_stopped_speaking()
 
     @session.on("user_input_transcribed")
     def on_user_input(msg):

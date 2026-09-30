@@ -67,3 +67,47 @@ commit window adds directly to latency. The early "Sure, take…" on ecommerce_0
 happens with and without our turn detector. These five clips have no
 self-corrections, which is the case the detector and guard were built for, so
 this ablation cannot show whether they help there.
+
+## Step 4 — 10 different clips spread over all domains
+
+`SAMPLES=10 SAMPLE_OFFSET=5 SAMPLE_STEP=10`: every 10th clip, starting at the
+6th. That's 3 easy/medium ecommerce, 2 finance, 3 housing and 2 travel, with 3
+hard chains and 2 self-corrections.
+
+| Run | Config | Replied | Tool sel. | Args (exact) | Strict | Mean latency |
+|---|---|---|---|---|---|---|
+| `20260930-002544` | step-2 config (**mixed**: `turn.py` was edited mid-run) | 9/10 | 91.9% | 40.7% | 3/10 | 6.1 s |
+| `20260930-003856` | + the four fixes below, without the ID canonicaliser | 9/10 | 81.1% | 48.1% | **4/10** | 6.8 s |
+| `20260930-005125` | + ID canonicaliser | — | — | — | clips 1–4: **3/4**; clips 5–10 void | — |
+
+**The last run is void from clip 5 on.** Groq's free tier caps each tool-calling model at
+**200,000 tokens per day** (429 `tokens per day (TPD)`, limit 200000, used 198932).
+Every later clip got no LLM answer at all. See "Quota" below.
+
+Failure causes found in the transcripts, and the general fix for each. No fix
+names or hardcodes a benchmark item; each has unit tests in our own phrasings:
+
+| Cause (clips) | Fix | Effect seen |
+|---|---|---|
+| Premature call on a turn the user was **still talking through**. The guard only cancelled when speech *started* inside its window. (finance_15, self-correction: `modify_autopay(checking)` then `(savings)`) | `ToolGuard` also defers while the user is speaking (`user_stopped_speaking`) | finance_15 passes, one call on the final value. The guard deferred 4–5 premature calls per run, e.g. an ID captured half-spelled |
+| Turn detector scored a trailing-off turn as finished (0.986) because Whisper's capitals ("I'm", a segment's first word) looked like proper nouns | `turn.py`: pronoun *I* forms and segment-initial words are not values; a trailing "…" is not a bound value | same turn now 0.011; complete requests unchanged (0.89–0.99) |
+| Spelled IDs copied with STT separators: `P-5-2`, `DL-5-55` (2 clips) | `parley/fdb/args.py` joins ID arguments made only of ≤3-char pieces. The prompt version of this rule was ignored by the LLM, so it was removed | ecommerce_14 passes with `P52` |
+| Transient connection errors / a 429 made LiveKit give up after ~7 s and the clip went silent (housing_21) | LLM retries 6 × 3 s | a TPM 429 on ecommerce_21 recovered |
+| Claimed an action without calling the tool (ecommerce_21: "I've added it to your cart") | prompt: never say an action is done unless its tool succeeded | in the next run, all three calls were made, each once |
+
+Not fixable in general, left as is: the destination (travel_21) and the city
+(housing_21) never appear in either the agent's or the benchmark's
+transcription, so the agent asks for them. Filter names such as `bedrooms_min`,
+and IDs like `BOP`, fail exact-match only, and a gpt-4o judge might accept them. One clip
+(housing_13) was lost when FDB-v3's own client crashed at teardown (SIGABRT),
+which also happened once before.
+
+## Quota — the blocker for a 100-clip run
+
+Measured cost: **≈3.4 LLM calls and ≈4,000 tokens per clip**. Groq free-tier
+limits (console.groq.com/docs/rate-limits, 30 Sep 2026): gpt-oss-120b,
+gpt-oss-20b and qwen3.8-27b each allow **200K tokens/day**. Orpheus TTS allows
+100 requests/day, now replaced by local Piper. A 100-clip run needs ≈400K
+tokens, so **no free Groq model can finish one in a day, and the organisers'
+re-run on free keys would stop around clip 50.** The TPD counter refills at
+roughly 8K tokens/hour (~2 clips/hour).

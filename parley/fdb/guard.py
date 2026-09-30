@@ -62,12 +62,18 @@ class ToolGuard:
         self.grace_s = grace_s
         self._sleep = sleep
         self._speech_epoch = 0
+        self._user_speaking = False
         self._claimed: dict[str, Any] = {}
         self.suppressed: list[tuple[str, str]] = []  # (key, why) -- for logs
 
     def user_started_speaking(self) -> None:
         """Call on every VAD speech onset. Invalidates calls still in their grace window."""
         self._speech_epoch += 1
+        self._user_speaking = True
+
+    def user_stopped_speaking(self) -> None:
+        """Call when VAD reports the user silent again."""
+        self._user_speaking = False
 
     async def run(
         self, tool: str, args: dict[str, Any], execute: Callable[[], Any]
@@ -84,7 +90,9 @@ class ToolGuard:
         epoch = self._speech_epoch
         if self.grace_s > 0:
             await self._sleep(self.grace_s)
-        if self._speech_epoch != epoch:
+        # Resumed inside the window, or never stopped: the LLM acted on a turn
+        # that ended on a pause the user was already talking through.
+        if self._speech_epoch != epoch or self._user_speaking:
             self.suppressed.append((key, "user_resumed"))
             return dict(DEFERRED), False
         # A second copy of this call may have claimed it while we waited.

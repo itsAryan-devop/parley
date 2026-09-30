@@ -9,6 +9,7 @@ import asyncio
 import pytest
 
 from parley.fdb import ParleyTurnDetector, ToolGuard
+from parley.fdb.args import canonical_spoken_id, clean_args
 from parley.fdb.guard import action_key
 
 TOOLS = [
@@ -59,8 +60,25 @@ async def test_user_resuming_inside_grace_cancels_before_effect():
     guard.user_started_speaking()          # "... actually, no --"
     result, executed = await task
     assert not executed and runs == [] and result["status"] == "not_executed"
+    guard.user_stopped_speaking()          # "... make it Madrid."
     # the corrected request still goes through afterwards
     _, ok = await guard.run("search_flights", {"destination": "Madrid"}, lambda: runs.append(1))
+    assert ok and runs == [1]
+
+
+async def test_call_issued_while_user_is_still_talking_is_deferred():
+    # The turn ended on a pause the user talked straight through: speech began
+    # before the call was issued, so no onset lands inside the grace window.
+    guard, runs = ToolGuard(grace_s=0.01), []
+    guard.user_started_speaking()          # "... from checking -- hang on, no"
+    result, executed = await guard.run(
+        "modify_autopay", {"bill_type": "water", "source_account": "checking"},
+        lambda: runs.append(1))
+    assert not executed and runs == [] and result["status"] == "not_executed"
+    guard.user_stopped_speaking()
+    _, ok = await guard.run(
+        "modify_autopay", {"bill_type": "water", "source_account": "credit card"},
+        lambda: runs.append(1))
     assert ok and runs == [1]
 
 
@@ -109,6 +127,17 @@ def test_mid_correction_and_dangling_turns_are_held(detector, text):
     assert detector.probability(text) < 0.15, text
 
 
+@pytest.mark.parametrize("text", [
+    # Whisper capitalises each segment ("  For") and writes "I'm"; neither is a
+    # proper noun, and a trailing "..." means the speaker trailed off.
+    "So, um...  I'm trying to get, uh,  For the...",
+    "Okay.  I'll need a, um,  Something like...",
+    "Hmm, I've been meaning to, uh…",
+])
+def test_trailing_off_with_stt_capitals_is_held(detector, text):
+    assert detector.probability(text) < 0.15, text
+
+
 async def test_livekit_protocol_surface(detector):
     class Msg:
         role, text_content = "user", "Track order ZZ9 for me."
@@ -119,3 +148,25 @@ async def test_livekit_protocol_surface(detector):
     assert await detector.supports_language("en")
     assert await detector.unlikely_threshold("en") == 0.15
     assert await detector.predict_end_of_turn(Ctx()) > 0.5
+
+
+# -- spelled-out identifiers ----------------------------------------------------
+
+@pytest.mark.parametrize("heard,meant", [
+    ("Q-7-7", "Q77"),
+    ("Z, Y, 4, 1", "ZY41"),
+    ("K L 9", "KL9"),
+    ("MN-4-02", "MN402"),
+])
+def test_spelled_identifiers_are_joined(heard, meant):
+    assert canonical_spoken_id(heard) == meant
+
+
+@pytest.mark.parametrize("value", ["ORD-12345", "SAVE-2026", "QX77", "gold", "New York"])
+def test_real_identifiers_and_words_are_left_alone(value):
+    assert canonical_spoken_id(value) == value
+
+
+def test_only_identifier_arguments_are_cleaned():
+    got = clean_args({"order_id": "B-4-4", "query": "a b c", "quantity": 2, "doc_number": "X 9"})
+    assert got == {"order_id": "B44", "query": "a b c", "quantity": 2, "doc_number": "X9"}
