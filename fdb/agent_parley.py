@@ -24,7 +24,9 @@ GROQ_API_KEY (default, free tier) or OPENAI_API_KEY with PARLEY_BACKEND=openai.
 Optional: PARLEY_LLM (Groq model id), PARLEY_COMMIT_GRACE (s, default 0.3),
 PARLEY_MAX_DELAY (s, default 1.5), PARLEY_TURN_DETECTOR=0 to disable (ablation),
 PARLEY_GUARD=0 / PARLEY_RESOLVER=0 to disable (ablation), PARLEY_TTS=groq for Groq's Orpheus voice
-instead of the local Piper default, PARLEY_REASONING (gpt-oss effort, default low).
+instead of the local Piper default, PARLEY_REASONING (gpt-oss effort, default low),
+PARLEY_LLM_BASE_URL (+ PARLEY_LLM_API_KEY) to use any OpenAI-compatible LLM server
+such as vLLM or Ollama instead of Groq's.
 """
 
 import json
@@ -336,10 +338,23 @@ def build_models():
     else:
         from parley.fdb.local_tts import PiperTTS
         tts = PiperTTS()
+    base_url = os.getenv("PARLEY_LLM_BASE_URL")
+    if base_url:
+        # Any OpenAI-compatible server, e.g. `vllm serve openai/gpt-oss-20b` on the
+        # evaluation GPU: no daily token cap. Groq's free tier caps every
+        # tool-calling model at 200K tokens/day (~50 clips).
+        from livekit.plugins import openai
+        llm_model = openai.LLM(model=os.getenv("PARLEY_LLM", "openai/gpt-oss-20b"),
+                               base_url=base_url,
+                               api_key=os.getenv("PARLEY_LLM_API_KEY", "not-needed"),
+                               temperature=0.0, parallel_tool_calls=False,
+                               reasoning_effort=REASONING)
+    else:
+        llm_model = groq.LLM(model=os.getenv("PARLEY_LLM", "openai/gpt-oss-120b"),
+                             temperature=0.0, parallel_tool_calls=False,
+                             reasoning_effort=REASONING)
     return (groq.STT(model="whisper-large-v3-turbo", language="en", prompt=DISFLUENT_PROMPT),
-            groq.LLM(model=os.getenv("PARLEY_LLM", "openai/gpt-oss-120b"),
-                     temperature=0.0, parallel_tool_calls=False, reasoning_effort=REASONING),
-            tts)
+            llm_model, tts)
 
 
 @server.rtc_session()

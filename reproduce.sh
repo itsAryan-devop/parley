@@ -73,7 +73,8 @@ fi
 say "4/6 Keys -> v3/.env.local (local only, gitignored)"
 if [ -n "${LIVEKIT_URL:-}" ]; then
   : > "$V3/.env.local"
-  for k in LIVEKIT_URL LIVEKIT_API_KEY LIVEKIT_API_SECRET GROQ_API_KEY OPENAI_API_KEY; do
+  for k in LIVEKIT_URL LIVEKIT_API_KEY LIVEKIT_API_SECRET GROQ_API_KEY OPENAI_API_KEY \
+           PARLEY_LLM_BASE_URL PARLEY_LLM_API_KEY PARLEY_LLM; do
     [ -n "${!k:-}" ] && echo "$k=${!k}" >> "$V3/.env.local"
   done
 fi
@@ -123,6 +124,7 @@ cp $LOGS "$RUN_DIR/" 2>/dev/null || true
 {
   echo "date: $(date -u +%FT%TZ)"
   echo "agent: $AGENT   label: $LABEL   samples: $SAMPLES  offset: $SAMPLE_OFFSET  step: $SAMPLE_STEP  resume: ${RESUME:-0}"
+  echo "llm_base_url: ${PARLEY_LLM_BASE_URL:-groq}"
   echo "backend: ${PARLEY_BACKEND:-groq}   llm: ${PARLEY_LLM:-openai/gpt-oss-120b}   reasoning: ${PARLEY_REASONING:-low}   tts: ${PARLEY_TTS:-local}"
   echo "grace: ${PARLEY_COMMIT_GRACE:-0.3}   max_delay: ${PARLEY_MAX_DELAY:-1.5}"
   echo "turn_detector: ${PARLEY_TURN_DETECTOR:-1}   guard: ${PARLEY_GUARD:-1}   resolver: ${PARLEY_RESOLVER:-0}"

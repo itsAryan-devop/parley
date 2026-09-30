@@ -13,9 +13,14 @@ and [`RESEARCH.md`](RESEARCH.md) Round 4. Everything is on branch
    re-run our `reproduce.sh`, and on free keys that re-run would stop around clip 50. Options,
    your call:
    - **(a) Serve the LLM locally on their 48 GB GPU.** The guide allows it. gpt-oss-20b fits,
-     and it scored as well as or better than 120b in our small runs. This needs a small
-     `PARLEY_BACKEND` change: an OpenAI-compatible `base_url` for vLLM or Ollama, plus a
-     serving step in `reproduce.sh`. Not built or tested here: no GPU.
+     and it scored as well as or better than 120b in our small runs. **The agent side is now
+     built:** set `PARLEY_LLM_BASE_URL` (plus optional `PARLEY_LLM_API_KEY` and `PARLEY_LLM`)
+     and the agent sends its LLM calls to any OpenAI-compatible server, for example
+     `vllm serve openai/gpt-oss-20b` and then
+     `PARLEY_LLM_BASE_URL=http://localhost:8000/v1 bash reproduce.sh`. The code path was
+     smoke-tested end to end on one clip, against Groq's OpenAI-compatible endpoint. What's
+     still missing: the serving step itself (installing vLLM and starting the server on their
+     GPU) was not scripted into `reproduce.sh`, because it can't be tested without a GPU.
    - **(b) Declare a paid hosted API.** This conflicts with our no-paid-services rule.
    - **(c) Keep free Groq and document that a full run takes two days of quota,**
      using `RESUME=1 RUN_DIR=... bash reproduce.sh`. This risks a partial score if they don't resume.

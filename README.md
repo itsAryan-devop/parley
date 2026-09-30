@@ -93,11 +93,16 @@ per-clip table.
 Settings (all optional): `PARLEY_TURN_DETECTOR=0` / `PARLEY_GUARD=0` (ablation),
 `PARLEY_LLM` (Groq model id), `PARLEY_REASONING` (gpt-oss effort, default `low`),
 `PARLEY_TTS=groq` (Orpheus instead of Piper), `PARLEY_BACKEND=openai` (the stock agent's exact
-OpenAI models, for a like-for-like baseline).
+OpenAI models, for a like-for-like baseline), and `PARLEY_LLM_BASE_URL` (+ `PARLEY_LLM_API_KEY`,
+`PARLEY_LLM`) to send LLM calls to any OpenAI-compatible server instead of Groq. On a GPU, for
+example: `vllm serve openai/gpt-oss-20b`, then
+`PARLEY_LLM_BASE_URL=http://localhost:8000/v1 bash reproduce.sh`. That removes the daily token
+cap below. STT still uses Groq; its free tier allows about 8 hours of audio a day.
 
 > **Quota warning.** Groq's free tier caps each tool-calling model at **200,000 tokens per day**.
-> A clip costs about 4,000, so **a full 100-clip run needs about two days of free quota**. See
-> [`docs/STATUS.md`](docs/STATUS.md) for the options.
+> A clip costs about 4,000, so **a full 100-clip run needs about two days of free quota**. Either
+> use `RESUME=1` across two days or serve the LLM yourself with `PARLEY_LLM_BASE_URL` (above).
+> See [`docs/STATUS.md`](docs/STATUS.md).
 
 ## Models and services
 
