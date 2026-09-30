@@ -69,8 +69,16 @@ _CODE_PATTERNS = [
     re.compile(r"\b(E[\s:-]?\d{1,3})\b", re.I),
     re.compile(r"\b(ERR(?:OR)?[\s:-]?\d{1,3})\b", re.I),
     re.compile(r"\b(\d[A-Z])\b"),
-    re.compile(r"\b([A-Z]{1,2}E)\b"),
+    # Letter-only codes are exactly two characters (dE, UE, HE, LE, OE). {1,2}
+    # also matched three-letter words: THE, ONE, CHE (from a split "Check").
+    re.compile(r"\b([A-Z]E)\b"),
 ]
+
+# Two-letter English words the letter-E pattern still matches. A TV's "No Signal"
+# screen is full of prose, and reading a word as a fault code made the agent ask
+# about an appliance code that does not exist. Real codes (dE, UE, HE, LE, OE)
+# are not on this list.
+_NOT_CODES = frozenset({"WE", "BE", "ME"})
 
 # A model number is a longer alphanumeric run. Kept distinct from error codes so
 # that "WW90T534DAN" is never reported to the user as a fault.
@@ -237,7 +245,7 @@ def _extract_codes(text: str) -> list[str]:
             # A bare two-character token that is really part of a model number
             # would be a damaging false positive, so anything appearing inside a
             # longer alphanumeric run is rejected.
-            if code and code not in found:
+            if code and code not in found and code not in _NOT_CODES:
                 found.append(code)
     return found
 

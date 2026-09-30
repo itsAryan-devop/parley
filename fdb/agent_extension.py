@@ -73,6 +73,7 @@ if __name__ == "__main__" and sys.argv[1:2] == ["token"]:
     sys.exit(0)
 
 import asyncio  # noqa: E402
+from pathlib import Path  # noqa: E402
 
 from livekit import agents, rtc  # noqa: E402
 from livekit.agents import Agent, AgentServer, AgentSession, llm, tts  # noqa: E402
@@ -96,9 +97,31 @@ class CameraTools:
         "parameters": {"type": "object", "properties": {}},
     })
     async def diagnose_device_frame(self, raw_arguments: dict):
+        snap = self.latest.get()
         result = await diagnose_latest(self.latest, self.diagnoser)
-        logging.info("diagnose_device_frame -> %s", result.get("status"))
+        size = f"{snap.width}x{snap.height} rot{snap.rotation}" if snap else "no frame"
+        logging.info("diagnose_device_frame -> %s (%s)", result.get("status"), size)
+        if DEBUG_DIR and snap is not None:
+            _save_debug(snap, result)
         return result
+
+
+DEBUG_DIR = os.getenv("PARLEY_EXT_DEBUG_DIR")
+"""Debugging only, off by default: save each diagnosed frame and its result, to
+see what the agent actually received (resolution, focus, glare)."""
+
+
+def _save_debug(snap, result: dict) -> None:
+    import json
+    import time
+
+    from parley.extension import rgba_to_png
+
+    stem = Path(DEBUG_DIR) / f"{time.strftime('%H%M%S')}-{snap.seq}-{result.get('status')}"
+    stem.parent.mkdir(parents=True, exist_ok=True)
+    stem.with_suffix(".png").write_bytes(
+        rgba_to_png(snap.rgba, snap.width, snap.height, 10_000, snap.rotation))
+    stem.with_suffix(".json").write_text(json.dumps(result, indent=2, default=str))
 
 
 class _WholeWav:
@@ -182,7 +205,7 @@ async def _pump(track: rtc.Track, latest: LatestFrame) -> None:
                 continue
             last = now
             f = ev.frame
-            latest.set(bytes(f.data), f.width, f.height)
+            latest.set(bytes(f.data), f.width, f.height, rotation=90 * int(ev.rotation))
     finally:
         await stream.aclose()
 

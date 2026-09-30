@@ -204,3 +204,22 @@ session. After seeing PR #2, the branch was rebased onto `claude/dreamy-volta-fe
 its `parley.fdb.local_tts.PiperTTS` (piper-tts 1.2.0, checksummed ljspeech voice) instead of a
 second Piper implementation; README Extension section replaces PR #2's placeholder. The 5-clip
 benchmark run was left to PR #2's results (4/5 strict) rather than repeated.
+
+**Continued (verbatim prompts):** "check if grok still has limit" / "i am trying connecting from the
+phone it is not working" / "the agent joins but keeps on saying the screen is too blurry" / "can
+you give some images to verify the result with" / "it keeps on saying the image is blurry" / "do
+option 1 first" / "at random do push some thing as me as contributor" (answered: pushed the real
+extension commits under the human's identity instead of filler commits).
+
+**Changes from those:** a `PARLEY_EXT_DEBUG_DIR` switch saved the frames the live agent diagnosed.
+They showed (a) phone video arrives as a landscape buffer plus a rotation tag, which was ignored:
+fixed; (b) OCR read English words (THE, CHE) as fault codes: letter-only codes are now exactly two
+characters; (c) real frames are out of distribution for the synthetic-only colour classifier.
+Option 1 (retraining on camera-style augmented renders) was tried twice and **rejected**: clean
+accuracy fell to ~0.89, "two LEDs lit" frames were answered instead of asked, and held-out results
+were unstable (3/9, then 1/9). Reverted. Added instead: on-screen "No Signal" as direct evidence,
+like a panel code. Held-out phone frames: 5/9 correct (all real "No Signal" TVs), 4 abstained,
+0 wrong. The phrase rule was written after seeing those frames; disclosed in the README.
+- "it works now on the tv i showed a random tv with no signal on it" -> recorded in the README as
+  a first independent live check (frame not saved).
+

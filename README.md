@@ -194,7 +194,8 @@ Open [meet.livekit.io/?tab=custom](https://meet.livekit.io/?tab=custom), paste t
 click Connect, then Join Room with camera and microphone on. (The Agents Playground now requires
 signing in to the LiveKit Cloud account that owns the project, so a token is the simpler route.)
 The agent registers under the explicit name `parley-extension`, so it only joins rooms whose token
-asks for it.
+asks for it. To see what it sees, start it with `PARLEY_EXT_DEBUG_DIR=<dir>`: each diagnosed frame
+is saved there with its result (off by default).
 
 **What it does not do.**
 
@@ -204,7 +205,24 @@ asks for it.
 - The classifier was trained on **synthetic** frames only (see HANDOFF.md §7). How it does on real
   phone photos is measured, not assumed:
 
-  **Real-photo results:** *pending: to be filled in from our own phone photos.*
+  **Real-camera results** (9 frames captured by the live agent from a phone camera on 30 Sep, held
+  out from all training):
+
+  | Frames | Result |
+  |---|---|
+  | Real Samsung TV "No Signal" screens, blue and light grey (5) | **5 diagnosed correctly**, from the words on screen (`screen reads 'no signal'`); the colour model alone abstained on all 5 |
+  | Real TV "No Cable Connected" screen (1) | abstained (retake): a different message, deliberately not claimed |
+  | Our synthetic washer / router images filmed off a laptop screen (3) | abstained (retake) |
+  | **Wrong diagnoses** | **0** |
+
+  We also tried retraining the colour classifier on camera-style augmented renders (blur, tilt,
+  exposure, colour cast, bloom, compression). It was rejected: clean accuracy dropped to ~0.89, it
+  began answering the "two LEDs lit" frames it must ask about, and real-frame results were
+  unstable (3/9 then 1/9 correct over two augmentation settings). The shipped colour model is
+  unchanged; the gains above come from reading the screen. Caveat: the "No Signal" rule was added after
+  seeing these frames, so they are not an independent test of it. First independent check: a live
+  test on a different TV showing "No Signal" was diagnosed correctly (observed by the tester; the
+  frame was not saved). More real photos are needed, especially of routers and washers.
 - **Groq free-tier TTS is tiny:** Orpheus allows about 3,600 characters and 100 requests per day
   per account, and a few minutes of conversation can use it up.
   When Groq returns 429 the agent switches to the benchmark agent's **offline Piper voice**
