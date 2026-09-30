@@ -125,7 +125,7 @@ cp $LOGS "$RUN_DIR/" 2>/dev/null || true
   echo "agent: $AGENT   label: $LABEL   samples: $SAMPLES  offset: $SAMPLE_OFFSET  step: $SAMPLE_STEP  resume: ${RESUME:-0}"
   echo "backend: ${PARLEY_BACKEND:-groq}   llm: ${PARLEY_LLM:-openai/gpt-oss-120b}   reasoning: ${PARLEY_REASONING:-low}   tts: ${PARLEY_TTS:-local}"
   echo "grace: ${PARLEY_COMMIT_GRACE:-0.3}   max_delay: ${PARLEY_MAX_DELAY:-1.5}"
-  echo "turn_detector: ${PARLEY_TURN_DETECTOR:-1}   guard: ${PARLEY_GUARD:-1}"
+  echo "turn_detector: ${PARLEY_TURN_DETECTOR:-1}   guard: ${PARLEY_GUARD:-1}   resolver: ${PARLEY_RESOLVER:-0}"
   echo "judge: ${JUDGE:-exact-match (no OPENAI_API_KEY)}"
   echo "fdb_commit: $FDB_COMMIT   parley_commit: $(git -C "$ROOT" rev-parse HEAD)"
   pip freeze | grep -iE "^livekit|^openai=="

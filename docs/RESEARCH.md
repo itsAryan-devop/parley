@@ -327,6 +327,108 @@ with "we cancel selectively" — which is now table stakes.
 
 ---
 
+## Round 4 — 30 Sep 2026: after the pivot to FDB-v3
+
+Bounded to ~20 searches and fetches. Three questions: what the benchmark's
+authors say fails, what other Theme 05 teams do on the same benchmark, and
+what past PRISM finalists did well.
+
+### R4.1 The FDB-v3 paper's own diagnosis (arXiv 2604.04847)
+
+The paper's results table (Pass@1 with the gpt-4o judge, 100 clips): GPT-Realtime
+0.600, Gemini Live 3.1 0.540, Gemini Live 2.5 0.490, **stock cascaded (Whisper →
+GPT-4o → TTS) 0.450** with 100% turn-take and the highest latency (10.12 s), Grok
+0.430, Ultravox 0.410. Self-correction is the weakest category for every
+system: even GPT-Realtime "fail[s] on over 40%". The stated cause is that
+models "commit intermediate parameters before the correction arrives", and the
+authors recommend deferring commitment and supporting state rollback.
+
+**What it does better than us:** a judged, 100-clip measurement. Ours is
+exact-match on 5–10 clips. **What it doesn't solve:** it names the failure but
+ships no mitigation; the stock cascaded agent has no turn detector and no gate.
+
+**→ Action.** Our cascaded agent reproduces their latency finding: 10.1 s with
+hosted TTS, the same as their 10.12 s. We fixed the TTS half of it (local
+Piper, 5.7 s). The paper's diagnosis is our ToolGuard's premise, so it is
+cited on the problem slide and in the README. Our exact-match numbers are **not**
+comparable to their judged Pass@1, and the README says so.
+
+### R4.2 LiveKit's own duplicate-call bug (livekit/agents issue #3702) and async tools (1.6.0)
+
+LiveKit Agents issue #3702: when a user interrupts during or right after a tool
+call, the call and its result are not saved to the chat history. The LLM
+re-issues it, which in production means duplicate orders. LiveKit 1.6.0
+(June 2026) added async tools with an `on_duplicate` policy, but it detects
+duplicates **by tool name only**.
+
+**What it fixes for us:** nothing new. It confirms our ToolGuard dedupe is
+aimed at a real, framework-level failure. **What it doesn't solve that we do:**
+name-only duplicate detection cannot tell "track order A" from "track order B";
+ours keys on the tool *and* its normalised arguments, and returns the first
+result instead of refusing.
+
+**→ Action.** No code change; we stay on 1.3.12, which FDB-v3 targets. Cited in the
+README's rationale for the guard.
+
+### R4.3 Other Theme 05 teams on the same benchmark
+
+- **Keel** (github.com/PROSTLE/samsung): a gate between a LiveKit agent's LLM
+  and its tools. It holds a call until end of turn **plus 600 ms of quiet**,
+  drops it if the user keeps talking, and runs identical calls once. It reports
+  **48/100 strict** (exact-match, Gemini Live) and 0.529 on self-corrections.
+  *Better than us:* a complete 100-clip run, and a realtime model with lower
+  latency. *Our weakness it exposes:* our gate only checked for speech that
+  *started* inside the window. Keel's "user not speaking" condition is the check
+  we added in step 4 (ToolGuard defers while the user is speaking). *What it
+  doesn't do:* no learned turn detector and no spoken-ID canonicalisation.
+- **SentinelEdge** (github.com/Harya018/samsung-prism-Hackathon): Gemini Live
+  plus a debounce "commit gate" and a **"block-only resolver"** that checks a
+  proposed call's arguments against the turn's transcript and blocks values
+  the user corrected away. It documents cross-turn corrections as unsolved. No
+  licence file.
+- **Interject** (github.com/joannamariyajames/interject, MIT): not on FDB-v3;
+  goal stack, per-turn tool budgets, and a "filler channel" that speaks while
+  tools run.
+
+**→ Action.** Reimplemented SentinelEdge's resolver idea from its
+description, not its code (no licence): `parley/fdb/resolver.py` works on Shriberg's
+reparandum structure (R2.1), which we already model. A call that uses a value from the
+words just before a strong repair marker, while none of its values comes from after
+the correction, is refused once with the correction quoted. A repeat goes through,
+so a false positive costs one LLM round trip. Kept or dropped by the A/B in R4.6.
+Not adopted: Keel's 600 ms quiet period (a threshold; CLAUDE.md forbids tuning
+thresholds against the benchmark, and it would add latency) and a filler
+channel (it would lower measured latency without doing any work sooner).
+
+### R4.4 Audio-based turn detection: Pipecat Smart Turn v3
+
+Open weights, data and training code (BSD-2); Whisper-tiny encoder plus a
+classifier, ~8 MB int8 ONNX, ~12 ms on CPU, 23 languages. It decides
+end-of-turn from the **waveform**, not the transcript.
+
+**Better than us:** our endpointer only sees words, so a trailing-off *tone*
+that STT renders as a clean sentence is invisible to it. **What it doesn't
+solve:** it has no notion of a repair marker or of an unbound slot, which is
+where our lexical features earn their place.
+
+**→ Action.** Not adopted tonight. LiveKit 1.3's turn-detector interface passes
+chat text, not audio, so combining the two means routing audio into the
+detector. That is more than a small change. Listed under "What's next" in
+the deck.
+
+### R4.5 Past PRISM finalists
+
+Winners are not published anywhere we could find. The one placed project we
+found, **TriFusion** (finalist, PRISM GenAI Hackathon 2025), leads with a
+one-command evaluation for judges, a two-tier architecture diagram, a
+demo video and headline performance numbers.
+
+**→ Action.** It matches the updated guide's own weighting (one-command reproduction, a
+diagram, a video). Our README now leads with `reproduce.sh` and one diagram.
+The video is on the human checklist in `docs/STATUS.md`.
+
+---
+
 ## Standing conclusions
 
 1. **The dataflow claim is defensible and differentiating.** No surveyed system models slot →
@@ -352,3 +454,13 @@ with "we cancel selectively" — which is now table stakes.
 - [toolspec — speculative tool execution for LLM agents](https://github.com/joelvarun/toolspec)
 - [Voice Agent Interruption Handling runbook — Hamming AI](https://hamming.ai/resources/voice-agent-interruption-handling-runbook)
 - [LiveKit Agents documentation](https://docs.livekit.io/agents/)
+- [Full-Duplex-Bench-v3 (arXiv 2604.04847)](https://arxiv.org/abs/2604.04847)
+- [livekit/agents issue #3702 — tool call results lost during interruption](https://github.com/livekit/agents/issues/3702)
+- [LiveKit — async tools for voice agents](https://livekit.com/blog/async-tools-voice-agents)
+- [Keel (PROSTLE/samsung)](https://github.com/PROSTLE/samsung)
+- [SentinelEdge (Harya018/samsung-prism-Hackathon)](https://github.com/Harya018/samsung-prism-Hackathon)
+- [Interject](https://github.com/joannamariyajames/interject)
+- [Pipecat Smart Turn v3](https://github.com/pipecat-ai/smart-turn) · [announcement](https://www.daily.co/blog/announcing-smart-turn-v3-with-cpu-inference-in-just-12ms/)
+- [NemotronLabs VoiceChat (arXiv 2609.21967)](https://arxiv.org/abs/2609.21967) — reports 82.5% tool-selection F1 on FDB-v3
+- [TriFusion — PRISM GenAI Hackathon 2025 finalist](https://github.com/Samrudhp/anomaly-detection-TriFusion)
+- [Groq rate limits](https://console.groq.com/docs/rate-limits)

@@ -26,10 +26,14 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from collections.abc import Callable
 from typing import Any
 
 DEFAULT_GRACE_S = 0.3
+# Speech not yet transcribed counts as "still talking" for at most this long
+# after the user falls silent, in case a noise burst never yields a transcript.
+PENDING_SPEECH_TTL_S = 4.0
 
 DEFERRED = {
     "status": "not_executed",
@@ -58,11 +62,15 @@ class ToolGuard:
         grace_s: float = DEFAULT_GRACE_S,
         *,
         sleep: Callable[[float], Any] = asyncio.sleep,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self.grace_s = grace_s
         self._sleep = sleep
+        self._clock = clock
         self._speech_epoch = 0
         self._user_speaking = False
+        self._finals = 0            # STT final transcripts received
+        self._stopped_at = 0.0
         self._claimed: dict[str, Any] = {}
         self.suppressed: list[tuple[str, str]] = []  # (key, why) -- for logs
 
@@ -74,6 +82,16 @@ class ToolGuard:
     def user_stopped_speaking(self) -> None:
         """Call when VAD reports the user silent again."""
         self._user_speaking = False
+        self._stopped_at = self._clock()
+
+    def transcript_final(self) -> None:
+        """Call on every final STT transcript (one per VAD speech segment)."""
+        self._finals += 1
+
+    def _speech_pending(self) -> bool:
+        """The user spoke and STT has not delivered it yet: a correction may be in flight."""
+        return (self._speech_epoch > self._finals
+                and self._clock() - self._stopped_at < PENDING_SPEECH_TTL_S)
 
     async def run(
         self, tool: str, args: dict[str, Any], execute: Callable[[], Any]
@@ -90,9 +108,10 @@ class ToolGuard:
         epoch = self._speech_epoch
         if self.grace_s > 0:
             await self._sleep(self.grace_s)
-        # Resumed inside the window, or never stopped: the LLM acted on a turn
-        # that ended on a pause the user was already talking through.
-        if self._speech_epoch != epoch or self._user_speaking:
+        # Resumed inside the window, never stopped, or said something STT has
+        # not delivered yet: the LLM is acting on a turn the user already
+        # talked past.
+        if self._speech_epoch != epoch or self._user_speaking or self._speech_pending():
             self.suppressed.append((key, "user_resumed"))
             return dict(DEFERRED), False
         # A second copy of this call may have claimed it while we waited.

@@ -23,7 +23,7 @@ Env (in v3/.env.local): LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, and
 GROQ_API_KEY (default, free tier) or OPENAI_API_KEY with PARLEY_BACKEND=openai.
 Optional: PARLEY_LLM (Groq model id), PARLEY_COMMIT_GRACE (s, default 0.3),
 PARLEY_MAX_DELAY (s, default 1.5), PARLEY_TURN_DETECTOR=0 to disable (ablation),
-PARLEY_GUARD=0 to disable (ablation), PARLEY_TTS=groq for Groq's Orpheus voice
+PARLEY_GUARD=0 / PARLEY_RESOLVER=0 to disable (ablation), PARLEY_TTS=groq for Groq's Orpheus voice
 instead of the local Piper default, PARLEY_REASONING (gpt-oss effort, default low).
 """
 
@@ -42,6 +42,8 @@ from livekit.agents.voice.agent_session import SessionConnectOptions
 
 from parley.fdb import ParleyTurnDetector, ToolGuard
 from parley.fdb.args import clean_args
+from parley.fdb.guard import action_key
+from parley.fdb.resolver import StaleValueCheck
 
 ai_callable = llm.function_tool if hasattr(llm, "function_tool") else llm.ai_callable
 
@@ -62,6 +64,7 @@ MAX_DELAY_S = float(os.getenv("PARLEY_MAX_DELAY", "1.5"))
 GRACE_S = float(os.getenv("PARLEY_COMMIT_GRACE", "0.3"))
 USE_TURN = os.getenv("PARLEY_TURN_DETECTOR", "1") != "0"
 USE_GUARD = os.getenv("PARLEY_GUARD", "1") != "0"
+USE_RESOLVER = os.getenv("PARLEY_RESOLVER", "0") == "1"  # off: did not help (FDB_RESULTS step 9)
 BACKEND = os.getenv("PARLEY_BACKEND", "groq")  # groq (free) | openai
 TTS_BACKEND = os.getenv("PARLEY_TTS", "local")  # local (Piper, no quota) | groq
 REASONING = os.getenv("PARLEY_REASONING", "low")  # gpt-oss reasoning effort
@@ -109,13 +112,23 @@ class AssistantFnc:
     """The 12 FDB-v3 tools, same names/signatures/descriptions as the stock agent,
     each routed through the guard."""
 
-    def __init__(self, tracker: LatencyTracker, room_name: str, guard: ToolGuard | None):
+    def __init__(self, tracker: LatencyTracker, room_name: str, guard: ToolGuard | None,
+                 resolver: StaleValueCheck | None = None):
         self.tracker = tracker
         self.room_name = room_name
         self.guard = guard
+        self.resolver = resolver
 
     async def _call(self, name: str, **args):
         args = clean_args(args)  # "P-5-2" as transcribed -> "P52" as spoken
+        if self.resolver is not None:
+            refused = self.resolver.check(name, args, action_key(name, args))
+            if refused is not None:
+                with open("/tmp/parley_guard.log", "a") as f:
+                    f.write(json.dumps({"room": self.room_name, "suppressed": name,
+                                        "args": args, "t": time.time(),
+                                        "why": "stale_value"}) + "\n")
+                return json.dumps(refused)
         def execute():
             self.tracker.tool_start_at = time.time()
             result = registry.call(name, **args)
@@ -335,7 +348,8 @@ async def entrypoint(ctx: agents.JobContext):
 
     tracker = LatencyTracker()
     guard = ToolGuard(grace_s=GRACE_S) if USE_GUARD else None  # fresh per conversation
-    tools = llm.find_function_tools(AssistantFnc(tracker, ctx.room.name, guard))
+    resolver = StaleValueCheck() if USE_RESOLVER else None      # fresh per conversation
+    tools = llm.find_function_tools(AssistantFnc(tracker, ctx.room.name, guard, resolver))
 
     extra = {}
     if USE_TURN:
@@ -368,6 +382,8 @@ async def entrypoint(ctx: agents.JobContext):
 
     @session.on("user_input_transcribed")
     def on_user_input(msg):
+        if msg.is_final and guard is not None:
+            guard.transcript_final()
         if msg.is_final and not tracker.query_received:
             tracker.user_done_at = time.time()
             tracker.query_received = True
@@ -384,6 +400,11 @@ async def entrypoint(ctx: agents.JobContext):
         # What the agent heard (its own STT) and said, per room, for the run logs.
         item = ev.item
         text = getattr(item, "text_content", None)
+        if text and resolver is not None:
+            if item.role == "user":
+                resolver.user_said(text)
+            elif item.role == "assistant":
+                resolver.agent_replied()
         if text:
             with open("/tmp/parley_transcript.log", "a") as f:
                 f.write(json.dumps({"room": ctx.room.name, "t": time.time(),

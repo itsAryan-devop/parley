@@ -61,6 +61,7 @@ async def test_user_resuming_inside_grace_cancels_before_effect():
     result, executed = await task
     assert not executed and runs == [] and result["status"] == "not_executed"
     guard.user_stopped_speaking()          # "... make it Madrid."
+    guard.transcript_final()               # ... and STT delivers it
     # the corrected request still goes through afterwards
     _, ok = await guard.run("search_flights", {"destination": "Madrid"}, lambda: runs.append(1))
     assert ok and runs == [1]
@@ -76,9 +77,35 @@ async def test_call_issued_while_user_is_still_talking_is_deferred():
         lambda: runs.append(1))
     assert not executed and runs == [] and result["status"] == "not_executed"
     guard.user_stopped_speaking()
+    guard.transcript_final()
     _, ok = await guard.run(
         "modify_autopay", {"bill_type": "water", "source_account": "credit card"},
         lambda: runs.append(1))
+    assert ok and runs == [1]
+
+
+async def test_call_waits_for_speech_stt_has_not_delivered():
+    # The user said "checking", then "-- wait, no, savings" and fell silent just
+    # before the call. VAD says silent, but that speech is still in STT.
+    now = [100.0]
+    guard, runs = ToolGuard(grace_s=0.0, clock=lambda: now[0]), []
+    guard.user_started_speaking(); guard.user_stopped_speaking(); guard.transcript_final()
+    guard.user_started_speaking(); guard.user_stopped_speaking()      # not transcribed yet
+    _, ok = await guard.run("modify_autopay", {"bill_type": "gas", "source_account": "checking"},
+                            lambda: runs.append(1))
+    assert not ok and runs == []
+    guard.transcript_final()                                          # the correction arrives
+    _, ok = await guard.run("modify_autopay", {"bill_type": "gas", "source_account": "savings"},
+                            lambda: runs.append(1))
+    assert ok and runs == [1]
+
+
+async def test_untranscribed_noise_does_not_block_forever():
+    now = [100.0]
+    guard, runs = ToolGuard(grace_s=0.0, clock=lambda: now[0]), []
+    guard.user_started_speaking(); guard.user_stopped_speaking()      # a cough, never transcribed
+    now[0] += 5.0
+    _, ok = await guard.run("track_order", {"order_id": "Z1"}, lambda: runs.append(1))
     assert ok and runs == [1]
 
 
